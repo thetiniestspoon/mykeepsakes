@@ -1,81 +1,182 @@
 
 
-## Provincetown Family Week 2026 — Interactive Trip Planner
+## Provincetown Family Planner 2.0 — Dynamic Planning Features
 
-A personal, interactive vacation companion that goes beyond a static itinerary to become a living record of your family's adventure.
-
----
-
-### 🔐 **PIN-Based Access**
-- Simple PIN entry screen (starting with 1475963)
-- Configurable PIN via settings — you can change it anytime
-- Session persists so you don't re-enter on every visit
-- Clean, welcoming entry experience with the Family Week branding
+Transform the app from a static itinerary viewer into a full collaborative trip planning tool your family can use before, during, and after the vacation.
 
 ---
 
-### 🎨 **Warm & Readable Design**
-- Shift to warmer, cozy color palette (cream backgrounds, soft oranges, muted ocean tones)
-- Fix all contrast issues — no more white-on-white
-- Larger, more readable text with generous spacing
-- Maintain the beachy, vacation vibe while prioritizing legibility
+## 1. ITINERARY EDITING & ORGANIZATION
+
+### Drag-and-Drop Itinerary Management
+- **Reorder activities** within a day by dragging them up/down
+- **Move activities between days** — drag an activity from Tuesday to Wednesday
+- **Add new activities** with a simple "+" button on each day
+- **Edit existing activities** — tap to edit title, time, description, links
+- **Delete activities** you decide not to do
+
+### Custom Activities
+- **Add custom activities** not in the original plan (impromptu ideas!)
+- **Create entirely new days** if the trip extends
+- **Quick-add templates**: "Beach Day", "Dinner Out", "Free Time"
 
 ---
 
-### 📅 **Interactive Itinerary**
-Building on the existing day-by-day structure:
-- **Activity completion tracking** — mark activities as done during the trip
-- **Highlight favorites** — star activities, restaurants, or beaches to quickly find them
-- **Hide/collapse sections** — minimize days or sections you don't need
-- **Personal notes** — add your own notes to any activity or day
-- **Photo memories** — upload photos alongside notes to document the experience
-- All external links (restaurants, tickets, maps) open in new windows
+## 2. LODGING COMPARISON & SELECTION
+
+### Accommodation Candidates Section
+A dedicated area to compare lodging options before booking:
+- **Add potential rentals/hotels** with photos, links, pricing, location
+- **See all options on the map** with color-coded pins
+- **Vote/rate each option** — family members can indicate preferences
+- **Mark pros/cons** on each option (beach access, parking, kitchen, etc.)
+- **"Set as booked"** — when you decide, one-click to confirm and move to itinerary
+- **Archive rejected options** — keeps the research but declutters the view
+
+### Comparison View
+- Side-by-side comparison of top contenders
+- Price per night, total cost calculator
+- Distance from key locations (beach, downtown, ferry)
 
 ---
 
-### 🗺️ **Interactive Map View**
-- **Full Google Maps view** showing all locations mentioned in the itinerary
-- **Category filtering** — toggle beaches, restaurants, activities, accommodations
-- **Click markers** to see details and jump to that item in the itinerary
-- Overview of the whole Provincetown area with your trip plotted out
+## 3. FAMILY CONTACTS DIRECTORY
+
+### Custom Contact Cards
+- **Add family members' phone numbers** for quick access during the trip
+- **Add travel companions** (grandparents, cousins, friends joining)
+- **Include emergency info**: allergies, medical info, car seat needs, etc.
+- **Edit/delete contacts** as needed
+
+### Contact Categories
+- **Family** — core trip members
+- **Travel Party** — others joining for part of the trip
+- **Local Contacts** — babysitters, rental hosts, local friends
+- **Emergency** — existing emergency services (current implementation)
 
 ---
 
-### 📚 **Enhanced Guide Sections**
-Existing content (beaches, activities, dining, etc.) with added interactivity:
-- Check off packing list items as you pack
-- Favorite specific restaurants or activities
-- Add personal notes to any guide item
-- All web links and map links clearly marked and opening externally
+## 4. ENHANCED MAP FEATURES
+
+### Full Trip Overview Map
+- **See everything at once** — all accommodations, activities, restaurants, beaches
+- **Smart clustering** — zoom out to see clusters, zoom in for individual pins
+- **Category toggles** — show/hide beaches, dining, activities, lodging candidates
+- **"Day View" filter** — show only locations for a specific day
+- **Tap pins for quick info** — name, time scheduled, link to full details
+
+### Location Additions
+- **Add custom locations** to the map (secret beach spot, friend's house, parking lot)
+- **Mark "visited" locations** — track what you've actually done
 
 ---
 
-### 💾 **Persistent Data (Backend)**
-Using Lovable Cloud for seamless persistence:
-- All checklist states save immediately
-- Favorites, notes, and photos persist across devices
-- Photo uploads stored securely in cloud storage
-- PIN configuration stored server-side
-- Everything syncs automatically — no "save" button needed
+## 5. SHARED WISHLISTS & VOTING
+
+### "Maybe" List
+- **Save ideas you're considering** but haven't committed to
+- **Restaurants to try** if you have time
+- **Activities that might be too ambitious**
+- **Vote on items** — thumbs up/down from family members
+
+### Group Decision Tools
+- **Quick polls** — "Beach or whale watch tomorrow?"
+- **Priority ranking** — drag to rank must-dos
+- **Assignment** — who's in charge of booking each thing?
 
 ---
 
-### 🧭 **Quick Reference & Navigation**
-- Bottom navigation bar with emergency contacts
-- Sticky tab navigation
-- Quick access to ferry times, key contacts, and parking info
-- All phone numbers are tappable to call
+## 6. BUDGET & EXPENSE TRACKING (Bonus)
+
+### Trip Budget
+- **Set overall trip budget**
+- **Log expenses** as you go (with categories)
+- **Running total** vs. budget remaining
+- **Split by category** — lodging, food, activities, transport
 
 ---
 
-### 📸 **Photo Memories Feature**
-- Upload photos directly to any activity or day
-- Photos stored in cloud storage (Lovable Cloud)
-- Gallery view for each day's photos
-- Captions alongside photos
-- Turn your planner into a trip scrapbook after the vacation
+## 7. MEMORIES & SCRAPBOOK MODE (Post-Trip)
+
+### Trip Memory Gallery
+- **View all photos** organized by day or activity
+- **Add captions and stories** to photos after the trip
+- **"Best moments" highlights** — star your favorites
+- **Shareable summary** — generate a link to share with family who couldn't come
 
 ---
 
-This app will be your family's single source of truth for the trip — before, during, and after as a memory keepsake!
+## TECHNICAL APPROACH
+
+### New Database Tables Needed
+
+```text
++------------------------+     +-------------------+
+|   custom_activities    |     |   lodging_options |
++------------------------+     +-------------------+
+| id                     |     | id                |
+| day_id                 |     | name              |
+| title                  |     | description       |
+| description            |     | price_per_night   |
+| time                   |     | total_price       |
+| category               |     | url               |
+| location               |     | location (lat/lng)|
+| links                  |     | is_selected       |
+| order_index            |     | pros_cons         |
+| is_custom              |     | photos            |
+| created_at             |     | created_at        |
++------------------------+     +-------------------+
+
++------------------------+     +-------------------+
+|   family_contacts      |     |   activity_order  |
++------------------------+     +-------------------+
+| id                     |     | id                |
+| name                   |     | activity_id       |
+| phone                  |     | day_id            |
+| relationship           |     | order_index       |
+| category               |     | updated_at        |
+| emergency_info         |     +-------------------+
+| created_at             |
++------------------------+
+```
+
+### UI Components Needed
+1. **DraggableActivity** — using `@dnd-kit` for smooth drag-and-drop
+2. **ActivityEditor** — modal/sheet for editing activity details
+3. **LodgingCard** — comparison card with vote buttons
+4. **LodgingMap** — filtered Google Maps view
+5. **ContactEditor** — form for adding family contacts
+6. **WishlistItem** — voteable item component
+
+### Data Flow
+- All changes persist immediately to the database (real-time sync)
+- Optimistic updates for snappy UI
+- Changes reflect across all devices viewing the app
+
+---
+
+## RECOMMENDED PRIORITY ORDER
+
+| Phase | Features | Why |
+|-------|----------|-----|
+| **Phase 1** | Family Contacts + Itinerary Editing | Most useful for pre-trip planning |
+| **Phase 2** | Lodging Comparison | Critical decision to make early |
+| **Phase 3** | Enhanced Map | Better visualization of the plan |
+| **Phase 4** | Voting/Wishlists | Collaborative decision making |
+| **Phase 5** | Budget Tracking | Nice-to-have for during trip |
+| **Phase 6** | Scrapbook Mode | Post-trip enhancement |
+
+---
+
+## IMMEDIATE NEXT STEPS
+
+If you approve this direction, I would:
+
+1. **Create database migrations** for new tables (family_contacts, custom_activities, lodging_options, activity_order)
+2. **Implement family contacts** section with add/edit/delete
+3. **Add itinerary editing** with drag-and-drop reordering
+4. **Build lodging comparison** module with map integration
+5. **Enhance the map** with filtering and custom pins
+
+Would you like me to proceed with all phases, or focus on specific features first?
 
