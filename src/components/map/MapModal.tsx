@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { X, MapPin, Navigation } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,7 +48,7 @@ export function MapModal({
   useEffect(() => {
     if (!open || !mapRef.current) return;
 
-    // Small delay to ensure dialog is fully rendered
+    // Longer delay to ensure dialog is fully rendered and sized
     const timer = setTimeout(() => {
       if (!mapRef.current) return;
 
@@ -59,7 +59,10 @@ export function MapModal({
       }
 
       // Initialize new map
-      const map = L.map(mapRef.current).setView([lat, lng], zoom);
+      const map = L.map(mapRef.current, {
+        center: [lat, lng],
+        zoom: zoom,
+      });
       mapInstanceRef.current = map;
 
       // Add OpenStreetMap tiles
@@ -72,9 +75,11 @@ export function MapModal({
       const marker = L.marker([lat, lng]).addTo(map);
       marker.bindPopup(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`).openPopup();
 
-      // Force map to recalculate size
-      map.invalidateSize();
-    }, 100);
+      // Force map to recalculate size after render
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+    }, 200);
 
     return () => {
       clearTimeout(timer);
@@ -91,31 +96,31 @@ export function MapModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-[90vh] p-0 gap-0">
-        <DialogHeader className="p-4 pb-2 border-b bg-background">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 min-w-0">
-              <MapPin className="w-5 h-5 text-accent shrink-0" />
-              <DialogTitle className="truncate">{name}</DialogTitle>
-            </div>
-            <DialogClose className="rounded-full p-2 hover:bg-secondary transition-colors">
-              <X className="w-5 h-5" />
-            </DialogClose>
+      <DialogContent 
+        className="max-w-[95vw] w-full h-[85vh] max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden z-[100]"
+      >
+        <DialogHeader className="p-4 pb-2 border-b bg-background shrink-0">
+          <div className="flex items-center gap-2 min-w-0 pr-8">
+            <MapPin className="w-5 h-5 text-accent shrink-0" />
+            <DialogTitle className="truncate">{name}</DialogTitle>
           </div>
+          <DialogDescription className="sr-only">
+            Map showing the location of {name}
+          </DialogDescription>
           {address && (
             <p className="text-sm text-muted-foreground truncate pl-7">{address}</p>
           )}
         </DialogHeader>
         
-        {/* Map container */}
+        {/* Map container with explicit height */}
         <div 
           ref={mapRef} 
-          className="flex-1 w-full min-h-0"
-          style={{ height: 'calc(100% - 120px)' }}
+          className="flex-1 w-full relative"
+          style={{ minHeight: '300px' }}
         />
         
         {/* Footer with Get Directions dropdown */}
-        <div className="p-3 border-t bg-background">
+        <div className="p-3 border-t bg-background shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="w-full">
@@ -123,7 +128,7 @@ export function MapModal({
                 Get Directions
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-48 bg-background z-50">
+            <DropdownMenuContent align="center" className="w-48 bg-background z-[150]">
               <DropdownMenuItem asChild>
                 <a 
                   href={googleMapsUrl} 
