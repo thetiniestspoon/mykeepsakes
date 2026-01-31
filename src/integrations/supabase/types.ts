@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_order: {
+        Row: {
+          activity_id: string
+          created_at: string
+          day_id: string
+          id: string
+          is_hidden: boolean
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          day_id: string
+          id?: string
+          is_hidden?: boolean
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          day_id?: string
+          id?: string
+          is_hidden?: boolean
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -83,6 +113,102 @@ export type Database = {
           id?: string
           is_collapsed?: boolean
           section_id?: string
+        }
+        Relationships: []
+      }
+      custom_activities: {
+        Row: {
+          category: string
+          created_at: string
+          day_id: string
+          description: string | null
+          id: string
+          link: string | null
+          link_label: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          map_link: string | null
+          notes: string | null
+          order_index: number
+          phone: string | null
+          time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          day_id: string
+          description?: string | null
+          id?: string
+          link?: string | null
+          link_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          map_link?: string | null
+          notes?: string | null
+          order_index?: number
+          phone?: string | null
+          time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          day_id?: string
+          description?: string | null
+          id?: string
+          link?: string | null
+          link_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          map_link?: string | null
+          notes?: string | null
+          order_index?: number
+          phone?: string | null
+          time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_contacts: {
+        Row: {
+          category: string
+          created_at: string
+          emergency_info: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          relationship: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          emergency_info?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          relationship?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          emergency_info?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          relationship?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

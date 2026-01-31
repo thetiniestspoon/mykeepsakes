@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +8,21 @@ import {
   CollapsibleContent, 
   CollapsibleTrigger 
 } from '@/components/ui/collapsible';
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent 
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { 
   ChevronDown, 
   Star, 
@@ -23,7 +38,10 @@ import {
   PartyPopper,
   Activity,
   X,
-  Trash2
+  Trash2,
+  Plus,
+  Edit2,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Day, Activity as ActivityType } from '@/lib/itinerary-data';
@@ -42,6 +60,28 @@ import {
   useToggleSection,
   getPhotoUrl
 } from '@/hooks/use-trip-data';
+import {
+  useCustomActivities,
+  useActivityOrder,
+  useUpdateActivityOrder,
+  useDeleteCustomActivity,
+  useToggleActivityVisibility,
+  customActivityToActivity,
+  CustomActivity
+} from '@/hooks/use-activity-order';
+import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
+import { ActivityEditor } from '@/components/itinerary/ActivityEditor';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   activity: Activity,
@@ -63,9 +103,13 @@ const categoryColors: Record<string, string> = {
 
 interface ActivityCardProps {
   activity: ActivityType;
+  isCustom?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onHide?: () => void;
 }
 
-function ActivityCard({ activity }: ActivityCardProps) {
+function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide }: ActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +164,7 @@ function ActivityCard({ activity }: ActivityCardProps) {
         />
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
               categoryColors[activity.category]
@@ -130,6 +174,11 @@ function ActivityCard({ activity }: ActivityCardProps) {
             </span>
             {activity.time && (
               <span className="text-sm text-muted-foreground">{activity.time}</span>
+            )}
+            {isCustom && (
+              <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">
+                Custom
+              </span>
             )}
           </div>
           
@@ -286,6 +335,51 @@ function ActivityCard({ activity }: ActivityCardProps) {
             className="hidden"
             onChange={handlePhotoUpload}
           />
+
+          {/* Edit/Delete for custom activities */}
+          {isCustom && onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1.5 rounded-full text-muted-foreground hover:text-accent transition-colors"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Hide activity */}
+          {onHide && (
+            <button
+              onClick={onHide}
+              className="p-1.5 rounded-full text-muted-foreground hover:text-destructive transition-colors"
+              title="Hide this activity"
+            >
+              <EyeOff className="w-4 h-4" />
+            </button>
+          )}
+
+          {isCustom && onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="p-1.5 rounded-full text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Activity</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{activity.title}"? This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
     </div>
@@ -297,55 +391,200 @@ interface DayCardProps {
 }
 
 function DayCard({ day }: DayCardProps) {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
+  const [editingCustomId, setEditingCustomId] = useState<string | null>(null);
+
   const { data: collapsedSections } = useCollapsedSections();
-  const toggleSection = useToggleSection();
+  const { data: customActivities } = useCustomActivities();
+  const { data: activityOrder } = useActivityOrder();
   const { data: checklistItems } = useChecklistItems();
+
+  const toggleSection = useToggleSection();
+  const updateActivityOrder = useUpdateActivityOrder();
+  const deleteCustomActivity = useDeleteCustomActivity();
+  const toggleActivityVisibility = useToggleActivityVisibility();
   
   const isCollapsed = collapsedSections?.[day.id] ?? false;
-  
+
+  // Get custom activities for this day
+  const dayCustomActivities = (customActivities || [])
+    .filter(a => a.day_id === day.id)
+    .map(c => ({ ...customActivityToActivity(c), customId: c.id }));
+
+  // Create order map
+  const orderMap = (activityOrder || []).reduce((acc, order) => {
+    acc[order.activity_id] = order;
+    return acc;
+  }, {} as Record<string, { order_index: number; is_hidden: boolean }>);
+
+  // Combine base activities with custom ones and sort
+  const allActivities = [
+    ...day.activities.map(a => ({ ...a, customId: undefined })),
+    ...dayCustomActivities
+  ];
+
+  // Filter hidden and sort by order
+  const sortedActivities = allActivities
+    .filter(a => !orderMap[a.id]?.is_hidden)
+    .sort((a, b) => {
+      const orderA = orderMap[a.id]?.order_index;
+      const orderB = orderMap[b.id]?.order_index;
+      
+      // If both have order, use it
+      if (orderA !== undefined && orderB !== undefined) {
+        return orderA - orderB;
+      }
+      // If only one has order, prioritize it
+      if (orderA !== undefined) return -1;
+      if (orderB !== undefined) return 1;
+      // Otherwise, maintain original order
+      return 0;
+    });
+
   // Count completed activities
-  const completedCount = day.activities.filter(
+  const completedCount = sortedActivities.filter(
     a => checklistItems?.[a.id]
   ).length;
-  const totalCount = day.activities.length;
+  const totalCount = sortedActivities.length;
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sortedActivities.findIndex(a => a.id === active.id);
+      const newIndex = sortedActivities.findIndex(a => a.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(sortedActivities, oldIndex, newIndex);
+        
+        // Save new order to database
+        const orders = reordered.map((activity, index) => ({
+          activity_id: activity.id,
+          day_id: day.id,
+          order_index: index
+        }));
+        
+        updateActivityOrder.mutate(orders);
+      }
+    }
+  }, [sortedActivities, day.id, updateActivityOrder]);
+
+  const handleAddActivity = () => {
+    setEditingActivity(null);
+    setEditingCustomId(null);
+    setEditorOpen(true);
+  };
+
+  const handleEditActivity = (activity: ActivityType & { customId?: string }) => {
+    if (activity.customId) {
+      setEditingActivity(activity);
+      setEditingCustomId(activity.customId);
+      setEditorOpen(true);
+    }
+  };
+
+  const handleDeleteActivity = (customId: string) => {
+    deleteCustomActivity.mutate(customId);
+  };
+
+  const handleHideActivity = (activityId: string) => {
+    toggleActivityVisibility.mutate({ 
+      activityId, 
+      dayId: day.id, 
+      isHidden: true 
+    });
+  };
   
   return (
-    <Collapsible
-      open={!isCollapsed}
-      onOpenChange={(open) => toggleSection.mutate({ sectionId: day.id, isCollapsed: !open })}
-    >
-      <Card className="shadow-warm overflow-hidden">
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-secondary/30 transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="font-display text-xl">{day.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {day.dayOfWeek}, {day.date}
-                </p>
+    <>
+      <Collapsible
+        open={!isCollapsed}
+        onOpenChange={(open) => toggleSection.mutate({ sectionId: day.id, isCollapsed: !open })}
+      >
+        <Card className="shadow-warm overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-secondary/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-display text-xl">{day.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {day.dayOfWeek}, {day.date}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {completedCount}/{totalCount}
+                  </span>
+                  <ChevronDown className={cn(
+                    "w-5 h-5 text-muted-foreground transition-transform",
+                    !isCollapsed && "rotate-180"
+                  )} />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                  {completedCount}/{totalCount}
-                </span>
-                <ChevronDown className={cn(
-                  "w-5 h-5 text-muted-foreground transition-transform",
-                  !isCollapsed && "rotate-180"
-                )} />
-              </div>
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <CardContent className="space-y-3 pt-0">
-            {day.activities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} />
-            ))}
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+            </CardHeader>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-3 pt-0">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sortedActivities.map(a => a.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {sortedActivities.map((activity) => (
+                    <DraggableActivity key={activity.id} id={activity.id}>
+                      <ActivityCard 
+                        activity={activity}
+                        isCustom={!!activity.customId}
+                        onEdit={activity.customId ? () => handleEditActivity(activity) : undefined}
+                        onDelete={activity.customId ? () => handleDeleteActivity(activity.customId!) : undefined}
+                        onHide={() => handleHideActivity(activity.id)}
+                      />
+                    </DraggableActivity>
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              {/* Add Activity Button */}
+              <Button
+                variant="outline"
+                className="w-full border-dashed"
+                onClick={handleAddActivity}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Activity
+              </Button>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      <ActivityEditor
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        dayId={day.id}
+        activity={editingActivity}
+        customActivityId={editingCustomId}
+        nextOrderIndex={sortedActivities.length}
+      />
+    </>
   );
 }
 
@@ -359,6 +598,9 @@ export function ItineraryTab({ days }: ItineraryTabProps) {
       <div className="text-center py-4">
         <h2 className="font-display text-2xl text-foreground">Your Trip Itinerary</h2>
         <p className="text-muted-foreground">July 25 - 31, 2026</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Drag activities to reorder • Tap + to add custom activities
+        </p>
       </div>
       
       {days.map((day) => (
