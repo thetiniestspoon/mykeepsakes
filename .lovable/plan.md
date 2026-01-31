@@ -1,122 +1,102 @@
 
+## Fix Map Modal Rendering Issues
 
-## Migrate Entire App to Leaflet — Drop Google Maps Dependencies
-
-Complete the transition to Leaflet by replacing all remaining Google Maps links with the interactive Leaflet-based `MapModal`. This creates a consistent, beautiful in-app map experience everywhere.
-
----
-
-## Current State
-
-The app has **two mapping patterns** right now:
-
-| Pattern | Components | Experience |
-|---------|------------|------------|
-| ✅ **Leaflet MapModal** | LodgingCard, MapTab | Interactive in-app map with OpenStreetMap |
-| ❌ **External Google/Apple Links** | ItineraryTab, GuideTab, FavoritesTab, MapModal footer | Opens external browser/app |
+The map modals stop working after initially functioning because of Leaflet map instance conflicts and initialization timing issues.
 
 ---
 
-## What We're Changing
+## Root Causes Identified
 
-### 1. Update MapModal Footer
+1. **Multiple Leaflet Instances**: The `OverviewMap` on the Map tab maintains a persistent Leaflet map while `MapModal` tries to create another one
+2. **DOM Container State**: Leaflet attaches internal state to DOM elements - if not properly cleaned up, re-initialization fails
+3. **Dialog Animation Timing**: The map initializes before the dialog is fully sized, causing `invalidateSize()` to calculate incorrect dimensions
+4. **Component Remounting**: When `selectedLocation` changes while the modal is open, effects may not clean up properly
+
+---
+
+## Solution
+
+### 1. Add Unique Keys to Force Clean Remounts
+**File:** `src/components/MapTab.tsx`, `src/components/ItineraryTab.tsx`, `src/components/GuideTab.tsx`, `src/components/FavoritesTab.tsx`, `src/components/lodging/LodgingCard.tsx`
+
+Force the MapModal to completely remount when location changes by adding a unique key:
+
+```tsx
+// Before
+<MapModal
+  open={mapModalOpen}
+  lat={selectedLocation.lat}
+  lng={selectedLocation.lng}
+  ...
+/>
+
+// After
+<MapModal
+  key={`${selectedLocation.lat}-${selectedLocation.lng}`}
+  open={mapModalOpen}
+  lat={selectedLocation.lat}
+  lng={selectedLocation.lng}
+  ...
+/>
+```
+
+### 2. Improve MapModal Cleanup & Initialization
 **File:** `src/components/map/MapModal.tsx`
 
-Keep the Google/Apple Maps links in the footer, but rebrand them as "Get Directions" options since that's their real purpose — users can open native apps for turn-by-turn navigation.
+- **Separate the open state from location changes** in the effect dependencies
+- **Add more robust cleanup** that ensures the map container is cleared
+- **Increase initialization delay** to wait for dialog animation
+- **Add a fallback re-initialization** on visibility change
 
-```text
-Current:  [Google Maps] [Apple Maps]
-After:    [Get Directions ▸]  (dropdown with Google/Apple/Waze options)
+```tsx
+useEffect(() => {
+  if (!open) {
+    // Clean up when closing
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    return;
+  }
+
+  if (!mapRef.current) return;
+
+  // Ensure container is clean before initializing
+  if (mapRef.current.hasChildNodes()) {
+    mapRef.current.innerHTML = '';
+  }
+
+  // Wait for dialog to be fully rendered
+  const timer = setTimeout(() => {
+    // ... initialization code
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [open]); // Only depend on open state
+
+// Separate effect to update view when location changes
+useEffect(() => {
+  if (mapInstanceRef.current && open) {
+    mapInstanceRef.current.setView([lat, lng], zoom);
+    // Update marker position
+  }
+}, [lat, lng, zoom, open]);
 ```
 
-### 2. Replace Map Links in ItineraryTab
-**File:** `src/components/ItineraryTab.tsx`
+### 3. Add CSS to Ensure Container Height
+**File:** `src/components/map/MapModal.tsx`
 
-When an activity has `location` data, replace the external "Map" link with a button that opens the `MapModal`:
+Ensure the map container has a fixed, calculated height rather than relying on flexbox:
 
-```text
-Before: <a href={activity.mapLink}> Map </a>
-After:  <button onClick={() => openMap(activity.location)}> Map </button>
-```
-
-### 3. Replace Map Links in GuideTab
-**File:** `src/components/GuideTab.tsx`
-
-Same pattern for beaches and restaurants in the Guide section:
-
-```text
-Before: <a href={item.mapLink}> Map </a>
-After:  <button onClick={() => openMap(item.location)}> Map </button>
-```
-
-### 4. Replace Map Links in FavoritesTab
-**File:** `src/components/FavoritesTab.tsx`
-
-Update favorite beaches to open the in-app modal:
-
-```text
-Before: <a href={beach.mapLink}> Directions </a>
-After:  <button onClick={() => openMap(beach.location)}> View Map </button>
-```
-
-### 5. Clean Up MapTab
-**File:** `src/components/MapTab.tsx`
-
-Remove the standalone "Google Maps" external link that appears below the location count. The map is already in-app!
-
-### 6. Remove Unused Dependency
-**File:** `package.json`
-
-Remove `@types/google.maps` since we're no longer using Google Maps API.
-
----
-
-## Technical Details
-
-### New State Management Pattern
-
-Each component that needs the modal will get:
-
-```typescript
-const [mapModalOpen, setMapModalOpen] = useState(false);
-const [selectedLocation, setSelectedLocation] = useState<{
-  lat: number;
-  lng: number;
-  name: string;
-  address?: string;
-} | null>(null);
-
-const openMapModal = (location: { lat: number; lng: number; name: string }) => {
-  setSelectedLocation(location);
-  setMapModalOpen(true);
-};
-```
-
-### MapModal Enhancement
-
-The footer will be enhanced to be more useful:
-
-```typescript
-// Simplified footer with "Get Directions" dropdown
-<DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button variant="outline" size="sm" className="w-full">
-      <Navigation className="w-4 h-4 mr-2" />
-      Get Directions
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent>
-    <DropdownMenuItem asChild>
-      <a href={googleMapsUrl} target="_blank">Google Maps</a>
-    </DropdownMenuItem>
-    <DropdownMenuItem asChild>
-      <a href={appleMapsUrl} target="_blank">Apple Maps</a>
-    </DropdownMenuItem>
-    <DropdownMenuItem asChild>
-      <a href={wazeUrl} target="_blank">Waze</a>
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
+```tsx
+<div 
+  ref={mapRef} 
+  className="w-full"
+  style={{ 
+    height: 'calc(100% - 120px)', // Account for header + footer
+    minHeight: '300px' 
+  }}
+/>
 ```
 
 ---
@@ -125,29 +105,44 @@ The footer will be enhanced to be more useful:
 
 | File | Changes |
 |------|---------|
-| `src/components/map/MapModal.tsx` | Enhance footer with "Get Directions" dropdown |
-| `src/components/ItineraryTab.tsx` | Add MapModal, replace mapLink anchors with buttons |
-| `src/components/GuideTab.tsx` | Add MapModal, replace mapLink anchors with buttons |
-| `src/components/FavoritesTab.tsx` | Add MapModal, replace mapLink anchors with buttons |
-| `src/components/MapTab.tsx` | Remove standalone Google Maps link |
-| `package.json` | Remove `@types/google.maps` |
+| `src/components/map/MapModal.tsx` | Improve cleanup, separate effects, fix container sizing |
+| `src/components/MapTab.tsx` | Add key to MapModal |
+| `src/components/ItineraryTab.tsx` | Add key to MapModal |
+| `src/components/GuideTab.tsx` | Add key to MapModal |
+| `src/components/FavoritesTab.tsx` | Add key to MapModal |
+| `src/components/lodging/LodgingCard.tsx` | Add key to MapModal |
 
 ---
 
-## User Experience After Changes
+## Technical Details
 
-1. **Tap "Map" on any activity** → Full-screen Leaflet modal opens
-2. **See the location** on an interactive map with marker and popup
-3. **Need directions?** → Tap "Get Directions" → Choose Google/Apple/Waze
-4. **Close modal** → Tap X or background to return
+### Why Keys Help
 
-This keeps users in the app while still allowing them to use their preferred navigation app when they actually need directions.
+React's reconciliation algorithm uses keys to determine whether a component should be reused or remounted. By using the lat/lng as a key, we ensure:
+- Each new location gets a completely fresh MapModal instance
+- Leaflet's internal DOM state is never carried over
+- No cleanup race conditions between old and new map instances
+
+### Why Separate Effects Help
+
+By separating the "open/close" effect from the "update location" effect:
+- Opening the modal triggers full initialization
+- Changing location on an already-open modal just updates the view
+- Closing the modal guarantees cleanup runs
+
+### Container Height Strategy
+
+Using `calc()` for height instead of flexbox ensures:
+- The container has a definite height when the map initializes
+- `invalidateSize()` can correctly calculate tile positions
+- The map doesn't "fight" with flexbox for space
 
 ---
 
-## What We're NOT Changing
+## Expected Result
 
-- The `mapLink` property in `itinerary-data.ts` can stay (backward compatibility)
-- Components will prefer `location` (lat/lng) over `mapLink` when available
-- The "Get Directions" feature still opens external apps (that's the right UX for navigation)
-
+After these changes:
+- Map modals will reliably show tiles every time they open
+- Switching between different locations will work smoothly
+- The Map tab's overview map won't interfere with the modal map
+- Rapid opening/closing won't cause rendering failures
