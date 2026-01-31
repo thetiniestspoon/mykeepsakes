@@ -84,8 +84,17 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('Firecrawl API error:', data);
+      
+      // Check for blocklist error and provide user-friendly message
+      const errorMessage = data.error || `Failed to scrape listing (status ${response.status})`;
+      const isBlocklisted = errorMessage.includes('blocklisted');
+      
+      const userFriendlyError = isBlocklisted 
+        ? 'This rental site cannot be scraped due to their terms of service. Please enter the property details manually.'
+        : errorMessage;
+      
       return new Response(
-        JSON.stringify({ success: false, error: data.error || `Failed to scrape listing (status ${response.status})` }),
+        JSON.stringify({ success: false, error: userFriendlyError }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
