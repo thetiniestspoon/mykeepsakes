@@ -44,6 +44,60 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_overrides: {
+        Row: {
+          activity_id: string
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          link: string | null
+          link_label: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          notes: string | null
+          phone: string | null
+          time: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activity_id: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          link?: string | null
+          link_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          time?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activity_id?: string
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          link?: string | null
+          link_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          time?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
