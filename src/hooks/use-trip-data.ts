@@ -298,3 +298,96 @@ export function getPhotoUrl(storagePath: string): string {
   
   return data.publicUrl;
 }
+
+// Family Contacts
+export interface FamilyContact {
+  id: string;
+  name: string;
+  phone: string | null;
+  relationship: string | null;
+  category: string;
+  emergency_info: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useFamilyContacts() {
+  return useQuery({
+    queryKey: ['family-contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('family_contacts')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as FamilyContact[];
+    }
+  });
+}
+
+export function useAddFamilyContact() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (contact: Omit<FamilyContact, 'id' | 'created_at' | 'updated_at'>) => {
+      const { error } = await supabase
+        .from('family_contacts')
+        .insert(contact);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['family-contacts'] });
+      toast.success('Contact added!');
+    },
+    onError: () => {
+      toast.error('Failed to add contact');
+    }
+  });
+}
+
+export function useUpdateFamilyContact() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<FamilyContact> & { id: string }) => {
+      const { error } = await supabase
+        .from('family_contacts')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['family-contacts'] });
+      toast.success('Contact updated!');
+    },
+    onError: () => {
+      toast.error('Failed to update contact');
+    }
+  });
+}
+
+export function useDeleteFamilyContact() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('family_contacts')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['family-contacts'] });
+      toast.success('Contact deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete contact');
+    }
+  });
+}
