@@ -46,55 +46,88 @@ export function MapModal({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
+  // Helper function to clean up the map container
+  const cleanupContainer = () => {
+    if (mapRef.current) {
+      delete (mapRef.current as any)._leaflet_id;
+      mapRef.current.innerHTML = '';
+    }
+  };
+
+  // Helper function to clean up map instance
+  const cleanupMap = () => {
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('Error removing map:', e);
+      }
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    }
+  };
+
   // Effect for map initialization/cleanup based on open state only
   useEffect(() => {
+    let isMounted = true;
+
     if (!open) {
-      // Clean up when closing
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        markerRef.current = null;
-      }
+      // Synchronous cleanup when closing
+      cleanupMap();
+      cleanupContainer();
       return;
     }
 
     if (!mapRef.current) return;
 
-    // Ensure container is clean before initializing
-    if (mapRef.current.hasChildNodes()) {
-      mapRef.current.innerHTML = '';
-    }
+    // Clean container before initializing (remove any stale Leaflet state)
+    cleanupMap();
+    cleanupContainer();
 
     // Wait for dialog to be fully rendered (animation complete)
     const timer = setTimeout(() => {
-      if (!mapRef.current || mapInstanceRef.current) return;
+      if (!isMounted || !mapRef.current || mapInstanceRef.current) return;
 
-      // Initialize new map
-      const map = L.map(mapRef.current, {
-        center: [lat, lng],
-        zoom: zoom,
-      });
-      mapInstanceRef.current = map;
+      // Ensure container is clean right before init
+      delete (mapRef.current as any)._leaflet_id;
 
-      // Add OpenStreetMap tiles
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(map);
+      try {
+        // Initialize new map
+        const map = L.map(mapRef.current, {
+          center: [lat, lng],
+          zoom: zoom,
+        });
+        mapInstanceRef.current = map;
 
-      // Add marker
-      const marker = L.marker([lat, lng]).addTo(map);
-      marker.bindPopup(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`).openPopup();
-      markerRef.current = marker;
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
 
-      // Force map to recalculate size after render
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
-    }, 300);
+        // Add marker
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker.bindPopup(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`).openPopup();
+        markerRef.current = marker;
+
+        // Force map to recalculate size after render
+        setTimeout(() => {
+          if (isMounted && mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        }, 100);
+      } catch (e) {
+        console.error('Failed to initialize map:', e);
+        // Reset state for potential retry
+        cleanupContainer();
+      }
+    }, 400);
 
     return () => {
+      isMounted = false;
       clearTimeout(timer);
+      cleanupMap();
+      cleanupContainer();
     };
   }, [open]); // Only depend on open state for initialization
 
