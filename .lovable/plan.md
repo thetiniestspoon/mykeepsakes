@@ -1,6 +1,6 @@
 # Trip App Implementation Plan
 
-## Status: Phase 1-4 Complete ✅
+## Status: Phase 1-5 Complete ✅
 
 Last Updated: January 31, 2026
 
@@ -43,6 +43,21 @@ Last Updated: January 31, 2026
   - Overall trip progress display
   - Trip mode indicator (pre/active/post)
   - Map filtering by category and day from database
+
+### ✅ Phase 5: Memory & Media System
+- Created `trip-photos` storage bucket with public read access
+- Created album components:
+  - `src/components/album/AlbumTab.tsx` - Main album view with tabs
+  - `src/components/album/DayPhotoGrid.tsx` - Photos organized by day
+  - `src/components/album/PlacePhotoGrid.tsx` - Photos organized by location
+  - `src/components/album/RecentPhotoGrid.tsx` - Chronological photo view
+  - `src/components/album/MemoryCaptureDialog.tsx` - Multi-photo upload dialog
+- Added "Album" tab to bottom navigation
+- Memory system supports:
+  - Multi-photo/video uploads per memory
+  - Association with days, locations, or both
+  - Note-only memories (no photos required)
+  - Three view modes: By Day, By Place, Recent
 
 ---
 

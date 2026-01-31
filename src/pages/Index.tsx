@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 const DatabaseMapTab = lazy(() => import('@/components/DatabaseMapTab'));
 const GuideTab = lazy(() => import('@/components/GuideTab'));
 const DatabaseItineraryTab = lazy(() => import('@/components/DatabaseItineraryTab'));
+const AlbumTab = lazy(() => import('@/components/album/AlbumTab').then(m => ({ default: m.AlbumTab })));
 
 function TabLoadingFallback() {
   return (
@@ -95,7 +96,12 @@ const Index = () => {
             <GuideTab />
           </Suspense>
         )}
-{activeTab === 'favorites' && <FavoritesTab />}
+        {activeTab === 'album' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <AlbumTab />
+          </Suspense>
+        )}
+        {activeTab === 'favorites' && <FavoritesTab />}
         {activeTab === 'contacts' && <ContactsTab />}
       </main>
       
