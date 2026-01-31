@@ -354,29 +354,96 @@ export const ITINERARY: Day[] = [
     id: 'day-7',
     date: 'Friday, July 31, 2026',
     dayOfWeek: 'Friday',
-    title: 'Departure Day',
+    title: 'Last Full Day',
     activities: [
       {
         id: 'day7-breakfast',
+        time: '9:00 AM',
+        title: 'Leisurely Breakfast at Café Heaven',
+        description: 'Take your time over a delicious breakfast at this local favorite.',
+        category: 'dining',
+        location: { lat: 42.0530, lng: -70.1860, name: 'Café Heaven' },
+        phone: '508-487-9639'
+      },
+      {
+        id: 'day7-kayak',
+        time: '10:30 AM',
+        title: 'Kayaking or Paddleboarding',
+        description: 'Explore the harbor by water! Rentals available at the pier.',
+        category: 'activity',
+        location: { lat: 42.0540, lng: -70.1835, name: 'Provincetown Harbor' },
+        notes: 'Check weather conditions. Life jackets provided with rentals.'
+      },
+      {
+        id: 'day7-lunch',
+        time: '1:00 PM',
+        title: 'Lunch at Fanizzi\'s by the Sea',
+        description: 'Waterfront dining with stunning bay views. Great for families.',
+        category: 'dining',
+        location: { lat: 42.0495, lng: -70.1900, name: 'Fanizzi\'s Restaurant' },
+        link: 'https://www.fanizzisrestaurant.com/',
+        linkLabel: 'View Menu',
+        phone: '508-487-1964'
+      },
+      {
+        id: 'day7-shopping',
+        time: '3:00 PM',
+        title: 'Last-Minute Shopping',
+        description: 'Browse the galleries and shops on Commercial Street for souvenirs and gifts.',
+        category: 'activity',
+        location: { lat: 42.0525, lng: -70.1855, name: 'Commercial Street' },
+        mapLink: 'https://maps.google.com/?q=Commercial+Street+Provincetown+MA'
+      },
+      {
+        id: 'day7-beach',
+        time: '5:00 PM',
+        title: 'Final Beach Sunset at Herring Cove',
+        description: 'One last magical sunset at the beach. Bring a blanket and snacks.',
+        category: 'beach',
+        location: { lat: 42.0642, lng: -70.2095, name: 'Herring Cove Beach' },
+        mapLink: 'https://maps.google.com/?q=Herring+Cove+Beach+Provincetown',
+        notes: 'Arrive early for best parking. Sunset around 8:15 PM in late July.'
+      },
+      {
+        id: 'day7-dinner',
+        time: '7:30 PM',
+        title: 'Farewell Dinner at The Red Inn',
+        description: 'Elegant waterfront dining for a memorable last night. Reservations recommended.',
+        category: 'dining',
+        location: { lat: 42.0565, lng: -70.1902, name: 'The Red Inn' },
+        link: 'https://www.theredinn.com/',
+        linkLabel: 'Reserve Table',
+        phone: '508-487-7334'
+      }
+    ]
+  },
+  {
+    id: 'day-8',
+    date: 'Saturday, August 1, 2026',
+    dayOfWeek: 'Saturday',
+    title: 'Departure Day',
+    activities: [
+      {
+        id: 'day8-breakfast',
         time: '8:00 AM',
-        title: 'Farewell Breakfast',
-        description: 'One last delicious breakfast before saying goodbye.',
+        title: 'Quick Breakfast',
+        description: 'Grab a quick bite before hitting the road.',
         category: 'dining'
       },
       {
-        id: 'day7-checkout',
+        id: 'day8-checkout',
         time: '10:00 AM',
         title: 'Check Out',
         description: 'Pack up and check out of accommodations.',
         category: 'accommodation'
       },
       {
-        id: 'day7-depart',
+        id: 'day8-depart',
         time: '11:00 AM',
         title: 'Head Home',
         description: 'Safe travels! Consider stopping in Plymouth or Sandwich on the way.',
         category: 'transport',
-        notes: 'Friday traffic can be heavy. Leave early if possible!'
+        notes: 'Saturday traffic can be heavy. Leave early if possible!'
       }
     ]
   }
