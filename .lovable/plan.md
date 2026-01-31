@@ -1,103 +1,140 @@
 
-## Fix Map Modal Rendering Issues
+## Add Tap-to-Edit for All Itinerary Activities
 
-The map modals stop working after initially functioning because of Leaflet map instance conflicts and initialization timing issues.
-
----
-
-## Root Causes Identified
-
-1. **Multiple Leaflet Instances**: The `OverviewMap` on the Map tab maintains a persistent Leaflet map while `MapModal` tries to create another one
-2. **DOM Container State**: Leaflet attaches internal state to DOM elements - if not properly cleaned up, re-initialization fails
-3. **Dialog Animation Timing**: The map initializes before the dialog is fully sized, causing `invalidateSize()` to calculate incorrect dimensions
-4. **Component Remounting**: When `selectedLocation` changes while the modal is open, effects may not clean up properly
+Enable users to tap on any activity in the itinerary to edit its details (time, title, description, link, phone, map location).
 
 ---
 
-## Solution
+## Current Situation
 
-### 1. Add Unique Keys to Force Clean Remounts
-**File:** `src/components/MapTab.tsx`, `src/components/ItineraryTab.tsx`, `src/components/GuideTab.tsx`, `src/components/FavoritesTab.tsx`, `src/components/lodging/LodgingCard.tsx`
+| Activity Type | Source | Editable? |
+|--------------|--------|-----------|
+| Base activities | `itinerary-data.ts` (static) | No - read only |
+| Custom activities | `custom_activities` table | Yes - full CRUD |
 
-Force the MapModal to completely remount when location changes by adding a unique key:
+Currently, only custom activities show an edit button. Base activities from the static itinerary data cannot be modified.
 
-```tsx
-// Before
-<MapModal
-  open={mapModalOpen}
-  lat={selectedLocation.lat}
-  lng={selectedLocation.lng}
-  ...
-/>
+---
 
-// After
-<MapModal
-  key={`${selectedLocation.lat}-${selectedLocation.lng}`}
-  open={mapModalOpen}
-  lat={selectedLocation.lat}
-  lng={selectedLocation.lng}
-  ...
-/>
+## Solution: Activity Overrides Table
+
+Create a new database table to store user edits to base activities. When displaying an activity, merge any overrides on top of the base data.
+
+### New Database Table: `activity_overrides`
+
+```sql
+CREATE TABLE activity_overrides (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  activity_id TEXT UNIQUE NOT NULL,  -- matches the base activity ID
+  title TEXT,                         -- NULL means use base value
+  description TEXT,
+  time TEXT,
+  category TEXT,
+  location_name TEXT,
+  location_lat DOUBLE PRECISION,
+  location_lng DOUBLE PRECISION,
+  link TEXT,
+  link_label TEXT,
+  phone TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
-### 2. Improve MapModal Cleanup & Initialization
-**File:** `src/components/map/MapModal.tsx`
+When a field is NULL, the base value is used. When a field has a value, it overrides the base.
 
-- **Separate the open state from location changes** in the effect dependencies
-- **Add more robust cleanup** that ensures the map container is cleared
-- **Increase initialization delay** to wait for dialog animation
-- **Add a fallback re-initialization** on visibility change
+---
 
-```tsx
-useEffect(() => {
-  if (!open) {
-    // Clean up when closing
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
-    return;
-  }
+## Implementation Changes
 
-  if (!mapRef.current) return;
+### 1. Database Migration
+Create the `activity_overrides` table with appropriate RLS policies (public access to match existing patterns).
 
-  // Ensure container is clean before initializing
-  if (mapRef.current.hasChildNodes()) {
-    mapRef.current.innerHTML = '';
-  }
+### 2. New Hook: `useActivityOverrides`
+**File:** `src/hooks/use-activity-order.ts`
 
-  // Wait for dialog to be fully rendered
-  const timer = setTimeout(() => {
-    // ... initialization code
-  }, 300);
+Add functions for:
+- `useActivityOverrides()` - fetch all overrides
+- `useUpsertActivityOverride()` - create or update an override
+- `useDeleteActivityOverride()` - reset to base values
 
-  return () => clearTimeout(timer);
-}, [open]); // Only depend on open state
+### 3. Update ActivityEditor Component
+**File:** `src/components/itinerary/ActivityEditor.tsx`
 
-// Separate effect to update view when location changes
-useEffect(() => {
-  if (mapInstanceRef.current && open) {
-    mapInstanceRef.current.setView([lat, lng], zoom);
-    // Update marker position
-  }
-}, [lat, lng, zoom, open]);
+Extend the editor to handle three cases:
+- **Adding new custom activity** (current behavior)
+- **Editing custom activity** (current behavior)
+- **Editing base activity** (NEW - saves to overrides table)
+
+Add new props:
+```typescript
+interface ActivityEditorProps {
+  // ... existing props
+  isBaseActivity?: boolean;  // true if editing a base activity
+  baseActivityId?: string;   // the ID of the base activity being edited
+}
 ```
 
-### 3. Add CSS to Ensure Container Height
-**File:** `src/components/map/MapModal.tsx`
+### 4. Update ItineraryTab
+**File:** `src/components/ItineraryTab.tsx`
 
-Ensure the map container has a fixed, calculated height rather than relying on flexbox:
+Changes to `DayCard` component:
+- Remove the `isCustom` condition for showing the edit button - all activities get an edit button
+- Update `handleEditActivity` to work with both base and custom activities
+- Merge override data with base activities when displaying
 
-```tsx
-<div 
-  ref={mapRef} 
-  className="w-full"
-  style={{ 
-    height: 'calc(100% - 120px)', // Account for header + footer
-    minHeight: '300px' 
-  }}
-/>
+Changes to `ActivityCard` component:
+- Make the entire card tappable (or add a more prominent edit affordance)
+- Always show the edit button, not just for custom activities
+
+### 5. Merge Logic
+When displaying activities, apply overrides:
+
+```typescript
+function applyOverride(baseActivity: Activity, override?: ActivityOverride): Activity {
+  if (!override) return baseActivity;
+  
+  return {
+    ...baseActivity,
+    title: override.title ?? baseActivity.title,
+    description: override.description ?? baseActivity.description,
+    time: override.time ?? baseActivity.time,
+    category: override.category ?? baseActivity.category,
+    location: override.location_name ? {
+      lat: override.location_lat ?? 0,
+      lng: override.location_lng ?? 0,
+      name: override.location_name
+    } : baseActivity.location,
+    link: override.link ?? baseActivity.link,
+    linkLabel: override.link_label ?? baseActivity.linkLabel,
+    phone: override.phone ?? baseActivity.phone,
+    notes: override.notes ?? baseActivity.notes,
+  };
+}
 ```
+
+---
+
+## UI/UX Changes
+
+### Making Activities Tappable
+
+Option A: **Tap entire card to edit** (simpler)
+- Tap anywhere on the activity card opens the editor
+- Move checkbox, star, note, and photo buttons to prevent accidental edits
+
+Option B: **Keep edit button but show for all** (recommended)
+- Show the edit (pencil) icon for ALL activities, not just custom ones
+- Keeps the current interaction model consistent
+
+I recommend Option B as it's less disruptive and clearer in intent.
+
+### Editor Improvements
+
+Add a "Reset to Default" button when editing base activities:
+- Deletes the override record
+- Returns the activity to its original values from `itinerary-data.ts`
 
 ---
 
@@ -105,44 +142,35 @@ Ensure the map container has a fixed, calculated height rather than relying on f
 
 | File | Changes |
 |------|---------|
-| `src/components/map/MapModal.tsx` | Improve cleanup, separate effects, fix container sizing |
-| `src/components/MapTab.tsx` | Add key to MapModal |
-| `src/components/ItineraryTab.tsx` | Add key to MapModal |
-| `src/components/GuideTab.tsx` | Add key to MapModal |
-| `src/components/FavoritesTab.tsx` | Add key to MapModal |
-| `src/components/lodging/LodgingCard.tsx` | Add key to MapModal |
+| (new migration) | Create `activity_overrides` table with RLS |
+| `src/hooks/use-activity-order.ts` | Add override hooks and merge function |
+| `src/components/itinerary/ActivityEditor.tsx` | Support editing base activities, add "Reset" option |
+| `src/components/ItineraryTab.tsx` | Show edit button for all activities, apply overrides |
 
 ---
 
 ## Technical Details
 
-### Why Keys Help
+### Why an Overrides Table?
 
-React's reconciliation algorithm uses keys to determine whether a component should be reused or remounted. By using the lat/lng as a key, we ensure:
-- Each new location gets a completely fresh MapModal instance
-- Leaflet's internal DOM state is never carried over
-- No cleanup race conditions between old and new map instances
+1. **Preserves original data** - Base itinerary remains intact
+2. **Easy reset** - Delete the override to restore defaults
+3. **Selective updates** - Only store what changed (NULL = use base)
+4. **Syncs across devices** - Stored in database like other trip data
 
-### Why Separate Effects Help
+### Edge Cases
 
-By separating the "open/close" effect from the "update location" effect:
-- Opening the modal triggers full initialization
-- Changing location on an already-open modal just updates the view
-- Closing the modal guarantees cleanup runs
-
-### Container Height Strategy
-
-Using `calc()` for height instead of flexbox ensures:
-- The container has a definite height when the map initializes
-- `invalidateSize()` can correctly calculate tile positions
-- The map doesn't "fight" with flexbox for space
+- **Location editing**: Allow manual lat/lng entry or location search (future enhancement)
+- **Category changes**: User can recategorize activities
+- **Conflicting edits**: Last write wins (acceptable for family trip app)
 
 ---
 
-## Expected Result
+## Expected User Experience
 
-After these changes:
-- Map modals will reliably show tiles every time they open
-- Switching between different locations will work smoothly
-- The Map tab's overview map won't interfere with the modal map
-- Rapid opening/closing won't cause rendering failures
+1. User taps pencil icon on any activity (or the activity itself)
+2. Editor sheet slides up with current values pre-filled
+3. User modifies any fields (time, title, description, link, phone, location)
+4. Tap "Update" to save changes
+5. Activity immediately reflects edits
+6. For base activities, a "Reset to Default" button appears to undo all changes
