@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,11 +19,14 @@ import {
   StickyNote,
   Camera,
   X,
-  Trash2
+  Trash2,
+  Compass,
+  PartyPopper,
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { BEACHES, RESTAURANTS, PACKING_LIST } from '@/lib/itinerary-data';
+import { BEACHES, RESTAURANTS, PACKING_LIST, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
 import type { GuideItem, PackingItem } from '@/lib/itinerary-data';
 import {
   useChecklistItems,
@@ -39,8 +41,11 @@ import {
   useDeletePhoto,
   getPhotoUrl
 } from '@/hooks/use-trip-data';
+import { useSelectedLodging } from '@/hooks/use-lodging';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
+import { StayCard } from '@/components/guide/StayCard';
+import { PhotoAlbumSection } from '@/components/guide/PhotoAlbumSection';
 
 interface SelectedLocation {
   lat: number;
@@ -271,6 +276,8 @@ function PackingItemRow({ item }: PackingItemRowProps) {
 
 export function GuideTab() {
   const { data: checklistItems } = useChecklistItems();
+  const { data: allPhotos } = usePhotos();
+  const { data: selectedLodging } = useSelectedLodging();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
@@ -307,6 +314,78 @@ export function GuideTab() {
       </div>
       
       <Accordion type="single" collapsible className="space-y-4">
+        {/* Photo Album */}
+        <PhotoAlbumSection 
+          photos={allPhotos} 
+          onOpenPhoto={openPhotoViewer} 
+        />
+
+        {/* Stay */}
+        <AccordionItem value="stay" className="border rounded-lg shadow-warm overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-beach-ocean/20 flex items-center justify-center">
+                <Home className="w-5 h-5 text-beach-ocean" />
+              </div>
+              <div className="text-left">
+                <span className="font-semibold">Stay</span>
+                <p className="text-sm text-muted-foreground">
+                  {selectedLodging ? selectedLodging.name : 'No accommodation selected'}
+                </p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4">
+            {selectedLodging ? (
+              <StayCard lodging={selectedLodging} onOpenMap={openMapModal} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Add your accommodation in the Lodging tab to see it here.
+              </p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Activities */}
+        <AccordionItem value="activities" className="border rounded-lg shadow-warm overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-beach-driftwood/20 flex items-center justify-center">
+                <Compass className="w-5 h-5 text-beach-driftwood" />
+              </div>
+              <div className="text-left">
+                <span className="font-semibold">Activities</span>
+                <p className="text-sm text-muted-foreground">{ACTIVITIES.length} things to do</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 space-y-3">
+            {ACTIVITIES.map((activity) => (
+              <GuideItemCard key={activity.id} item={activity} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Events */}
+        <AccordionItem value="events" className="border rounded-lg shadow-warm overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-beach-sunset-gold/20 flex items-center justify-center">
+                <PartyPopper className="w-5 h-5 text-beach-sunset-gold" />
+              </div>
+              <div className="text-left">
+                <span className="font-semibold">Events</span>
+                <p className="text-sm text-muted-foreground">Family Week schedule</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 space-y-3">
+            {EVENTS.map((event) => (
+              <GuideItemCard key={event.id} item={event} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Beaches */}
         <AccordionItem value="beaches" className="border rounded-lg shadow-warm overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">

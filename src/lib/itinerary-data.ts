@@ -485,6 +485,77 @@ export const RESTAURANTS: GuideItem[] = [
   }
 ];
 
+// Guide - Activities (unique attractions/things to do)
+export const ACTIVITIES: GuideItem[] = [
+  {
+    id: 'activity-whalewatch',
+    name: 'Dolphin Fleet Whale Watching',
+    category: 'activity',
+    description: '3-4 hour excursion to see humpback whales in Stellwagen Bank.',
+    location: { lat: 42.0542, lng: -70.1838, name: 'MacMillan Pier' },
+    link: 'https://whalewatch.com/',
+    phone: '508-240-3636'
+  },
+  {
+    id: 'activity-paam',
+    name: 'Provincetown Art Association & Museum',
+    category: 'activity',
+    description: 'Explore the vibrant local art scene with interactive exhibits.',
+    location: { lat: 42.0566, lng: -70.1786, name: 'PAAM' },
+    link: 'https://paam.org/',
+    phone: '508-487-1750'
+  },
+  {
+    id: 'activity-bike',
+    name: 'Province Lands Bike Trail',
+    category: 'activity',
+    description: 'Beautiful trails through dunes and forests.',
+    location: { lat: 42.0640, lng: -70.2080, name: 'Province Lands Visitor Center' },
+    link: 'https://www.nps.gov/caco/planyourvisit/provincelandsbikepath.htm'
+  },
+  {
+    id: 'activity-monument',
+    name: 'Pilgrim Monument & Museum',
+    category: 'activity',
+    description: 'Climb the tallest all-granite structure in the US for 360-degree views!',
+    location: { lat: 42.0555, lng: -70.1888, name: 'Pilgrim Monument' },
+    link: 'https://www.pilgrim-monument.org/',
+    phone: '508-487-1310'
+  }
+];
+
+// Guide - Events (Family Week specific)
+export const EVENTS: GuideItem[] = [
+  {
+    id: 'event-welcome',
+    name: 'Family Week Welcome Event',
+    category: 'activity',
+    description: 'Official kickoff celebration! Meet other families and get your schedule.',
+    location: { lat: 42.0515, lng: -70.1865, name: 'Crown & Anchor' },
+    link: 'https://www.familyequality.org/family-week/'
+  },
+  {
+    id: 'event-parade',
+    name: 'Family Week Parade',
+    category: 'activity',
+    description: 'The highlight of the week! March down Commercial Street celebrating family diversity.',
+    location: { lat: 42.0525, lng: -70.1855, name: 'Commercial Street' }
+  },
+  {
+    id: 'event-picnic',
+    name: 'Family Picnic',
+    category: 'activity',
+    description: 'Large group picnic with all Family Week families. Games and activities for kids.'
+  },
+  {
+    id: 'event-crafts',
+    name: 'Parade Prep & Crafts',
+    category: 'activity',
+    description: 'Join other families creating costumes and decorations for the parade!',
+    location: { lat: 42.0515, lng: -70.1865, name: 'Family Week HQ' }
+  }
+];
+
 // Get all locations for map
 export function getAllLocations(): (Location & { itemId: string; itemType: string })[] {
   const locations: (Location & { itemId: string; itemType: string })[] = [];
