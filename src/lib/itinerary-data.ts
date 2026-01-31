@@ -128,7 +128,7 @@ export const ITINERARY: Day[] = [
         description: 'Upscale casual waterfront dining with stunning harbor views. Great for families.',
         category: 'dining',
         location: { lat: 42.0505, lng: -70.1870, name: 'The Mews Restaurant' },
-        link: 'https://mews.com/',
+        link: 'https://mewsptown.com/',
         linkLabel: 'View Menu',
         phone: '508-487-1500'
       }
@@ -456,7 +456,7 @@ export const RESTAURANTS: GuideItem[] = [
     category: 'restaurant',
     description: 'Upscale waterfront dining with amazing harbor views.',
     location: { lat: 42.0505, lng: -70.1870, name: 'The Mews Restaurant' },
-    link: 'https://mews.com/',
+    link: 'https://mewsptown.com/',
     phone: '508-487-1500'
   },
   {
