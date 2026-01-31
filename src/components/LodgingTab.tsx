@@ -3,15 +3,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Home, Archive, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, Home, Archive, CheckCircle2, Loader2, Link } from 'lucide-react';
 import { useLodgingOptions, LodgingOption, useSelectedLodging } from '@/hooks/use-lodging';
 import { LodgingCard } from '@/components/lodging/LodgingCard';
 import { LodgingEditor } from '@/components/lodging/LodgingEditor';
+import { LodgingUrlImporter, ScrapedLodgingData } from '@/components/lodging/LodgingUrlImporter';
 
 export function LodgingTab() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingLodging, setEditingLodging] = useState<LodgingOption | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [importerOpen, setImporterOpen] = useState(false);
+  const [importedData, setImportedData] = useState<ScrapedLodgingData | null>(null);
 
   const { data: lodgingOptions, isLoading, error } = useLodgingOptions(showArchived);
   const { data: selectedLodging } = useSelectedLodging();
@@ -25,6 +28,13 @@ export function LodgingTab() {
   };
 
   const handleAdd = () => {
+    setEditingLodging(null);
+    setImportedData(null);
+    setEditorOpen(true);
+  };
+
+  const handleImportSuccess = (data: ScrapedLodgingData) => {
+    setImportedData(data);
     setEditingLodging(null);
     setEditorOpen(true);
   };
@@ -72,11 +82,15 @@ export function LodgingTab() {
         </Card>
       )}
 
-      {/* Add Button */}
-      <div className="px-4">
-        <Button onClick={handleAdd} className="w-full gap-2">
+      {/* Add Buttons */}
+      <div className="px-4 flex gap-2">
+        <Button onClick={handleAdd} className="flex-1 gap-2">
           <Plus className="w-4 h-4" />
-          Add Lodging Option
+          Add Manually
+        </Button>
+        <Button onClick={() => setImporterOpen(true)} variant="secondary" className="flex-1 gap-2">
+          <Link className="w-4 h-4" />
+          Import from URL
         </Button>
       </div>
 
@@ -155,8 +169,19 @@ export function LodgingTab() {
       {/* Editor */}
       <LodgingEditor
         open={editorOpen}
-        onOpenChange={setEditorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open);
+          if (!open) setImportedData(null);
+        }}
         editingLodging={editingLodging}
+        initialData={importedData}
+      />
+
+      {/* URL Importer */}
+      <LodgingUrlImporter
+        open={importerOpen}
+        onOpenChange={setImporterOpen}
+        onImportSuccess={handleImportSuccess}
       />
     </div>
   );
