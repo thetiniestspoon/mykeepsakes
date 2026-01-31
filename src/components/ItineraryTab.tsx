@@ -44,6 +44,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 import type { Day, Activity as ActivityType } from '@/lib/itinerary-data';
 import { 
   useChecklistItems, 
@@ -76,6 +77,7 @@ import {
 import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { ActivityEditor } from '@/components/itinerary/ActivityEditor';
 import { MapModal } from '@/components/map/MapModal';
+import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,9 +122,10 @@ interface ActivityCardProps {
   onDelete?: () => void;
   onHide?: () => void;
   onOpenMap?: (location: SelectedLocation) => void;
+  onOpenPhoto?: (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => void;
 }
 
-function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap }: ActivityCardProps) {
+function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap, onOpenPhoto }: ActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -258,7 +261,12 @@ function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap 
               {activityNotes.map((note) => (
                 <div key={note.id} className="flex items-start gap-2 p-2 bg-beach-sand/30 rounded">
                   <StickyNote className="w-4 h-4 text-beach-driftwood mt-0.5" />
-                  <p className="flex-1 text-sm">{note.content}</p>
+                  <div className="flex-1">
+                    <p className="text-sm">{note.content}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
                   <button
                     onClick={() => deleteNote.mutate(note.id)}
                     className="text-muted-foreground hover:text-destructive"
@@ -293,15 +301,23 @@ function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap 
           {/* Photos */}
           {activityPhotos.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {activityPhotos.map((photo) => (
+              {activityPhotos.map((photo, index) => (
                 <div key={photo.id} className="relative group">
-                  <img
-                    src={getPhotoUrl(photo.storage_path)}
-                    alt={photo.caption || 'Trip photo'}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
                   <button
-                    onClick={() => deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path })}
+                    onClick={() => onOpenPhoto?.(activityPhotos, index)}
+                    className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+                  >
+                    <img
+                      src={getPhotoUrl(photo.storage_path)}
+                      alt={photo.caption || 'Trip photo'}
+                      className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path });
+                    }}
                     className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -413,6 +429,9 @@ function DayCard({ day }: DayCardProps) {
   const [isEditingBaseActivity, setIsEditingBaseActivity] = useState(false);
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerPhotos, setPhotoViewerPhotos] = useState<Array<{ id: string; storage_path: string; caption?: string | null }>>([]);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
   const { data: collapsedSections } = useCollapsedSections();
   const { data: customActivities } = useCustomActivities();
@@ -554,6 +573,12 @@ function DayCard({ day }: DayCardProps) {
     setSelectedLocation(location);
     setMapModalOpen(true);
   };
+
+  const openPhotoViewer = (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => {
+    setPhotoViewerPhotos(photos);
+    setPhotoViewerIndex(index);
+    setPhotoViewerOpen(true);
+  };
   
   return (
     <>
@@ -604,6 +629,7 @@ function DayCard({ day }: DayCardProps) {
                         onDelete={activity.customId ? () => handleDeleteActivity(activity.customId!) : undefined}
                         onHide={() => handleHideActivity(activity.id)}
                         onOpenMap={openMapModal}
+                        onOpenPhoto={openPhotoViewer}
                       />
                     </DraggableActivity>
                   ))}
@@ -647,6 +673,14 @@ function DayCard({ day }: DayCardProps) {
           address={selectedLocation.address}
         />
       )}
+
+      {/* Photo Viewer */}
+      <PhotoViewer
+        photos={photoViewerPhotos}
+        initialIndex={photoViewerIndex}
+        open={photoViewerOpen}
+        onOpenChange={setPhotoViewerOpen}
+      />
     </>
   );
 }

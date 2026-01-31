@@ -11,10 +11,31 @@ export function usePin() {
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', 'pin')
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      return data.setting_value;
+      return data?.setting_value ?? null;
+    }
+  });
+}
+
+export function useCreatePin() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (pin: string) => {
+      const { error } = await supabase
+        .from('app_settings')
+        .insert({ setting_key: 'pin', setting_value: pin });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin'] });
+      toast.success('PIN created successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to create PIN');
     }
   });
 }

@@ -5,6 +5,7 @@ import { useFavorites, useNotes, usePhotos, getPhotoUrl } from '@/hooks/use-trip
 import { ITINERARY, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
 import type { Activity, GuideItem } from '@/lib/itinerary-data';
 import { MapModal } from '@/components/map/MapModal';
+import { PhotoViewer } from '@/components/photos/PhotoViewer';
 
 interface SelectedLocation {
   lat: number;
@@ -19,10 +20,19 @@ export function FavoritesTab() {
   const { data: photos } = usePhotos();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerPhotos, setPhotoViewerPhotos] = useState<Array<{ id: string; storage_path: string; caption?: string | null }>>([]);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
     setMapModalOpen(true);
+  };
+
+  const openPhotoViewer = (photoList: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => {
+    setPhotoViewerPhotos(photoList);
+    setPhotoViewerIndex(index);
+    setPhotoViewerOpen(true);
   };
   
   if (!favorites) {
@@ -106,13 +116,18 @@ export function FavoritesTab() {
                           
                           {activityPhotos.length > 0 && (
                             <div className="mt-2 flex gap-2">
-                              {activityPhotos.slice(0, 4).map((photo) => (
-                                <img
+                              {activityPhotos.slice(0, 4).map((photo, index) => (
+                                <button
                                   key={photo.id}
-                                  src={getPhotoUrl(photo.storage_path)}
-                                  alt=""
-                                  className="w-12 h-12 object-cover rounded"
-                                />
+                                  onClick={() => openPhotoViewer(activityPhotos, index)}
+                                  className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+                                >
+                                  <img
+                                    src={getPhotoUrl(photo.storage_path)}
+                                    alt=""
+                                    className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity"
+                                  />
+                                </button>
                               ))}
                             </div>
                           )}
@@ -206,6 +221,14 @@ export function FavoritesTab() {
           address={selectedLocation.address}
         />
       )}
+
+      {/* Photo Viewer */}
+      <PhotoViewer
+        photos={photoViewerPhotos}
+        initialIndex={photoViewerIndex}
+        open={photoViewerOpen}
+        onOpenChange={setPhotoViewerOpen}
+      />
     </div>
   );
 }
