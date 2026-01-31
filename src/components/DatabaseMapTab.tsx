@@ -5,13 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Map, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, Building, Layers, Loader2 } from 'lucide-react';
+import { Map, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, Building, Layers, Loader2, Check, Star, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MapModal } from '@/components/map/MapModal';
 import { OverviewMap } from '@/components/map/OverviewMap';
+import { LocationBottomSheet } from '@/components/map/LocationBottomSheet';
 import { useDatabaseLocations } from '@/hooks/use-database-itinerary';
+import { useLocations } from '@/hooks/use-locations';
+import { useMemories } from '@/hooks/use-memories';
+import { useActiveTrip } from '@/hooks/use-trip';
+import { useFavorites } from '@/hooks/use-trip-data';
 import { useLodgingOptions } from '@/hooks/use-lodging';
-import type { MapLocation } from '@/types/map';
+import type { MapLocation, PinState } from '@/types/map';
+import type { Location } from '@/types/trip';
 
 type CategoryFilter = 'all' | 'beach' | 'dining' | 'activity' | 'accommodation' | 'transport' | 'event' | 'lodging';
 
@@ -38,14 +44,40 @@ export function DatabaseMapTab() {
   const [activeDays, setActiveDays] = useState<Set<string>>(new Set(['all']));
   const [showOverview, setShowOverview] = useState(true);
   const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedMapLocation, setSelectedMapLocation] = useState<{ lat: number; lng: number; name: string; address?: string } | null>(null);
   
+  const { data: trip } = useActiveTrip();
   const { locations: dbLocations, isLoading, days } = useDatabaseLocations();
+  const { data: fullLocations = [] } = useLocations(trip?.id);
+  const { data: memories = [] } = useMemories(trip?.id);
+  const { data: favorites = {} } = useFavorites();
   const { data: lodgingOptions = [] } = useLodgingOptions();
   
-  // Build complete location list with lodging
+  // Calculate pin states for each location
+  const getPinState = (locationId: string): PinState => {
+    const hasMemory = memories.some(m => m.location_id === locationId);
+    if (hasMemory) return 'has-memories';
+    
+    const isFavorited = favorites[locationId] ?? false;
+    if (isFavorited) return 'favorited';
+    
+    const location = fullLocations.find(l => l.id === locationId);
+    if (location?.visited_at) return 'visited';
+    
+    return 'planned';
+  };
+  
+  // Build complete location list with lodging and pin states
   const allLocations = useMemo(() => {
-    const locations: MapLocation[] = [...dbLocations];
+    const locations: MapLocation[] = dbLocations.map(loc => ({
+      ...loc,
+      pinState: getPinState(loc.id),
+      isVisited: !!fullLocations.find(l => l.id === loc.id)?.visited_at,
+      isFavorited: favorites[loc.id] ?? false,
+      hasMemories: memories.some(m => m.location_id === loc.id),
+    }));
     
     // Add lodging options from database
     lodgingOptions.forEach(lodging => {
@@ -57,12 +89,13 @@ export function DatabaseMapTab() {
           name: lodging.name,
           category: 'lodging',
           address: lodging.address || undefined,
+          pinState: 'planned',
         });
       }
     });
     
     return locations;
-  }, [dbLocations, lodgingOptions]);
+  }, [dbLocations, lodgingOptions, fullLocations, memories, favorites]);
   
   // Filter locations
   const filteredLocations = useMemo(() => {
@@ -131,14 +164,24 @@ export function DatabaseMapTab() {
     });
   };
   
-  const handleMarkerClick = (location: MapLocation) => {
-    setSelectedLocation({
-      lat: location.lat,
-      lng: location.lng,
-      name: location.name,
-      address: location.address,
-    });
-    setMapModalOpen(true);
+  const handleMarkerClick = (mapLocation: MapLocation) => {
+    // Find the full location from our database locations
+    const fullLocation = fullLocations.find(l => l.id === mapLocation.id);
+    
+    if (fullLocation) {
+      // Open bottom sheet for database locations
+      setSelectedLocation(fullLocation);
+      setBottomSheetOpen(true);
+    } else {
+      // Fall back to map modal for lodging/non-database locations
+      setSelectedMapLocation({
+        lat: mapLocation.lat,
+        lng: mapLocation.lng,
+        name: mapLocation.name,
+        address: mapLocation.address,
+      });
+      setMapModalOpen(true);
+    }
   };
 
   // Get unique categories that have locations
@@ -289,7 +332,12 @@ export function DatabaseMapTab() {
                   className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary/30 transition-colors group w-full text-left"
                 >
                   <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 relative",
+                      location.pinState === 'visited' && "ring-2 ring-green-500",
+                      location.pinState === 'favorited' && "ring-2 ring-amber-500",
+                      location.pinState === 'has-memories' && "ring-2 ring-pink-500"
+                    )}
                     style={{ backgroundColor: `${config.mapColor}20`, color: config.mapColor }}
                   >
                     <Icon className="w-4 h-4" />
@@ -300,7 +348,19 @@ export function DatabaseMapTab() {
                       {location.dayLabel || config.label}
                     </p>
                   </div>
-                  <MapPin className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors shrink-0" />
+                  {/* State indicators */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {location.hasMemories && (
+                      <Camera className="w-3.5 h-3.5 text-pink-500" />
+                    )}
+                    {location.isFavorited && (
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
+                    )}
+                    {location.isVisited && (
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                    )}
+                    <MapPin className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
+                  </div>
                 </button>
               );
             })
@@ -328,18 +388,28 @@ export function DatabaseMapTab() {
         </CardContent>
       </Card>
 
-      {/* Map Modal */}
-      {selectedLocation && (
+      {/* Map Modal for non-database locations */}
+      {selectedMapLocation && (
         <MapModal
-          key={`${selectedLocation.lat}-${selectedLocation.lng}`}
+          key={`${selectedMapLocation.lat}-${selectedMapLocation.lng}`}
           open={mapModalOpen}
           onOpenChange={setMapModalOpen}
-          lat={selectedLocation.lat}
-          lng={selectedLocation.lng}
-          name={selectedLocation.name}
-          address={selectedLocation.address}
+          lat={selectedMapLocation.lat}
+          lng={selectedMapLocation.lng}
+          name={selectedMapLocation.name}
+          address={selectedMapLocation.address}
         />
       )}
+
+      {/* Location Bottom Sheet */}
+      <LocationBottomSheet
+        location={selectedLocation}
+        open={bottomSheetOpen}
+        onOpenChange={setBottomSheetOpen}
+        tripId={trip?.id}
+        days={days}
+        allLocations={fullLocations}
+      />
     </div>
   );
 }

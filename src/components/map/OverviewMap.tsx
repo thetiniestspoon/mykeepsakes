@@ -18,30 +18,52 @@ L.Icon.Default.mergeOptions({
 
 export type { MapLocation };
 
-// Custom colored marker icons
-const createColoredIcon = (color: string) => {
+// Custom colored marker icons with state indicators
+const createColoredIcon = (color: string, pinState?: string) => {
+  // Determine ring/badge based on state
+  let ringStyle = '';
+  let badgeHtml = '';
+  
+  if (pinState === 'has-memories') {
+    ringStyle = 'border: 3px solid #EC4899;'; // pink ring for memories
+    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #EC4899; border-radius: 50%; border: 2px solid white;"></div>`;
+  } else if (pinState === 'favorited') {
+    ringStyle = 'border: 3px solid #F59E0B;'; // gold ring for favorites
+    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #F59E0B; border-radius: 50%; border: 2px solid white;"></div>`;
+  } else if (pinState === 'visited') {
+    ringStyle = 'border: 3px solid #10B981;'; // green ring for visited
+    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #10B981; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center;">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>`;
+  } else {
+    ringStyle = 'border: 3px solid white;';
+  }
+
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="
-        background-color: ${color};
-        width: 28px;
-        height: 28px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
+      <div style="position: relative;">
         <div style="
-          width: 10px;
-          height: 10px;
-          background: white;
-          border-radius: 50%;
-          transform: rotate(45deg);
-        "></div>
+          background-color: ${color};
+          width: 28px;
+          height: 28px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          ${ringStyle}
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            transform: rotate(45deg);
+          "></div>
+        </div>
+        ${badgeHtml}
       </div>
     `,
     iconSize: [28, 28],
@@ -129,7 +151,7 @@ export function OverviewMap({
     // Add new markers
     locations.forEach(location => {
       const color = categoryColors[location.category] || categoryColors.activity;
-      const icon = createColoredIcon(color);
+      const icon = createColoredIcon(color, location.pinState);
       
       const marker = L.marker([location.lat, location.lng], { icon })
         .bindPopup(`
