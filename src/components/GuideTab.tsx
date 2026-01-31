@@ -23,6 +23,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 import { BEACHES, RESTAURANTS, PACKING_LIST } from '@/lib/itinerary-data';
 import type { GuideItem, PackingItem } from '@/lib/itinerary-data';
 import {
@@ -39,6 +40,7 @@ import {
   getPhotoUrl
 } from '@/hooks/use-trip-data';
 import { MapModal } from '@/components/map/MapModal';
+import { PhotoViewer } from '@/components/photos/PhotoViewer';
 
 interface SelectedLocation {
   lat: number;
@@ -50,9 +52,10 @@ interface SelectedLocation {
 interface GuideItemCardProps {
   item: GuideItem;
   onOpenMap?: (location: SelectedLocation) => void;
+  onOpenPhoto?: (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => void;
 }
 
-function GuideItemCard({ item, onOpenMap }: GuideItemCardProps) {
+function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +138,12 @@ function GuideItemCard({ item, onOpenMap }: GuideItemCardProps) {
               {itemNotes.map((note) => (
                 <div key={note.id} className="flex items-start gap-2 p-2 bg-beach-sand/30 rounded">
                   <StickyNote className="w-4 h-4 text-beach-driftwood mt-0.5" />
-                  <p className="flex-1 text-sm">{note.content}</p>
+                  <div className="flex-1">
+                    <p className="text-sm">{note.content}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
                   <button
                     onClick={() => deleteNote.mutate(note.id)}
                     className="text-muted-foreground hover:text-destructive"
@@ -165,15 +173,23 @@ function GuideItemCard({ item, onOpenMap }: GuideItemCardProps) {
           {/* Photos */}
           {itemPhotos.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {itemPhotos.map((photo) => (
+              {itemPhotos.map((photo, index) => (
                 <div key={photo.id} className="relative group">
-                  <img
-                    src={getPhotoUrl(photo.storage_path)}
-                    alt={photo.caption || 'Photo'}
-                    className="w-16 h-16 object-cover rounded-lg"
-                  />
                   <button
-                    onClick={() => deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path })}
+                    onClick={() => onOpenPhoto?.(itemPhotos, index)}
+                    className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+                  >
+                    <img
+                      src={getPhotoUrl(photo.storage_path)}
+                      alt={photo.caption || 'Photo'}
+                      className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path });
+                    }}
                     className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -257,6 +273,9 @@ export function GuideTab() {
   const { data: checklistItems } = useChecklistItems();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [photoViewerPhotos, setPhotoViewerPhotos] = useState<Array<{ id: string; storage_path: string; caption?: string | null }>>([]);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
   
   // Group packing items by category
   const packingByCategory = PACKING_LIST.reduce((acc, item) => {
@@ -272,6 +291,12 @@ export function GuideTab() {
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
     setMapModalOpen(true);
+  };
+
+  const openPhotoViewer = (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => {
+    setPhotoViewerPhotos(photos);
+    setPhotoViewerIndex(index);
+    setPhotoViewerOpen(true);
   };
 
   return (
@@ -297,7 +322,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {BEACHES.map((beach) => (
-              <GuideItemCard key={beach.id} item={beach} onOpenMap={openMapModal} />
+              <GuideItemCard key={beach.id} item={beach} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -317,7 +342,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {RESTAURANTS.map((restaurant) => (
-              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} />
+              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -364,6 +389,14 @@ export function GuideTab() {
           address={selectedLocation.address}
         />
       )}
+
+      {/* Photo Viewer */}
+      <PhotoViewer
+        photos={photoViewerPhotos}
+        initialIndex={photoViewerIndex}
+        open={photoViewerOpen}
+        onOpenChange={setPhotoViewerOpen}
+      />
     </div>
   );
 }

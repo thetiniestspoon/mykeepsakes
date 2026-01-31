@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { PinEntry } from '@/components/PinEntry';
+import { PinSetup } from '@/components/PinSetup';
 import { TripHeader } from '@/components/TripHeader';
 import { BottomNav, TabId } from '@/components/BottomNav';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -8,6 +9,7 @@ import { LodgingTab } from '@/components/LodgingTab';
 import { FavoritesTab } from '@/components/FavoritesTab';
 import { ContactsTab } from '@/components/ContactsTab';
 import { usePin } from '@/hooks/use-trip-data';
+import { useQueryClient } from '@tanstack/react-query';
 import { ITINERARY } from '@/lib/itinerary-data';
 import { Loader2 } from 'lucide-react';
 
@@ -28,7 +30,8 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
   const [settingsOpen, setSettingsOpen] = useState(false);
   
-  const { data: pin, isLoading: pinLoading, error: pinError } = usePin();
+  const { data: pin, isLoading: pinLoading } = usePin();
+  const queryClient = useQueryClient();
   
   // Check for existing session
   useEffect(() => {
@@ -52,14 +55,20 @@ const Index = () => {
     );
   }
   
-  // Error state - show default PIN if we can't fetch from database
-  const effectivePin = pin || '1475963';
+  // First-time setup - no PIN exists
+  if (!pin) {
+    return (
+      <PinSetup 
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ['pin'] })} 
+      />
+    );
+  }
   
   // PIN entry
   if (!isAuthenticated) {
     return (
       <PinEntry 
-        correctPin={effectivePin} 
+        correctPin={pin} 
         onSuccess={() => setIsAuthenticated(true)} 
       />
     );
@@ -83,8 +92,7 @@ const Index = () => {
             <GuideTab />
           </Suspense>
         )}
-        {activeTab === 'favorites' && <FavoritesTab />}
-        {activeTab === 'contacts' && <ContactsTab />}
+{activeTab === 'favorites' && <FavoritesTab />}
         {activeTab === 'contacts' && <ContactsTab />}
       </main>
       
@@ -93,7 +101,7 @@ const Index = () => {
       <SettingsDialog 
         open={settingsOpen} 
         onOpenChange={setSettingsOpen}
-        currentPin={effectivePin}
+        currentPin={pin}
         onLogout={handleLogout}
       />
     </div>
