@@ -1,140 +1,112 @@
 
-## Add Tap-to-Edit for All Itinerary Activities
 
-Enable users to tap on any activity in the itinerary to edit its details (time, title, description, link, phone, map location).
+## Fix Map Modal Not Rendering (While Overview Map Works)
 
----
-
-## Current Situation
-
-| Activity Type | Source | Editable? |
-|--------------|--------|-----------|
-| Base activities | `itinerary-data.ts` (static) | No - read only |
-| Custom activities | `custom_activities` table | Yes - full CRUD |
-
-Currently, only custom activities show an edit button. Base activities from the static itinerary data cannot be modified.
+The map modals have stopped rendering because of Leaflet initialization failures related to DOM state management and dialog animation timing.
 
 ---
 
-## Solution: Activity Overrides Table
+## Root Cause Analysis
 
-Create a new database table to store user edits to base activities. When displaying an activity, merge any overrides on top of the base data.
+The `OverviewMap` works because it initializes once when mounted and stays alive. The `MapModal` fails because:
 
-### New Database Table: `activity_overrides`
-
-```sql
-CREATE TABLE activity_overrides (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_id TEXT UNIQUE NOT NULL,  -- matches the base activity ID
-  title TEXT,                         -- NULL means use base value
-  description TEXT,
-  time TEXT,
-  category TEXT,
-  location_name TEXT,
-  location_lat DOUBLE PRECISION,
-  location_lng DOUBLE PRECISION,
-  link TEXT,
-  link_label TEXT,
-  phone TEXT,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-When a field is NULL, the base value is used. When a field has a value, it overrides the base.
+1. **DOM State Corruption**: When using `innerHTML = ''` to clear the container, Leaflet's internal `_leaflet_id` property remains attached to the DOM node, causing "Map container is already initialized" errors on re-init
+2. **Key-Based Remounting**: The unique `key={lat-lng}` pattern causes React to unmount/remount the component, but the cleanup effect's timer is cancelled before Leaflet can be properly destroyed
+3. **Animation Timing Mismatch**: The 300ms delay may not align with when the dialog content actually reaches its final dimensions
+4. **Conditional Rendering Gap**: The `{selectedLocation && <MapModal .../>}` pattern can cause the component to unmount while cleanup is still pending
 
 ---
 
-## Implementation Changes
+## Solution
 
-### 1. Database Migration
-Create the `activity_overrides` table with appropriate RLS policies (public access to match existing patterns).
+### 1. Add Explicit Leaflet Container Reset
+**File:** `src/components/map/MapModal.tsx`
 
-### 2. New Hook: `useActivityOverrides`
-**File:** `src/hooks/use-activity-order.ts`
+Instead of relying solely on `innerHTML = ''`, actively remove any Leaflet-attached properties from the DOM node:
 
-Add functions for:
-- `useActivityOverrides()` - fetch all overrides
-- `useUpsertActivityOverride()` - create or update an override
-- `useDeleteActivityOverride()` - reset to base values
-
-### 3. Update ActivityEditor Component
-**File:** `src/components/itinerary/ActivityEditor.tsx`
-
-Extend the editor to handle three cases:
-- **Adding new custom activity** (current behavior)
-- **Editing custom activity** (current behavior)
-- **Editing base activity** (NEW - saves to overrides table)
-
-Add new props:
 ```typescript
-interface ActivityEditorProps {
-  // ... existing props
-  isBaseActivity?: boolean;  // true if editing a base activity
-  baseActivityId?: string;   // the ID of the base activity being edited
+// Before initializing, ensure no Leaflet state is attached
+if (mapRef.current) {
+  // Clear Leaflet's internal tracking
+  delete (mapRef.current as any)._leaflet_id;
+  mapRef.current.innerHTML = '';
 }
 ```
 
-### 4. Update ItineraryTab
-**File:** `src/components/ItineraryTab.tsx`
-
-Changes to `DayCard` component:
-- Remove the `isCustom` condition for showing the edit button - all activities get an edit button
-- Update `handleEditActivity` to work with both base and custom activities
-- Merge override data with base activities when displaying
-
-Changes to `ActivityCard` component:
-- Make the entire card tappable (or add a more prominent edit affordance)
-- Always show the edit button, not just for custom activities
-
-### 5. Merge Logic
-When displaying activities, apply overrides:
+### 2. Synchronous Cleanup on Effect Return
+Ensure the map is destroyed immediately when the component unmounts or `open` becomes false:
 
 ```typescript
-function applyOverride(baseActivity: Activity, override?: ActivityOverride): Activity {
-  if (!override) return baseActivity;
+useEffect(() => {
+  if (!open) {
+    // Synchronous cleanup
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    }
+    // Also clean the DOM element
+    if (mapRef.current) {
+      delete (mapRef.current as any)._leaflet_id;
+      mapRef.current.innerHTML = '';
+    }
+    return;
+  }
+  // ... initialization code
+}, [open]);
+```
+
+### 3. Use Dialog's onAnimationEnd for Timing
+Instead of a fixed 300ms timeout, listen for when the dialog content is fully rendered:
+
+```typescript
+// Wait for next frame after mount to ensure layout is complete
+const timer = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    // Initialize map here - two frames ensures layout is complete
+  });
+});
+```
+
+Or increase the timeout to 500ms to account for slower devices.
+
+### 4. Add Error Boundary for Leaflet Initialization
+Wrap the initialization in a try-catch to prevent partial initialization states:
+
+```typescript
+try {
+  const map = L.map(mapRef.current, { center: [lat, lng], zoom });
+  // ... rest of init
+} catch (e) {
+  console.error('Failed to initialize map:', e);
+  // Reset state for retry
+  if (mapRef.current) {
+    delete (mapRef.current as any)._leaflet_id;
+    mapRef.current.innerHTML = '';
+  }
+}
+```
+
+### 5. Add a "mounted" Guard
+Prevent initialization if the component has already unmounted during the timeout:
+
+```typescript
+useEffect(() => {
+  let isMounted = true;
   
-  return {
-    ...baseActivity,
-    title: override.title ?? baseActivity.title,
-    description: override.description ?? baseActivity.description,
-    time: override.time ?? baseActivity.time,
-    category: override.category ?? baseActivity.category,
-    location: override.location_name ? {
-      lat: override.location_lat ?? 0,
-      lng: override.location_lng ?? 0,
-      name: override.location_name
-    } : baseActivity.location,
-    link: override.link ?? baseActivity.link,
-    linkLabel: override.link_label ?? baseActivity.linkLabel,
-    phone: override.phone ?? baseActivity.phone,
-    notes: override.notes ?? baseActivity.notes,
+  if (!open) { /* cleanup */ return; }
+  
+  const timer = setTimeout(() => {
+    if (!isMounted || !mapRef.current || mapInstanceRef.current) return;
+    // Initialize...
+  }, 400);
+  
+  return () => {
+    isMounted = false;
+    clearTimeout(timer);
   };
-}
+}, [open]);
 ```
-
----
-
-## UI/UX Changes
-
-### Making Activities Tappable
-
-Option A: **Tap entire card to edit** (simpler)
-- Tap anywhere on the activity card opens the editor
-- Move checkbox, star, note, and photo buttons to prevent accidental edits
-
-Option B: **Keep edit button but show for all** (recommended)
-- Show the edit (pencil) icon for ALL activities, not just custom ones
-- Keeps the current interaction model consistent
-
-I recommend Option B as it's less disruptive and clearer in intent.
-
-### Editor Improvements
-
-Add a "Reset to Default" button when editing base activities:
-- Deletes the override record
-- Returns the activity to its original values from `itinerary-data.ts`
 
 ---
 
@@ -142,35 +114,45 @@ Add a "Reset to Default" button when editing base activities:
 
 | File | Changes |
 |------|---------|
-| (new migration) | Create `activity_overrides` table with RLS |
-| `src/hooks/use-activity-order.ts` | Add override hooks and merge function |
-| `src/components/itinerary/ActivityEditor.tsx` | Support editing base activities, add "Reset" option |
-| `src/components/ItineraryTab.tsx` | Show edit button for all activities, apply overrides |
+| `src/components/map/MapModal.tsx` | Add Leaflet container reset, improve cleanup, increase timeout, add error handling, add mounted guard |
 
 ---
 
-## Technical Details
+## Complete Implementation
 
-### Why an Overrides Table?
+The updated `MapModal.tsx` will:
 
-1. **Preserves original data** - Base itinerary remains intact
-2. **Easy reset** - Delete the override to restore defaults
-3. **Selective updates** - Only store what changed (NULL = use base)
-4. **Syncs across devices** - Stored in database like other trip data
-
-### Edge Cases
-
-- **Location editing**: Allow manual lat/lng entry or location search (future enhancement)
-- **Category changes**: User can recategorize activities
-- **Conflicting edits**: Last write wins (acceptable for family trip app)
+1. **Delete `_leaflet_id`** from the container before each initialization attempt
+2. **Use `isMounted` guard** to prevent stale closures
+3. **Increase timeout to 400ms** for safer animation completion
+4. **Wrap init in try-catch** to handle failures gracefully
+5. **Clean up in effect return** AND when `open` becomes false
+6. **Add a second cleanup in unmount** to catch edge cases
 
 ---
 
-## Expected User Experience
+## Technical Explanation
 
-1. User taps pencil icon on any activity (or the activity itself)
-2. Editor sheet slides up with current values pre-filled
-3. User modifies any fields (time, title, description, link, phone, location)
-4. Tap "Update" to save changes
-5. Activity immediately reflects edits
-6. For base activities, a "Reset to Default" button appears to undo all changes
+When a React component with a `key` prop changes that key:
+1. React schedules the old component for unmount
+2. React creates the new component instance
+3. The old effect's cleanup runs
+4. The new effect runs
+
+If the cleanup involves an async operation (like clearing a timer), the new component's init may run before cleanup completes. By:
+- Deleting `_leaflet_id` synchronously before init
+- Using an `isMounted` guard
+- Wrapping in try-catch
+
+We ensure that even if cleanup doesn't complete, initialization can still succeed.
+
+---
+
+## Expected Result
+
+After these changes:
+- Map modals will render reliably every time
+- The Overview Map will continue to work independently
+- Rapidly opening/closing modals won't cause failures
+- Switching between different locations will work smoothly
+
