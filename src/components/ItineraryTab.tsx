@@ -69,6 +69,10 @@ import {
   customActivityToActivity,
   CustomActivity
 } from '@/hooks/use-activity-order';
+import {
+  useActivityOverrides,
+  applyOverride,
+} from '@/hooks/use-activity-overrides';
 import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { ActivityEditor } from '@/components/itinerary/ActivityEditor';
 import { MapModal } from '@/components/map/MapModal';
@@ -347,8 +351,8 @@ function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap 
             onChange={handlePhotoUpload}
           />
 
-          {/* Edit/Delete for custom activities */}
-          {isCustom && onEdit && (
+          {/* Edit button for all activities */}
+          {onEdit && (
             <button
               onClick={onEdit}
               className="p-1.5 rounded-full text-muted-foreground hover:text-accent transition-colors"
@@ -405,6 +409,8 @@ function DayCard({ day }: DayCardProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
   const [editingCustomId, setEditingCustomId] = useState<string | null>(null);
+  const [editingBaseActivityId, setEditingBaseActivityId] = useState<string | null>(null);
+  const [isEditingBaseActivity, setIsEditingBaseActivity] = useState(false);
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
 
@@ -412,11 +418,18 @@ function DayCard({ day }: DayCardProps) {
   const { data: customActivities } = useCustomActivities();
   const { data: activityOrder } = useActivityOrder();
   const { data: checklistItems } = useChecklistItems();
+  const { data: activityOverrides } = useActivityOverrides();
 
   const toggleSection = useToggleSection();
   const updateActivityOrder = useUpdateActivityOrder();
   const deleteCustomActivity = useDeleteCustomActivity();
   const toggleActivityVisibility = useToggleActivityVisibility();
+  
+  // Create overrides map
+  const overridesMap = (activityOverrides || []).reduce((acc, override) => {
+    acc[override.activity_id] = override;
+    return acc;
+  }, {} as Record<string, typeof activityOverrides[0]>);
   
   const isCollapsed = collapsedSections?.[day.id] ?? false;
 
@@ -431,10 +444,14 @@ function DayCard({ day }: DayCardProps) {
     return acc;
   }, {} as Record<string, { order_index: number; is_hidden: boolean }>);
 
-  // Combine base activities with custom ones and sort
+  // Combine base activities (with overrides applied) with custom ones
   const allActivities = [
-    ...day.activities.map(a => ({ ...a, customId: undefined })),
-    ...dayCustomActivities
+    ...day.activities.map(a => ({ 
+      ...applyOverride(a, overridesMap[a.id]), 
+      customId: undefined,
+      isBaseActivity: true 
+    })),
+    ...dayCustomActivities.map(a => ({ ...a, isBaseActivity: false }))
   ];
 
   // Filter hidden and sort by order
@@ -498,15 +515,27 @@ function DayCard({ day }: DayCardProps) {
   const handleAddActivity = () => {
     setEditingActivity(null);
     setEditingCustomId(null);
+    setEditingBaseActivityId(null);
+    setIsEditingBaseActivity(false);
     setEditorOpen(true);
   };
 
-  const handleEditActivity = (activity: ActivityType & { customId?: string }) => {
+  const handleEditActivity = (activity: ActivityType & { customId?: string; isBaseActivity?: boolean }) => {
+    setEditingActivity(activity);
+    
     if (activity.customId) {
-      setEditingActivity(activity);
+      // Editing a custom activity
       setEditingCustomId(activity.customId);
-      setEditorOpen(true);
+      setEditingBaseActivityId(null);
+      setIsEditingBaseActivity(false);
+    } else if (activity.isBaseActivity) {
+      // Editing a base activity (will save to overrides)
+      setEditingCustomId(null);
+      setEditingBaseActivityId(activity.id);
+      setIsEditingBaseActivity(true);
     }
+    
+    setEditorOpen(true);
   };
 
   const handleDeleteActivity = (customId: string) => {
@@ -571,7 +600,7 @@ function DayCard({ day }: DayCardProps) {
                       <ActivityCard 
                         activity={activity}
                         isCustom={!!activity.customId}
-                        onEdit={activity.customId ? () => handleEditActivity(activity) : undefined}
+                        onEdit={() => handleEditActivity(activity)}
                         onDelete={activity.customId ? () => handleDeleteActivity(activity.customId!) : undefined}
                         onHide={() => handleHideActivity(activity.id)}
                         onOpenMap={openMapModal}
@@ -601,6 +630,8 @@ function DayCard({ day }: DayCardProps) {
         dayId={day.id}
         activity={editingActivity}
         customActivityId={editingCustomId}
+        isBaseActivity={isEditingBaseActivity}
+        baseActivityId={editingBaseActivityId}
         nextOrderIndex={sortedActivities.length}
       />
 

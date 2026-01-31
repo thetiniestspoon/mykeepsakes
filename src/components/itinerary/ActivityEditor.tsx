@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { useAddCustomActivity, useUpdateCustomActivity, CustomActivity } from '@/hooks/use-activity-order';
+import { useAddCustomActivity, useUpdateCustomActivity } from '@/hooks/use-activity-order';
+import { useUpsertActivityOverride, useDeleteActivityOverride } from '@/hooks/use-activity-overrides';
 import type { Activity } from '@/lib/itinerary-data';
+import { RotateCcw } from 'lucide-react';
 
 interface ActivityEditorProps {
   open: boolean;
@@ -14,6 +16,8 @@ interface ActivityEditorProps {
   dayId: string;
   activity?: Activity | null;
   customActivityId?: string | null; // If editing a custom activity
+  isBaseActivity?: boolean; // If editing a base activity (not custom)
+  baseActivityId?: string | null; // The ID of the base activity being edited
   nextOrderIndex: number;
 }
 
@@ -32,6 +36,8 @@ export function ActivityEditor({
   dayId, 
   activity, 
   customActivityId,
+  isBaseActivity,
+  baseActivityId,
   nextOrderIndex 
 }: ActivityEditorProps) {
   const [title, setTitle] = useState('');
@@ -46,6 +52,8 @@ export function ActivityEditor({
 
   const addActivity = useAddCustomActivity();
   const updateActivity = useUpdateCustomActivity();
+  const upsertOverride = useUpsertActivityOverride();
+  const deleteOverride = useDeleteActivityOverride();
 
   useEffect(() => {
     if (activity) {
@@ -74,42 +82,90 @@ export function ActivityEditor({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const activityData = {
-      day_id: dayId,
-      title,
-      description: description || null,
-      time: time || null,
-      category,
-      location_name: locationName || null,
-      location_lat: null,
-      location_lng: null,
-      link: link || null,
-      link_label: linkLabel || null,
-      phone: phone || null,
-      map_link: null,
-      notes: notes || null,
-      order_index: nextOrderIndex,
-    };
-
-    if (customActivityId) {
+    if (isBaseActivity && baseActivityId) {
+      // Save as override for base activity
+      await upsertOverride.mutateAsync({
+        activity_id: baseActivityId,
+        title: title || null,
+        description: description || null,
+        time: time || null,
+        category: category || null,
+        location_name: locationName || null,
+        location_lat: null,
+        location_lng: null,
+        link: link || null,
+        link_label: linkLabel || null,
+        phone: phone || null,
+        notes: notes || null,
+      });
+    } else if (customActivityId) {
+      // Update existing custom activity
+      const activityData = {
+        day_id: dayId,
+        title,
+        description: description || null,
+        time: time || null,
+        category,
+        location_name: locationName || null,
+        location_lat: null,
+        location_lng: null,
+        link: link || null,
+        link_label: linkLabel || null,
+        phone: phone || null,
+        map_link: null,
+        notes: notes || null,
+        order_index: nextOrderIndex,
+      };
       await updateActivity.mutateAsync({ id: customActivityId, ...activityData });
     } else {
+      // Add new custom activity
+      const activityData = {
+        day_id: dayId,
+        title,
+        description: description || null,
+        time: time || null,
+        category,
+        location_name: locationName || null,
+        location_lat: null,
+        location_lng: null,
+        link: link || null,
+        link_label: linkLabel || null,
+        phone: phone || null,
+        map_link: null,
+        notes: notes || null,
+        order_index: nextOrderIndex,
+      };
       await addActivity.mutateAsync(activityData);
     }
 
     onOpenChange(false);
   };
 
-  const isSubmitting = addActivity.isPending || updateActivity.isPending;
-  const isEditing = !!customActivityId;
+  const handleResetToDefault = async () => {
+    if (baseActivityId) {
+      await deleteOverride.mutateAsync(baseActivityId);
+      onOpenChange(false);
+    }
+  };
+
+  const isSubmitting = addActivity.isPending || updateActivity.isPending || upsertOverride.isPending;
+  const isResetting = deleteOverride.isPending;
+  const isEditingCustom = !!customActivityId;
+  const isEditingBase = isBaseActivity && !!baseActivityId;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{isEditing ? 'Edit Activity' : 'Add Activity'}</SheetTitle>
+          <SheetTitle>
+            {isEditingCustom || isEditingBase ? 'Edit Activity' : 'Add Activity'}
+          </SheetTitle>
           <SheetDescription>
-            {isEditing ? 'Update this activity' : 'Add a new activity to your itinerary'}
+            {isEditingBase 
+              ? 'Customize this activity. Changes are saved separately from the original.'
+              : isEditingCustom 
+                ? 'Update this activity' 
+                : 'Add a new activity to your itinerary'}
           </SheetDescription>
         </SheetHeader>
 
@@ -229,9 +285,23 @@ export function ActivityEditor({
               Cancel
             </Button>
             <Button type="submit" disabled={!title || isSubmitting} className="flex-1">
-              {isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Add Activity')}
+              {isSubmitting ? 'Saving...' : (isEditingCustom || isEditingBase ? 'Update' : 'Add Activity')}
             </Button>
           </div>
+
+          {/* Reset to Default button for base activities */}
+          {isEditingBase && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleResetToDefault}
+              disabled={isResetting}
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              {isResetting ? 'Resetting...' : 'Reset to Default'}
+            </Button>
+          )}
         </form>
       </SheetContent>
     </Sheet>
