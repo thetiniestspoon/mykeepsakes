@@ -15,14 +15,16 @@ import { useAddLodging, useUpdateLodging, LodgingOption, LodgingInsert } from '@
 import { Loader2, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PTOWN_CENTER } from '@/lib/itinerary-data';
+import type { ScrapedLodgingData } from './LodgingUrlImporter';
 
 interface LodgingEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingLodging?: LodgingOption | null;
+  initialData?: ScrapedLodgingData | null;
 }
 
-export function LodgingEditor({ open, onOpenChange, editingLodging }: LodgingEditorProps) {
+export function LodgingEditor({ open, onOpenChange, editingLodging, initialData }: LodgingEditorProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
@@ -50,6 +52,7 @@ export function LodgingEditor({ open, onOpenChange, editingLodging }: LodgingEdi
 
   useEffect(() => {
     if (editingLodging) {
+      // Editing existing lodging
       setName(editingLodging.name);
       setDescription(editingLodging.description || '');
       setAddress(editingLodging.address || '');
@@ -65,10 +68,30 @@ export function LodgingEditor({ open, onOpenChange, editingLodging }: LodgingEdi
       setAmenities(editingLodging.amenities || []);
       setPros(editingLodging.pros || []);
       setCons(editingLodging.cons || []);
+    } else if (initialData) {
+      // Pre-fill from imported data
+      setName(initialData.name || '');
+      setDescription(initialData.description || '');
+      setAddress(initialData.address || '');
+      setPricePerNight(initialData.price_per_night?.toString() || '');
+      setTotalPrice('');
+      setUrl(initialData.url || '');
+      setBedrooms(initialData.bedrooms?.toString() || '');
+      setBathrooms(initialData.bathrooms?.toString() || '');
+      setMaxGuests(initialData.max_guests?.toString() || '');
+      setLat(PTOWN_CENTER.lat.toString());
+      setLng(PTOWN_CENTER.lng.toString());
+      setNotes('');
+      setAmenities(initialData.amenities || []);
+      setPros([]);
+      setCons([]);
+      setNewAmenity('');
+      setNewPro('');
+      setNewCon('');
     } else {
       resetForm();
     }
-  }, [editingLodging, open]);
+  }, [editingLodging, initialData, open]);
 
   const resetForm = () => {
     setName('');
