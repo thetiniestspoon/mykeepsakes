@@ -1,7 +1,8 @@
 import { Calendar, Map, Book, Phone, Star, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { TabId } from '@/types/navigation';
 
-export type TabId = 'itinerary' | 'lodging' | 'map' | 'guide' | 'favorites' | 'contacts';
+export type { TabId };
 
 interface BottomNavProps {
   activeTab: TabId;

@@ -16,7 +16,8 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Delete internal method to fix icon paths with bundlers
+delete (L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: () => string })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -49,7 +50,8 @@ export function MapModal({
   // Helper function to clean up the map container
   const cleanupContainer = () => {
     if (mapRef.current) {
-      delete (mapRef.current as any)._leaflet_id;
+      const el = mapRef.current as HTMLElement & { _leaflet_id?: number };
+      delete el._leaflet_id;
       mapRef.current.innerHTML = '';
     }
   };
@@ -89,7 +91,8 @@ export function MapModal({
       if (!isMounted || !mapRef.current || mapInstanceRef.current) return;
 
       // Ensure container is clean right before init
-      delete (mapRef.current as any)._leaflet_id;
+      const el = mapRef.current as HTMLElement & { _leaflet_id?: number };
+      delete el._leaflet_id;
 
       try {
         // Initialize new map
@@ -129,7 +132,8 @@ export function MapModal({
       cleanupMap();
       cleanupContainer();
     };
-  }, [open]); // Only depend on open state for initialization
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Map initialization only on open state change
+  }, [open]);
 
   // Separate effect to update view when location changes while open
   useEffect(() => {
