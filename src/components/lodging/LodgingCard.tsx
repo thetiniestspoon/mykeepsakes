@@ -278,6 +278,7 @@ export function LodgingCard({ lodging, onEdit }: LodgingCardProps) {
       {/* Map Modal */}
       {hasLocation && (
         <MapModal
+          key={`${lodging.location_lat}-${lodging.location_lng}`}
           open={mapOpen}
           onOpenChange={setMapOpen}
           lat={lodging.location_lat!}
