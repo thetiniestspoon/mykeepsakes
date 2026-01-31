@@ -135,7 +135,7 @@ export function LodgingUrlImporter({ open, onOpenChange, onImportSuccess }: Lodg
           )}
 
           <p className="text-xs text-muted-foreground">
-            Supported: Airbnb, VRBO, Booking.com, and most vacation rental sites
+            <strong>Note:</strong> Major sites (Airbnb, VRBO, Booking.com) may be restricted. Works best with smaller rental sites and direct property listings.
           </p>
         </div>
 
