@@ -7,6 +7,8 @@ import { SettingsDialog } from '@/components/SettingsDialog';
 import { LodgingTab } from '@/components/LodgingTab';
 import { FavoritesTab } from '@/components/FavoritesTab';
 import { ContactsTab } from '@/components/ContactsTab';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ItinerarySkeleton, MapSkeleton, AlbumSkeleton, GenericSkeleton } from '@/components/LoadingSkeletons';
 import { usePin } from '@/hooks/use-trip-data';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -16,14 +18,6 @@ const DatabaseMapTab = lazy(() => import('@/components/DatabaseMapTab'));
 const GuideTab = lazy(() => import('@/components/GuideTab'));
 const DatabaseItineraryTab = lazy(() => import('@/components/DatabaseItineraryTab'));
 const AlbumTab = lazy(() => import('@/components/album/AlbumTab').then(m => ({ default: m.AlbumTab })));
-
-function TabLoadingFallback() {
-  return (
-    <div className="flex justify-center py-12">
-      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-    </div>
-  );
-}
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,29 +74,31 @@ const Index = () => {
       <TripHeader onOpenSettings={() => setSettingsOpen(true)} />
       
       <main className="container px-4 py-4">
-        {activeTab === 'itinerary' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-            <DatabaseItineraryTab />
-          </Suspense>
-        )}
-        {activeTab === 'lodging' && <LodgingTab />}
-        {activeTab === 'map' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-            <DatabaseMapTab />
-          </Suspense>
-        )}
-        {activeTab === 'guide' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-            <GuideTab />
-          </Suspense>
-        )}
-        {activeTab === 'album' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-            <AlbumTab />
-          </Suspense>
-        )}
-        {activeTab === 'favorites' && <FavoritesTab />}
-        {activeTab === 'contacts' && <ContactsTab />}
+        <ErrorBoundary>
+          {activeTab === 'itinerary' && (
+            <Suspense fallback={<ItinerarySkeleton />}>
+              <DatabaseItineraryTab />
+            </Suspense>
+          )}
+          {activeTab === 'lodging' && <LodgingTab />}
+          {activeTab === 'map' && (
+            <Suspense fallback={<MapSkeleton />}>
+              <DatabaseMapTab />
+            </Suspense>
+          )}
+          {activeTab === 'guide' && (
+            <Suspense fallback={<GenericSkeleton />}>
+              <GuideTab />
+            </Suspense>
+          )}
+          {activeTab === 'album' && (
+            <Suspense fallback={<AlbumSkeleton />}>
+              <AlbumTab />
+            </Suspense>
+          )}
+          {activeTab === 'favorites' && <FavoritesTab />}
+          {activeTab === 'contacts' && <ContactsTab />}
+        </ErrorBoundary>
       </main>
       
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
