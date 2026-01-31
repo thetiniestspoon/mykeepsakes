@@ -122,10 +122,11 @@ export function MapTab() {
       });
     }
     
-    // Filter by day
+    // Filter by day - when specific days are selected, only show locations with matching dayId
     if (!activeDays.has('all')) {
       filtered = filtered.filter(loc => {
-        if (!loc.dayId) return true; // Include guide items and lodging
+        // Exclude items without a dayId (guide items, lodging) when filtering by specific days
+        if (!loc.dayId) return false;
         return activeDays.has(loc.dayId);
       });
     }
