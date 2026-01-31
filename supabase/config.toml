@@ -2,3 +2,6 @@ project_id = "umtjakhlqvjxidcnfjhf"
 
 [functions.migrate-static-data]
 verify_jwt = false
+
+[functions.export-trip]
+verify_jwt = false
