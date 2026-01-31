@@ -1,0 +1,300 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// PIN Management
+export function usePin() {
+  return useQuery({
+    queryKey: ['pin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'pin')
+        .single();
+      
+      if (error) throw error;
+      return data.setting_value;
+    }
+  });
+}
+
+export function useUpdatePin() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (newPin: string) => {
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ setting_value: newPin })
+        .eq('setting_key', 'pin');
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pin'] });
+      toast.success('PIN updated successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to update PIN');
+    }
+  });
+}
+
+// Checklist Items
+export function useChecklistItems() {
+  return useQuery({
+    queryKey: ['checklist-items'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select('*');
+      
+      if (error) throw error;
+      return data.reduce((acc, item) => {
+        acc[item.item_id] = item.is_completed;
+        return acc;
+      }, {} as Record<string, boolean>);
+    }
+  });
+}
+
+export function useToggleChecklistItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, isCompleted }: { itemId: string; isCompleted: boolean }) => {
+      const { error } = await supabase
+        .from('checklist_items')
+        .upsert({
+          item_id: itemId,
+          is_completed: isCompleted,
+          completed_at: isCompleted ? new Date().toISOString() : null
+        }, { onConflict: 'item_id' });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklist-items'] });
+    }
+  });
+}
+
+// Favorites
+export function useFavorites() {
+  return useQuery({
+    queryKey: ['favorites'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('*');
+      
+      if (error) throw error;
+      return data.reduce((acc, item) => {
+        acc[item.item_id] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+    }
+  });
+}
+
+export function useToggleFavorite() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, itemType, isFavorite }: { itemId: string; itemType: string; isFavorite: boolean }) => {
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('favorites')
+          .insert({ item_id: itemId, item_type: itemType });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('item_id', itemId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+    }
+  });
+}
+
+// Notes
+export function useNotes() {
+  return useQuery({
+    queryKey: ['notes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+}
+
+export function useAddNote() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, content }: { itemId: string; content: string }) => {
+      const { error } = await supabase
+        .from('notes')
+        .insert({ item_id: itemId, content });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      toast.success('Note added!');
+    },
+    onError: () => {
+      toast.error('Failed to add note');
+    }
+  });
+}
+
+export function useDeleteNote() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (noteId: string) => {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      toast.success('Note deleted');
+    }
+  });
+}
+
+// Photos
+export function usePhotos() {
+  return useQuery({
+    queryKey: ['photos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+}
+
+export function useUploadPhoto() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, file, caption }: { itemId: string; file: File; caption?: string }) => {
+      const fileName = `${itemId}/${Date.now()}-${file.name}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('trip-photos')
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { error: dbError } = await supabase
+        .from('photos')
+        .insert({
+          item_id: itemId,
+          storage_path: fileName,
+          caption
+        });
+      
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      toast.success('Photo uploaded!');
+    },
+    onError: () => {
+      toast.error('Failed to upload photo');
+    }
+  });
+}
+
+export function useDeletePhoto() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ photoId, storagePath }: { photoId: string; storagePath: string }) => {
+      const { error: storageError } = await supabase.storage
+        .from('trip-photos')
+        .remove([storagePath]);
+      
+      if (storageError) throw storageError;
+      
+      const { error: dbError } = await supabase
+        .from('photos')
+        .delete()
+        .eq('id', photoId);
+      
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      toast.success('Photo deleted');
+    }
+  });
+}
+
+// Collapsed Sections
+export function useCollapsedSections() {
+  return useQuery({
+    queryKey: ['collapsed-sections'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('collapsed_sections')
+        .select('*');
+      
+      if (error) throw error;
+      return data.reduce((acc, item) => {
+        acc[item.section_id] = item.is_collapsed;
+        return acc;
+      }, {} as Record<string, boolean>);
+    }
+  });
+}
+
+export function useToggleSection() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ sectionId, isCollapsed }: { sectionId: string; isCollapsed: boolean }) => {
+      const { error } = await supabase
+        .from('collapsed_sections')
+        .upsert({
+          section_id: sectionId,
+          is_collapsed: isCollapsed
+        }, { onConflict: 'section_id' });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collapsed-sections'] });
+    }
+  });
+}
+
+// Get photo URL
+export function getPhotoUrl(storagePath: string): string {
+  const { data } = supabase.storage
+    .from('trip-photos')
+    .getPublicUrl(storagePath);
+  
+  return data.publicUrl;
+}
