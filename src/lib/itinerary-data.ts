@@ -88,7 +88,7 @@ export const FERRY_INFO = {
   }
 };
 
-// Sample Itinerary - Family Week typically in late July
+// Sample Itinerary - 8-day Family Week, July 25 - August 1
 export const ITINERARY: Day[] = [
   {
     id: 'day-1',

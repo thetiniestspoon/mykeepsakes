@@ -694,7 +694,7 @@ export function ItineraryTab({ days }: ItineraryTabProps) {
     <div className="space-y-4 pb-20">
       <div className="text-center py-4">
         <h2 className="font-display text-2xl text-foreground">Your Trip Itinerary</h2>
-        <p className="text-muted-foreground">July 25 - 31, 2026</p>
+        <p className="text-muted-foreground">July 25 - August 1, 2026</p>
         <p className="text-xs text-muted-foreground mt-1">
           Drag activities to reorder • Tap + to add custom activities
         </p>
