@@ -4,6 +4,7 @@ import { TripHeader } from '@/components/TripHeader';
 import { BottomNav, TabId } from '@/components/BottomNav';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { ItineraryTab } from '@/components/ItineraryTab';
+import { LodgingTab } from '@/components/LodgingTab';
 import { MapTab } from '@/components/MapTab';
 import { GuideTab } from '@/components/GuideTab';
 import { FavoritesTab } from '@/components/FavoritesTab';
@@ -61,6 +62,7 @@ const Index = () => {
       
       <main className="container px-4 py-4">
         {activeTab === 'itinerary' && <ItineraryTab days={ITINERARY} />}
+        {activeTab === 'lodging' && <LodgingTab />}
         {activeTab === 'map' && <MapTab />}
         {activeTab === 'guide' && <GuideTab />}
         {activeTab === 'favorites' && <FavoritesTab />}

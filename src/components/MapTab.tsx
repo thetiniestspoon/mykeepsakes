@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Map, Filter, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAllLocations, PTOWN_CENTER } from '@/lib/itinerary-data';
+import { MapModal } from '@/components/map/MapModal';
 
 type CategoryFilter = 'all' | 'beach' | 'dining' | 'activity' | 'accommodation' | 'transport' | 'event' | 'restaurant';
 
@@ -18,8 +19,16 @@ const categoryConfig: Record<string, { label: string; icon: React.ComponentType<
   event: { label: 'Events', icon: PartyPopper, color: 'bg-beach-sunset-gold/20 text-beach-sunset-gold' },
 };
 
+interface SelectedLocation {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
 export function MapTab() {
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   
   const locations = getAllLocations();
   
@@ -112,15 +121,21 @@ export function MapTab() {
             filteredLocations.map((location, index) => {
               const config = categoryConfig[location.itemType] || categoryConfig.activity;
               const Icon = config.icon;
-              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.name + ', Provincetown, MA')}`;
+              
+              const handleClick = () => {
+                setSelectedLocation({
+                  lat: location.lat,
+                  lng: location.lng,
+                  name: location.name
+                });
+                setMapModalOpen(true);
+              };
               
               return (
-                <a 
+                <button 
                   key={`${location.itemId}-${index}`}
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/30 transition-colors group"
+                  onClick={handleClick}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/30 transition-colors group w-full text-left"
                 >
                   <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", config.color)}>
                     <Icon className="w-5 h-5" />
@@ -129,8 +144,8 @@ export function MapTab() {
                     <p className="font-medium text-foreground truncate">{location.name}</p>
                     <p className="text-xs text-muted-foreground">{config.label}</p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors shrink-0" />
-                </a>
+                  <MapPin className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors shrink-0" />
+                </button>
               );
             })
           )}
@@ -141,10 +156,21 @@ export function MapTab() {
       <Card className="shadow-warm mx-4 bg-beach-sand/30">
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground text-center">
-            💡 <strong>Tip:</strong> Tap any location to open it in Google Maps with directions from your current location.
+            💡 <strong>Tip:</strong> Tap any location to view it on an interactive map.
           </p>
         </CardContent>
       </Card>
+
+      {/* Map Modal */}
+      {selectedLocation && (
+        <MapModal
+          open={mapModalOpen}
+          onOpenChange={setMapModalOpen}
+          lat={selectedLocation.lat}
+          lng={selectedLocation.lng}
+          name={selectedLocation.name}
+        />
+      )}
     </div>
   );
 }
