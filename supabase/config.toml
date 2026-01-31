@@ -1,4 +1,1 @@
 project_id = "umtjakhlqvjxidcnfjhf"
-
-[functions.scrape-lodging]
-verify_jwt = false

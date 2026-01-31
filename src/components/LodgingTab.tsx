@@ -3,41 +3,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Home, Archive, CheckCircle2, Loader2, Link } from 'lucide-react';
-import { useLodgingOptions, LodgingOption, useSelectedLodging } from '@/hooks/use-lodging';
-import { LodgingCard } from '@/components/lodging/LodgingCard';
-import { LodgingEditor } from '@/components/lodging/LodgingEditor';
-import { LodgingUrlImporter, ScrapedLodgingData } from '@/components/lodging/LodgingUrlImporter';
+import { Plus, Home, Archive, CheckCircle2, Loader2 } from 'lucide-react';
+import { useLodgingOptions, useSelectedLodging } from '@/hooks/use-lodging';
+import { LodgingLinkTile } from '@/components/lodging/LodgingLinkTile';
+import { AddLodgingLinkDialog } from '@/components/lodging/AddLodgingLinkDialog';
 
 export function LodgingTab() {
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingLodging, setEditingLodging] = useState<LodgingOption | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [importerOpen, setImporterOpen] = useState(false);
-  const [importedData, setImportedData] = useState<ScrapedLodgingData | null>(null);
 
   const { data: lodgingOptions, isLoading, error } = useLodgingOptions(showArchived);
   const { data: selectedLodging } = useSelectedLodging();
 
   const activeOptions = lodgingOptions?.filter(l => !l.is_archived) || [];
   const archivedOptions = lodgingOptions?.filter(l => l.is_archived) || [];
-
-  const handleEdit = (lodging: LodgingOption) => {
-    setEditingLodging(lodging);
-    setEditorOpen(true);
-  };
-
-  const handleAdd = () => {
-    setEditingLodging(null);
-    setImportedData(null);
-    setEditorOpen(true);
-  };
-
-  const handleImportSuccess = (data: ScrapedLodgingData) => {
-    setImportedData(data);
-    setEditingLodging(null);
-    setEditorOpen(true);
-  };
 
   if (isLoading) {
     return (
@@ -61,7 +40,7 @@ export function LodgingTab() {
     <div className="space-y-4 pb-20">
       <div className="text-center py-4">
         <h2 className="font-display text-2xl text-foreground">Lodging Options</h2>
-        <p className="text-muted-foreground">Compare and select your accommodation</p>
+        <p className="text-muted-foreground">Save and compare rental listings</p>
       </div>
 
       {/* Selected Lodging Banner */}
@@ -73,24 +52,17 @@ export function LodgingTab() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-primary font-medium">Booked Accommodation</p>
                 <p className="font-semibold truncate">{selectedLodging.name}</p>
-                {selectedLodging.address && (
-                  <p className="text-sm text-muted-foreground truncate">{selectedLodging.address}</p>
-                )}
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Add Buttons */}
-      <div className="px-4 flex gap-2">
-        <Button onClick={handleAdd} className="flex-1 gap-2">
+      {/* Add Button */}
+      <div className="px-4">
+        <Button onClick={() => setAddDialogOpen(true)} className="w-full gap-2">
           <Plus className="w-4 h-4" />
-          Add Manually
-        </Button>
-        <Button onClick={() => setImporterOpen(true)} variant="secondary" className="flex-1 gap-2">
-          <Link className="w-4 h-4" />
-          Import from URL
+          Add Listing Link
         </Button>
       </div>
 
@@ -109,49 +81,41 @@ export function LodgingTab() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="active" className="mt-4 space-y-4">
+        <TabsContent value="active" className="mt-4 space-y-3">
           {activeOptions.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <Home className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="font-semibold mb-1">No Lodging Options Yet</h3>
+                <h3 className="font-semibold mb-1">No Listings Yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Add potential accommodations to compare and decide on the best one.
+                  Add links to rental listings to compare and vote on options.
                 </p>
-                <Button onClick={handleAdd}>
+                <Button onClick={() => setAddDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add First Option
+                  Add First Listing
                 </Button>
               </CardContent>
             </Card>
           ) : (
             activeOptions.map((lodging) => (
-              <LodgingCard
-                key={lodging.id}
-                lodging={lodging}
-                onEdit={() => handleEdit(lodging)}
-              />
+              <LodgingLinkTile key={lodging.id} lodging={lodging} />
             ))
           )}
         </TabsContent>
 
-        <TabsContent value="archived" className="mt-4 space-y-4">
+        <TabsContent value="archived" className="mt-4 space-y-3">
           {archivedOptions.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <Archive className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  No archived options. Archived options will appear here.
+                  No archived listings. Archived listings will appear here.
                 </p>
               </CardContent>
             </Card>
           ) : (
             archivedOptions.map((lodging) => (
-              <LodgingCard
-                key={lodging.id}
-                lodging={lodging}
-                onEdit={() => handleEdit(lodging)}
-              />
+              <LodgingLinkTile key={lodging.id} lodging={lodging} />
             ))
           )}
         </TabsContent>
@@ -161,27 +125,15 @@ export function LodgingTab() {
       <Card className="shadow-warm mx-4 bg-beach-sand/30">
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground text-center">
-            💡 <strong>Tip:</strong> Use the thumbs up/down to vote on options. Click "Book This" when you've decided!
+            💡 <strong>Tip:</strong> Use thumbs up/down to vote on listings. Tap a tile to preview the listing!
           </p>
         </CardContent>
       </Card>
 
-      {/* Editor */}
-      <LodgingEditor
-        open={editorOpen}
-        onOpenChange={(open) => {
-          setEditorOpen(open);
-          if (!open) setImportedData(null);
-        }}
-        editingLodging={editingLodging}
-        initialData={importedData}
-      />
-
-      {/* URL Importer */}
-      <LodgingUrlImporter
-        open={importerOpen}
-        onOpenChange={setImporterOpen}
-        onImportSuccess={handleImportSuccess}
+      {/* Add Dialog */}
+      <AddLodgingLinkDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
       />
     </div>
   );
