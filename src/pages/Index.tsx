@@ -4,18 +4,17 @@ import { PinSetup } from '@/components/PinSetup';
 import { TripHeader } from '@/components/TripHeader';
 import { BottomNav, TabId } from '@/components/BottomNav';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { ItineraryTab } from '@/components/ItineraryTab';
 import { LodgingTab } from '@/components/LodgingTab';
 import { FavoritesTab } from '@/components/FavoritesTab';
 import { ContactsTab } from '@/components/ContactsTab';
 import { usePin } from '@/hooks/use-trip-data';
 import { useQueryClient } from '@tanstack/react-query';
-import { ITINERARY } from '@/lib/itinerary-data';
 import { Loader2 } from 'lucide-react';
 
 // Lazy load heavy components
-const MapTab = lazy(() => import('@/components/MapTab'));
+const DatabaseMapTab = lazy(() => import('@/components/DatabaseMapTab'));
 const GuideTab = lazy(() => import('@/components/GuideTab'));
+const DatabaseItineraryTab = lazy(() => import('@/components/DatabaseItineraryTab'));
 
 function TabLoadingFallback() {
   return (
@@ -80,11 +79,15 @@ const Index = () => {
       <TripHeader onOpenSettings={() => setSettingsOpen(true)} />
       
       <main className="container px-4 py-4">
-        {activeTab === 'itinerary' && <ItineraryTab days={ITINERARY} />}
+        {activeTab === 'itinerary' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <DatabaseItineraryTab />
+          </Suspense>
+        )}
         {activeTab === 'lodging' && <LodgingTab />}
         {activeTab === 'map' && (
           <Suspense fallback={<TabLoadingFallback />}>
-            <MapTab />
+            <DatabaseMapTab />
           </Suspense>
         )}
         {activeTab === 'guide' && (
