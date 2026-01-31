@@ -1,7 +1,7 @@
-import { Calendar, Map, Book, Phone, Star } from 'lucide-react';
+import { Calendar, Map, Book, Phone, Star, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type TabId = 'itinerary' | 'map' | 'guide' | 'favorites' | 'contacts';
+export type TabId = 'itinerary' | 'lodging' | 'map' | 'guide' | 'favorites' | 'contacts';
 
 interface BottomNavProps {
   activeTab: TabId;
@@ -10,9 +10,9 @@ interface BottomNavProps {
 
 const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'itinerary', label: 'Itinerary', icon: Calendar },
+  { id: 'lodging', label: 'Lodging', icon: Home },
   { id: 'map', label: 'Map', icon: Map },
   { id: 'guide', label: 'Guide', icon: Book },
-  { id: 'favorites', label: 'Favorites', icon: Star },
   { id: 'contacts', label: 'Contacts', icon: Phone },
 ];
 

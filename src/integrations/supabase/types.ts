@@ -233,6 +233,84 @@ export type Database = {
         }
         Relationships: []
       }
+      lodging_options: {
+        Row: {
+          address: string | null
+          amenities: string[] | null
+          bathrooms: number | null
+          bedrooms: number | null
+          cons: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          is_archived: boolean
+          is_selected: boolean
+          location_lat: number | null
+          location_lng: number | null
+          max_guests: number | null
+          name: string
+          notes: string | null
+          photos: string[] | null
+          price_per_night: number | null
+          pros: string[] | null
+          total_price: number | null
+          updated_at: string
+          url: string | null
+          votes_down: number
+          votes_up: number
+        }
+        Insert: {
+          address?: string | null
+          amenities?: string[] | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          cons?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_selected?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          max_guests?: number | null
+          name: string
+          notes?: string | null
+          photos?: string[] | null
+          price_per_night?: number | null
+          pros?: string[] | null
+          total_price?: number | null
+          updated_at?: string
+          url?: string | null
+          votes_down?: number
+          votes_up?: number
+        }
+        Update: {
+          address?: string | null
+          amenities?: string[] | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          cons?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_selected?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          max_guests?: number | null
+          name?: string
+          notes?: string | null
+          photos?: string[] | null
+          price_per_night?: number | null
+          pros?: string[] | null
+          total_price?: number | null
+          updated_at?: string
+          url?: string | null
+          votes_down?: number
+          votes_up?: number
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string
