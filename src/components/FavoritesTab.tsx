@@ -1,13 +1,29 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, ExternalLink, Phone, MapPin, Calendar } from 'lucide-react';
 import { useFavorites, useNotes, usePhotos, getPhotoUrl } from '@/hooks/use-trip-data';
 import { ITINERARY, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
 import type { Activity, GuideItem } from '@/lib/itinerary-data';
+import { MapModal } from '@/components/map/MapModal';
+
+interface SelectedLocation {
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+}
 
 export function FavoritesTab() {
   const { data: favorites } = useFavorites();
   const { data: notes } = useNotes();
   const { data: photos } = usePhotos();
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+
+  const openMapModal = (location: SelectedLocation) => {
+    setSelectedLocation(location);
+    setMapModalOpen(true);
+  };
   
   if (!favorites) {
     return <div className="p-4 text-center text-muted-foreground">Loading...</div>;
@@ -123,11 +139,18 @@ export function FavoritesTab() {
                   <div key={beach.id} className="p-3 rounded-lg bg-beach-seafoam/20">
                     <h4 className="font-medium text-foreground">{beach.name}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{beach.description}</p>
-                    {beach.mapLink && (
-                      <a href={beach.mapLink} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline inline-flex items-center gap-1 mt-2">
+                    {beach.location && (
+                      <button 
+                        onClick={() => openMapModal({ 
+                          lat: beach.location!.lat, 
+                          lng: beach.location!.lng, 
+                          name: beach.name 
+                        })}
+                        className="text-xs text-accent hover:underline inline-flex items-center gap-1 mt-2"
+                      >
                         <MapPin className="w-3 h-3" />
-                        Directions
-                      </a>
+                        View Map
+                      </button>
                     )}
                   </div>
                 ))}
@@ -169,6 +192,18 @@ export function FavoritesTab() {
             </Card>
           )}
         </div>
+      )}
+
+      {/* Map Modal */}
+      {selectedLocation && (
+        <MapModal
+          open={mapModalOpen}
+          onOpenChange={setMapModalOpen}
+          lat={selectedLocation.lat}
+          lng={selectedLocation.lng}
+          name={selectedLocation.name}
+          address={selectedLocation.address}
+        />
       )}
     </div>
   );

@@ -291,20 +291,11 @@ export function MapTab() {
         </ScrollArea>
       </div>
       
-      {/* Location count and external link */}
-      <div className="px-4 flex items-center justify-between">
+      {/* Location count */}
+      <div className="px-4">
         <Badge variant="secondary" className="text-sm">
           {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
         </Badge>
-        <a 
-          href={googleMapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-accent hover:underline flex items-center gap-1"
-        >
-          <ExternalLink className="w-3 h-3" />
-          Google Maps
-        </a>
       </div>
       
       {/* Location list */}

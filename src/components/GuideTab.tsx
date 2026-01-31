@@ -38,12 +38,21 @@ import {
   useDeletePhoto,
   getPhotoUrl
 } from '@/hooks/use-trip-data';
+import { MapModal } from '@/components/map/MapModal';
+
+interface SelectedLocation {
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+}
 
 interface GuideItemCardProps {
   item: GuideItem;
+  onOpenMap?: (location: SelectedLocation) => void;
 }
 
-function GuideItemCard({ item }: GuideItemCardProps) {
+function GuideItemCard({ item, onOpenMap }: GuideItemCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,16 +114,18 @@ function GuideItemCard({ item }: GuideItemCardProps) {
                 {item.phone}
               </a>
             )}
-            {item.mapLink && (
-              <a
-                href={item.mapLink}
-                target="_blank"
-                rel="noopener noreferrer"
+            {item.location && onOpenMap && (
+              <button
+                onClick={() => onOpenMap({ 
+                  lat: item.location!.lat, 
+                  lng: item.location!.lng, 
+                  name: item.name 
+                })}
                 className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
               >
                 <MapPin className="w-3 h-3" />
                 Map
-              </a>
+              </button>
             )}
           </div>
           
@@ -244,6 +255,8 @@ function PackingItemRow({ item }: PackingItemRowProps) {
 
 export function GuideTab() {
   const { data: checklistItems } = useChecklistItems();
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   
   // Group packing items by category
   const packingByCategory = PACKING_LIST.reduce((acc, item) => {
@@ -255,6 +268,11 @@ export function GuideTab() {
   // Calculate packing progress
   const packedCount = PACKING_LIST.filter(item => checklistItems?.[item.id]).length;
   const totalItems = PACKING_LIST.length;
+
+  const openMapModal = (location: SelectedLocation) => {
+    setSelectedLocation(location);
+    setMapModalOpen(true);
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -279,7 +297,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {BEACHES.map((beach) => (
-              <GuideItemCard key={beach.id} item={beach} />
+              <GuideItemCard key={beach.id} item={beach} onOpenMap={openMapModal} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -299,7 +317,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {RESTAURANTS.map((restaurant) => (
-              <GuideItemCard key={restaurant.id} item={restaurant} />
+              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -333,6 +351,18 @@ export function GuideTab() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Map Modal */}
+      {selectedLocation && (
+        <MapModal
+          open={mapModalOpen}
+          onOpenChange={setMapModalOpen}
+          lat={selectedLocation.lat}
+          lng={selectedLocation.lng}
+          name={selectedLocation.name}
+          address={selectedLocation.address}
+        />
+      )}
     </div>
   );
 }

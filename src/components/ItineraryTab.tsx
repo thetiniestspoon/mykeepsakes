@@ -71,6 +71,7 @@ import {
 } from '@/hooks/use-activity-order';
 import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { ActivityEditor } from '@/components/itinerary/ActivityEditor';
+import { MapModal } from '@/components/map/MapModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+
+interface SelectedLocation {
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+}
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   activity: Activity,
@@ -107,9 +115,10 @@ interface ActivityCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onHide?: () => void;
+  onOpenMap?: (location: SelectedLocation) => void;
 }
 
-function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide }: ActivityCardProps) {
+function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap }: ActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,16 +226,18 @@ function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide }: Activity
               </a>
             )}
             
-            {activity.mapLink && (
-              <a
-                href={activity.mapLink}
-                target="_blank"
-                rel="noopener noreferrer"
+            {activity.location && onOpenMap && (
+              <button
+                onClick={() => onOpenMap({ 
+                  lat: activity.location!.lat, 
+                  lng: activity.location!.lng, 
+                  name: activity.location!.name 
+                })}
                 className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
               >
                 <MapPin className="w-3 h-3" />
                 Map
-              </a>
+              </button>
             )}
           </div>
           
@@ -394,6 +405,8 @@ function DayCard({ day }: DayCardProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
   const [editingCustomId, setEditingCustomId] = useState<string | null>(null);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
 
   const { data: collapsedSections } = useCollapsedSections();
   const { data: customActivities } = useCustomActivities();
@@ -507,6 +520,11 @@ function DayCard({ day }: DayCardProps) {
       isHidden: true 
     });
   };
+
+  const openMapModal = (location: SelectedLocation) => {
+    setSelectedLocation(location);
+    setMapModalOpen(true);
+  };
   
   return (
     <>
@@ -556,6 +574,7 @@ function DayCard({ day }: DayCardProps) {
                         onEdit={activity.customId ? () => handleEditActivity(activity) : undefined}
                         onDelete={activity.customId ? () => handleDeleteActivity(activity.customId!) : undefined}
                         onHide={() => handleHideActivity(activity.id)}
+                        onOpenMap={openMapModal}
                       />
                     </DraggableActivity>
                   ))}
@@ -584,6 +603,18 @@ function DayCard({ day }: DayCardProps) {
         customActivityId={editingCustomId}
         nextOrderIndex={sortedActivities.length}
       />
+
+      {/* Map Modal */}
+      {selectedLocation && (
+        <MapModal
+          open={mapModalOpen}
+          onOpenChange={setMapModalOpen}
+          lat={selectedLocation.lat}
+          lng={selectedLocation.lng}
+          name={selectedLocation.name}
+          address={selectedLocation.address}
+        />
+      )}
     </>
   );
 }

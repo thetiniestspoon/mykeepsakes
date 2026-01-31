@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { X, MapPin, ExternalLink } from 'lucide-react';
+import { X, MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -81,6 +87,7 @@ export function MapModal({
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`;
+  const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,30 +114,48 @@ export function MapModal({
           style={{ height: 'calc(100% - 120px)' }}
         />
         
-        {/* Footer with external links */}
-        <div className="p-3 border-t bg-background flex gap-2 flex-wrap">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            asChild
-            className="flex-1"
-          >
-            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Google Maps
-            </a>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            asChild
-            className="flex-1"
-          >
-            <a href={appleMapsUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Apple Maps
-            </a>
-          </Button>
+        {/* Footer with Get Directions dropdown */}
+        <div className="p-3 border-t bg-background">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                <Navigation className="w-4 h-4 mr-2" />
+                Get Directions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-48 bg-background z-50">
+              <DropdownMenuItem asChild>
+                <a 
+                  href={googleMapsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="cursor-pointer"
+                >
+                  Google Maps
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a 
+                  href={appleMapsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="cursor-pointer"
+                >
+                  Apple Maps
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a 
+                  href={wazeUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="cursor-pointer"
+                >
+                  Waze
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </DialogContent>
     </Dialog>
