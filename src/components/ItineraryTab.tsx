@@ -607,6 +607,7 @@ function DayCard({ day }: DayCardProps) {
       {/* Map Modal */}
       {selectedLocation && (
         <MapModal
+          key={`${selectedLocation.lat}-${selectedLocation.lng}`}
           open={mapModalOpen}
           onOpenChange={setMapModalOpen}
           lat={selectedLocation.lat}

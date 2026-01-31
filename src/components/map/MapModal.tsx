@@ -44,19 +44,30 @@ export function MapModal({
 }: MapModalProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
+  // Effect for map initialization/cleanup based on open state only
   useEffect(() => {
-    if (!open || !mapRef.current) return;
-
-    // Longer delay to ensure dialog is fully rendered and sized
-    const timer = setTimeout(() => {
-      if (!mapRef.current) return;
-
-      // Clean up existing map
+    if (!open) {
+      // Clean up when closing
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        markerRef.current = null;
       }
+      return;
+    }
+
+    if (!mapRef.current) return;
+
+    // Ensure container is clean before initializing
+    if (mapRef.current.hasChildNodes()) {
+      mapRef.current.innerHTML = '';
+    }
+
+    // Wait for dialog to be fully rendered (animation complete)
+    const timer = setTimeout(() => {
+      if (!mapRef.current || mapInstanceRef.current) return;
 
       // Initialize new map
       const map = L.map(mapRef.current, {
@@ -74,21 +85,32 @@ export function MapModal({
       // Add marker
       const marker = L.marker([lat, lng]).addTo(map);
       marker.bindPopup(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`).openPopup();
+      markerRef.current = marker;
 
       // Force map to recalculate size after render
       setTimeout(() => {
         map.invalidateSize();
       }, 100);
-    }, 200);
+    }, 300);
 
     return () => {
       clearTimeout(timer);
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
     };
-  }, [open, lat, lng, name, address, zoom]);
+  }, [open]); // Only depend on open state for initialization
+
+  // Separate effect to update view when location changes while open
+  useEffect(() => {
+    if (!open || !mapInstanceRef.current) return;
+
+    // Update map view
+    mapInstanceRef.current.setView([lat, lng], zoom);
+
+    // Update marker position
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+      markerRef.current.setPopupContent(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`);
+    }
+  }, [lat, lng, zoom, name, address, open]);
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`;
@@ -112,11 +134,14 @@ export function MapModal({
           )}
         </DialogHeader>
         
-        {/* Map container with explicit height */}
+        {/* Map container with explicit calculated height */}
         <div 
           ref={mapRef} 
-          className="flex-1 w-full relative"
-          style={{ minHeight: '300px' }}
+          className="w-full"
+          style={{ 
+            height: 'calc(100% - 120px)',
+            minHeight: '300px' 
+          }}
         />
         
         {/* Footer with Get Directions dropdown */}
