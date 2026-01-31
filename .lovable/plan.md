@@ -1,6 +1,6 @@
 # Trip App Implementation Plan
 
-## Status: Phase 1-5 Complete ✅
+## Status: Phase 1-6 Complete ✅
 
 Last Updated: January 31, 2026
 
@@ -58,6 +58,19 @@ Last Updated: January 31, 2026
   - Association with days, locations, or both
   - Note-only memories (no photos required)
   - Three view modes: By Day, By Place, Recent
+
+### ✅ Phase 6: Map Enhancements
+- Created `src/components/map/LocationBottomSheet.tsx` - Quick action sheet for locations
+- Enhanced `src/types/map.ts` with PinState type and extended MapLocation interface
+- Updated `src/components/map/OverviewMap.tsx` with visual pin states:
+  - Green ring + checkmark for visited locations
+  - Gold ring + badge for favorited locations
+  - Pink ring + badge for locations with memories
+- Updated `src/components/DatabaseMapTab.tsx`:
+  - Location list shows state indicators (visited/favorited/memories)
+  - Clicking locations opens bottom sheet with quick actions
+  - Bottom sheet actions: toggle visited, favorite, add memory, navigate, call, website
+  - Pin state calculation based on memories, favorites, and visited_at
 
 ---
 
