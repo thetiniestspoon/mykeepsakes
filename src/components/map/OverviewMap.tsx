@@ -1,18 +1,22 @@
 import { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import type { MapLocation } from '@/types/map';
 
 // Fix for default marker icons in Leaflet with bundlers
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Delete internal method to fix icon paths with bundlers
+delete (L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: () => string })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
   shadowUrl: markerShadow,
 });
+
+export type { MapLocation };
 
 // Custom colored marker icons
 const createColoredIcon = (color: string) => {
@@ -58,16 +62,7 @@ const categoryColors: Record<string, string> = {
   lodging: '#EC4899',   // pink
 };
 
-export interface MapLocation {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  category: string;
-  address?: string;
-  dayId?: string;
-  dayLabel?: string;
-}
+// MapLocation interface is now imported from @/types/map
 
 interface OverviewMapProps {
   locations: MapLocation[];
@@ -117,10 +112,11 @@ export function OverviewMap({
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      mapInstanceRef.current = null;
         markersLayerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Map initialized once on mount
   }, []);
 
   // Update markers when locations change

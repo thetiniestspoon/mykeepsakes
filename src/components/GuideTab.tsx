@@ -367,3 +367,5 @@ export function GuideTab() {
     </div>
   );
 }
+
+export default GuideTab;

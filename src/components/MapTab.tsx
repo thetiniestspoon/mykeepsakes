@@ -377,3 +377,5 @@ export function MapTab() {
     </div>
   );
 }
+
+export default MapTab;

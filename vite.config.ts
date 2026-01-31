@@ -18,4 +18,15 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'leaflet': ['leaflet'],
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500,
+  },
 }));
