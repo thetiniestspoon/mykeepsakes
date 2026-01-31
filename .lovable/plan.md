@@ -1,131 +1,104 @@
 
 
-## Add URL Import for Lodging Options
+## Simplify Lodging to Link-Based System
 
-Add a feature that lets users paste an Airbnb (or similar rental site) URL and automatically extract property information to populate the lodging form.
+Replace the current data-entry lodging system with a simpler link-based approach where users save URLs to rental listings and view them in an embedded modal.
+
+---
+
+## Current vs New Approach
+
+| Current | New |
+|---------|-----|
+| Complex form with 15+ fields | Simple: just URL and optional label |
+| Extract/enter property details | Store only the link |
+| Card shows specs, amenities, pros/cons | Tile shows label, domain, voting |
+| External link opens in new tab | Tap opens embedded site in modal |
 
 ---
 
 ## How It Works
 
-1. User taps "Import from URL" button in the Lodging tab
-2. Pastes a property listing URL (Airbnb, VRBO, etc.)
-3. System scrapes the page and extracts key details
-4. Form is pre-populated with extracted data
-5. User reviews, makes any edits, and saves
+1. User taps "Add Listing Link"
+2. Pastes a URL (Airbnb, VRBO, etc.) and optionally adds a label
+3. Link is saved and displayed as a compact tile
+4. Tapping the tile opens a full-screen modal with the site embedded in an iframe
+5. Voting and archive/delete actions remain available on the tile
 
 ---
 
-## Implementation Overview
+## Implementation
 
-### 1. Connect Firecrawl
-Use the Firecrawl connector to enable web scraping. This provides AI-powered extraction of property details from rental listing pages.
+### 1. Simplify Database Usage
+Keep using the existing `lodging_options` table but only use a subset of columns:
+- `id`, `name` (used as label), `url` (required now), `is_selected`, `is_archived`, `votes_up`, `votes_down`, `notes`, `created_at`, `updated_at`
 
-### 2. Create Edge Function
-**File:** `supabase/functions/scrape-lodging/index.ts`
+No schema changes needed - we just use fewer fields.
 
-An edge function that:
-- Receives a listing URL
-- Calls Firecrawl with structured data extraction
-- Parses the response into our lodging format
-- Returns extracted property data
+### 2. Create New Components
 
-The extraction will use Firecrawl's JSON format with a schema tailored for rental properties:
+**New File: `src/components/lodging/LodgingLinkTile.tsx`**
+A compact tile showing:
+- Site favicon or domain icon
+- Label (or extracted domain name if no label)
+- Vote buttons (thumbs up/down with score)
+- Archive/Delete actions
+- Tap area to open modal
 
-```text
-+------------------+     +-----------------+     +------------------+
-|  User pastes URL | --> | Edge Function   | --> | Firecrawl API    |
-+------------------+     | (scrape-lodging)|     +------------------+
-                         +-----------------+            |
-                                  ^                     |
-                                  |                     v
-                         +-----------------+     +------------------+
-                         | Pre-fill form   | <-- | Extract property |
-                         | with data       |     | details          |
-                         +-----------------+     +------------------+
-```
+**New File: `src/components/lodging/LodgingIframeModal.tsx`**
+A full-screen dialog containing:
+- Header with site label and close button
+- Full-height iframe loading the URL
+- Optional toolbar: open in new tab, refresh, share
 
-### 3. Add Import UI Components
-**Files:** 
-- `src/components/LodgingTab.tsx` - Add "Import from URL" button
-- `src/components/lodging/LodgingUrlImporter.tsx` - New dialog for URL input
-- `src/components/lodging/LodgingEditor.tsx` - Accept pre-filled data
+### 3. Simplify Add Dialog
 
-### 4. Add Import Hook
-**File:** `src/hooks/use-lodging.ts`
+**Replace: `src/components/lodging/LodgingEditor.tsx`**
+→ **New: `src/components/lodging/AddLodgingLinkDialog.tsx`**
 
-Add a mutation hook for calling the scrape edge function.
+Simple dialog with just:
+- URL input (required, with validation)
+- Label input (optional - defaults to domain)
+- Notes textarea (optional)
+- Add button
+
+### 4. Update Main Tab
+
+**Modify: `src/components/LodgingTab.tsx`**
+- Remove complex editor and URL importer
+- Replace LodgingCard with LodgingLinkTile
+- Single "Add Listing Link" button
+- Keep tabs for Active/Archived
+- Keep voting functionality
+
+### 5. Clean Up Unused Code
+- Remove `LodgingEditor.tsx` (replaced)
+- Remove `LodgingUrlImporter.tsx` (no longer needed)
+- Remove `LodgingCard.tsx` (replaced by tile)
+- Remove/disable the scrape-lodging edge function
 
 ---
 
-## Technical Details
+## UI Design
 
-### Edge Function Logic
-
-The scrape function will extract:
-
-| Field | Extraction Method |
-|-------|------------------|
-| Name | Property title |
-| Description | Main description text |
-| Address | Location/neighborhood info |
-| Price per night | Nightly rate |
-| Bedrooms | Bedroom count |
-| Bathrooms | Bathroom count |
-| Max guests | Guest capacity |
-| Amenities | Amenities list |
-| Photos | Image URLs (first few) |
-
-### Firecrawl JSON Schema
-
-```typescript
-const lodgingSchema = {
-  type: "object",
-  properties: {
-    name: { type: "string", description: "Property title or name" },
-    description: { type: "string", description: "Property description" },
-    address: { type: "string", description: "Location or address" },
-    price_per_night: { type: "number", description: "Nightly price in USD" },
-    bedrooms: { type: "number", description: "Number of bedrooms" },
-    bathrooms: { type: "number", description: "Number of bathrooms" },
-    max_guests: { type: "number", description: "Maximum guest capacity" },
-    amenities: { 
-      type: "array", 
-      items: { type: "string" },
-      description: "List of amenities" 
-    }
-  }
-};
+### Link Tile Layout
+```
++------------------------------------------+
+| [🏠]  Beach House on Cape       [▲] +2  |
+|       airbnb.com                 [▼]     |
+|       📝 Great reviews          [···]    |
++------------------------------------------+
 ```
 
-### URL Importer Component
-
-A simple dialog with:
-- URL input field with validation
-- "Import" button with loading state
-- Error handling for failed scrapes
-- Success callback to open the editor with data
-
-### UI Flow
-
-```text
-[Add Lodging Option]  [Import from URL]
-         |                    |
-         v                    v
-  +-------------+      +---------------+
-  | Empty form  |      | URL Dialog    |
-  +-------------+      +---------------+
-                              |
-                              v
-                       +---------------+
-                       | Loading...    |
-                       +---------------+
-                              |
-                              v
-                       +---------------+
-                       | Pre-filled    |
-                       | Editor form   |
-                       +---------------+
+### Iframe Modal
+```
++------------------------------------------+
+| [←]  Beach House on Cape       [⤢] [✕]  |
++------------------------------------------+
+|                                          |
+|     [ Full-screen iframe of URL ]        |
+|                                          |
++------------------------------------------+
 ```
 
 ---
@@ -134,40 +107,61 @@ A simple dialog with:
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `supabase/functions/scrape-lodging/index.ts` | Create | Edge function for web scraping |
-| `src/components/lodging/LodgingUrlImporter.tsx` | Create | URL input dialog |
-| `src/components/LodgingTab.tsx` | Modify | Add "Import from URL" button |
-| `src/components/lodging/LodgingEditor.tsx` | Modify | Accept initial data prop |
-| `src/hooks/use-lodging.ts` | Modify | Add scrape mutation hook |
+| `src/components/lodging/LodgingLinkTile.tsx` | Create | Compact tile for each link |
+| `src/components/lodging/LodgingIframeModal.tsx` | Create | Modal with embedded site |
+| `src/components/lodging/AddLodgingLinkDialog.tsx` | Create | Simple add dialog |
+| `src/components/LodgingTab.tsx` | Rewrite | Use new components |
+| `src/hooks/use-lodging.ts` | Simplify | Only use needed fields |
+| `src/components/lodging/LodgingCard.tsx` | Delete | Replaced by tile |
+| `src/components/lodging/LodgingEditor.tsx` | Delete | Replaced by simple dialog |
+| `src/components/lodging/LodgingUrlImporter.tsx` | Delete | No longer needed |
 
 ---
 
-## User Experience
+## Technical Considerations
 
-1. **On Lodging Tab**: Two buttons side-by-side
-   - "Add Lodging Option" (manual entry)
-   - "Import from URL" (auto-extract)
+### Iframe Limitations
+Some sites (Airbnb, VRBO) block iframe embedding via `X-Frame-Options` headers. When this happens:
+- Show a friendly message explaining the site blocks embedding
+- Provide a prominent "Open in New Tab" button as fallback
+- The tile still works for organizing and voting on links
 
-2. **Import Dialog**: Clean, simple interface
-   - Paste URL field
-   - Supported sites hint (Airbnb, VRBO, etc.)
-   - Import button
-
-3. **Loading State**: Shows progress while scraping (~3-5 seconds)
-
-4. **Pre-filled Editor**: Opens with extracted data
-   - All fields populated where data was found
-   - User can review and adjust
-   - Missing fields left empty for manual entry
-
-5. **Error Handling**: 
-   - Invalid URL format
-   - Scraping failed
-   - No data extracted
+### URL Handling
+- Auto-detect domain for display (e.g., "airbnb.com")
+- Validate URL format on input
+- Store full URL for linking
 
 ---
 
-## Prerequisites
+## User Flow
 
-Before implementing, the Firecrawl connector needs to be connected to provide the API key for web scraping.
+```
+[+ Add Listing Link]
+       |
+       v
++------------------+
+| Paste URL here   |
+| Add a label      |
+| Any notes?       |
+|      [Add Link]  |
++------------------+
+       |
+       v
++------------------------------------------+
+| [🏠]  My Airbnb Pick         [▲] 0 [▼]  |
+|       airbnb.com              [···]      |
++------------------------------------------+
+       |
+       v (tap)
++------------------------------------------+
+| Beach House           [New Tab] [Close]  |
++------------------------------------------+
+|                                          |
+|   +---------------------------------+    |
+|   | This site can't be embedded    |    |
+|   | [Open in New Tab]              |    |
+|   +---------------------------------+    |
+|                                          |
++------------------------------------------+
+```
 
