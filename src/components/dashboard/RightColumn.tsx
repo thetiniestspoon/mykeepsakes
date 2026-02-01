@@ -35,7 +35,9 @@ export function RightColumn({ className }: RightColumnProps) {
     clearPanTarget,
     selectItem,
     scrollToItem,
-    navigateToPanel
+    navigateToPanel,
+    focusedLocationId,
+    clearLocationFocus
   } = useDashboardSelection();
   
   // Reference to the map for panning
@@ -149,6 +151,8 @@ export function RightColumn({ className }: RightColumnProps) {
         locations={allLocations}
         days={filterDays}
         onFilteredLocationsChange={handleFilteredLocationsChange}
+        focusedLocationId={focusedLocationId}
+        onFocusConsumed={clearLocationFocus}
       />
       
       {/* Map Container - takes remaining space */}
