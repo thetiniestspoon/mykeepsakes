@@ -145,6 +145,8 @@ export function OverviewMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const prevLocationIdsRef = useRef<string>('');
+  const prevHighlightedPinRef = useRef<string | null>(null);
 
   // Calculate bounds from locations
   const bounds = useMemo(() => {
@@ -182,9 +184,22 @@ export function OverviewMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Map initialized once on mount
   }, []);
 
-  // Update markers when locations change
+  // Update markers when locations change - with diffing to prevent unnecessary re-renders
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
+
+    // Check if locations actually changed by comparing IDs
+    const newIds = locations.map(l => l.id).sort().join(',');
+    const idsChanged = newIds !== prevLocationIdsRef.current;
+    const highlightChanged = highlightedPinId !== prevHighlightedPinRef.current;
+    
+    // Skip if nothing actually changed
+    if (!idsChanged && !highlightChanged) {
+      return;
+    }
+    
+    prevLocationIdsRef.current = newIds;
+    prevHighlightedPinRef.current = highlightedPinId ?? null;
 
     // Clear existing markers
     markersLayerRef.current.clearLayers();
