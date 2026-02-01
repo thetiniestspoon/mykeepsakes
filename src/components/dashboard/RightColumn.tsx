@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
 import { OverviewMap } from '@/components/map/OverviewMap';
 import { useDatabaseLocations, useDatabaseItinerary } from '@/hooks/use-database-itinerary';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { MapLocation } from '@/types/map';
+import L from 'leaflet';
 
 interface RightColumnProps {
   className?: string;
@@ -20,9 +21,14 @@ export function RightColumn({ className }: RightColumnProps) {
   const { locations } = useDatabaseLocations();
   const { 
     highlightedMapPin, 
+    panToLocation,
+    clearPanTarget,
     selectItem,
     scrollToItem 
   } = useDashboardSelection();
+  
+  // Reference to the map for panning
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Convert locations to MapLocation format
   const mapLocations = useMemo<MapLocation[]>(() => {
@@ -38,12 +44,24 @@ export function RightColumn({ className }: RightColumnProps) {
     }));
   }, [locations]);
 
+  // Handle map panning when panToLocation changes
+  useEffect(() => {
+    if (panToLocation && mapContainerRef.current) {
+      // Find the Leaflet map instance and pan to location
+      const mapElement = mapContainerRef.current.querySelector('.leaflet-container');
+      if (mapElement && (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map) {
+        const map = (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map!;
+        map.flyTo([panToLocation.lat, panToLocation.lng], 15, { duration: 0.5 });
+      }
+      clearPanTarget();
+    }
+  }, [panToLocation, clearPanTarget]);
+
   // Handle map marker clicks
   const handleMarkerClick = (location: MapLocation) => {
     selectItem('location', location.id, location);
     
     // Find activities linked to this location and scroll to first one
-    // Compare by name since activities have location objects without IDs
     for (const day of days) {
       const linkedActivity = day.activities.find(a => 
         a.location?.name === location.name
@@ -55,16 +73,14 @@ export function RightColumn({ className }: RightColumnProps) {
     }
   };
 
-  // Day filter state
-  // TODO: Implement day filtering with chips below map
-
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div ref={mapContainerRef} className={cn("flex flex-col h-full", className)}>
       {/* Map Container - takes most of the space */}
       <div className="flex-1 min-h-0">
         <OverviewMap
           locations={mapLocations}
           onMarkerClick={handleMarkerClick}
+          highlightedPinId={highlightedMapPin}
           className="h-full"
         />
       </div>
@@ -78,7 +94,6 @@ export function RightColumn({ className }: RightColumnProps) {
               <FilterChip 
                 key={day.id}
                 label={`Day ${index + 1}`}
-                // TODO: Wire up day filtering
               />
             ))}
           </div>
