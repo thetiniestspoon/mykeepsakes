@@ -44,6 +44,10 @@ interface DashboardSelectionActions {
   scrollToItem: (itemId: string) => void;
   /** Register a scroll handler for the left column */
   registerScrollHandler: (handler: (itemId: string) => void) => () => void;
+  /** Navigate to a specific panel (0=Itinerary, 1=Details, 2=Map) */
+  navigateToPanel: (index: 0 | 1 | 2) => void;
+  /** Register panel navigator (used by SwipeableDashboard) */
+  registerPanelNavigator: (handler: (index: number) => void) => () => void;
 }
 
 interface DashboardSelectionContextValue extends DashboardSelectionState, DashboardSelectionActions {
@@ -69,6 +73,8 @@ export function DashboardSelectionProvider({
   
   // Scroll handler for left column synchronization
   const scrollHandlerRef = useRef<((itemId: string) => void) | null>(null);
+  // Panel navigator for swipeable dashboard
+  const panelNavigatorRef = useRef<((index: number) => void) | null>(null);
 
   // Update trip mode when prop changes
   useEffect(() => {
@@ -135,6 +141,19 @@ export function DashboardSelectionProvider({
     };
   }, []);
 
+  const navigateToPanel = useCallback((index: 0 | 1 | 2) => {
+    if (panelNavigatorRef.current) {
+      panelNavigatorRef.current(index);
+    }
+  }, []);
+
+  const registerPanelNavigator = useCallback((handler: (index: number) => void) => {
+    panelNavigatorRef.current = handler;
+    return () => {
+      panelNavigatorRef.current = null;
+    };
+  }, []);
+
   const value = useMemo<DashboardSelectionContextValue>(() => ({
     // State
     selectedItem,
@@ -151,6 +170,8 @@ export function DashboardSelectionProvider({
     setTripMode,
     scrollToItem,
     registerScrollHandler,
+    navigateToPanel,
+    registerPanelNavigator,
   }), [
     selectedItem,
     highlightedMapPin,
@@ -164,6 +185,8 @@ export function DashboardSelectionProvider({
     clearPanTarget,
     scrollToItem,
     registerScrollHandler,
+    navigateToPanel,
+    registerPanelNavigator,
   ]);
 
   return (

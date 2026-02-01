@@ -1,11 +1,15 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
 import { OverviewMap } from '@/components/map/OverviewMap';
+import { MapFilterHeader } from './MapFilterHeader';
 import { useDatabaseLocations, useDatabaseItinerary } from '@/hooks/use-database-itinerary';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useLocations } from '@/hooks/use-locations';
+import { useMemories } from '@/hooks/use-memories';
+import { useActiveTrip } from '@/hooks/use-trip';
+import { useFavorites } from '@/hooks/use-trip-data';
+import { useLodgingOptions } from '@/hooks/use-lodging';
 import { cn } from '@/lib/utils';
-import type { MapLocation } from '@/types/map';
+import type { MapLocation, PinState } from '@/types/map';
 import L from 'leaflet';
 
 interface RightColumnProps {
@@ -14,25 +18,49 @@ interface RightColumnProps {
 
 /**
  * Right column containing the persistent Overview Map
- * with filter chips and synchronized selection
+ * with filter header and synchronized selection
  */
 export function RightColumn({ className }: RightColumnProps) {
   const { days } = useDatabaseItinerary();
-  const { locations } = useDatabaseLocations();
+  const { locations: dbLocations } = useDatabaseLocations();
+  const { data: trip } = useActiveTrip();
+  const { data: fullLocations = [] } = useLocations(trip?.id);
+  const { data: memories = [] } = useMemories(trip?.id);
+  const { data: favorites = {} } = useFavorites();
+  const { data: lodgingOptions = [] } = useLodgingOptions();
+  
   const { 
     highlightedMapPin, 
     panToLocation,
     clearPanTarget,
     selectItem,
-    scrollToItem 
+    scrollToItem,
+    navigateToPanel
   } = useDashboardSelection();
   
   // Reference to the map for panning
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Filtered locations from the filter header
+  const [filteredLocations, setFilteredLocations] = useState<MapLocation[]>([]);
 
-  // Convert locations to MapLocation format
-  const mapLocations = useMemo<MapLocation[]>(() => {
-    return locations.map(loc => ({
+  // Calculate pin states for each location
+  const getPinState = (locationId: string): PinState => {
+    const hasMemory = memories.some(m => m.location_id === locationId);
+    if (hasMemory) return 'has-memories';
+    
+    const isFavorited = favorites[locationId] ?? false;
+    if (isFavorited) return 'favorited';
+    
+    const location = fullLocations.find(l => l.id === locationId);
+    if (location?.visited_at) return 'visited';
+    
+    return 'planned';
+  };
+
+  // Build complete location list with lodging and pin states
+  const allLocations = useMemo<MapLocation[]>(() => {
+    const locations: MapLocation[] = dbLocations.map(loc => ({
       id: loc.id,
       lat: loc.lat,
       lng: loc.lng,
@@ -41,8 +69,43 @@ export function RightColumn({ className }: RightColumnProps) {
       address: loc.address,
       dayId: loc.dayId,
       dayLabel: loc.dayLabel,
+      pinState: getPinState(loc.id),
+      isVisited: !!fullLocations.find(l => l.id === loc.id)?.visited_at,
+      isFavorited: favorites[loc.id] ?? false,
+      hasMemories: memories.some(m => m.location_id === loc.id),
     }));
-  }, [locations]);
+    
+    // Add lodging options from database
+    lodgingOptions.forEach(lodging => {
+      if (lodging.location_lat && lodging.location_lng) {
+        locations.push({
+          id: lodging.id,
+          lat: lodging.location_lat,
+          lng: lodging.location_lng,
+          name: lodging.name,
+          category: 'lodging',
+          address: lodging.address || undefined,
+          pinState: 'planned',
+        });
+      }
+    });
+    
+    return locations;
+  }, [dbLocations, lodgingOptions, fullLocations, memories, favorites]);
+
+  // Days data for the filter header
+  const filterDays = useMemo(() => {
+    return days.map(day => ({
+      id: day.id,
+      date: day.date,
+      title: day.title,
+    }));
+  }, [days]);
+
+  // Handle filtered locations from the filter header
+  const handleFilteredLocationsChange = useCallback((locations: MapLocation[]) => {
+    setFilteredLocations(locations);
+  }, []);
 
   // Handle map panning when panToLocation changes
   useEffect(() => {
@@ -57,7 +120,7 @@ export function RightColumn({ className }: RightColumnProps) {
     }
   }, [panToLocation, clearPanTarget]);
 
-  // Handle map marker clicks
+  // Handle map marker clicks - navigate to Details panel
   const handleMarkerClick = (location: MapLocation) => {
     selectItem('location', location.id, location);
     
@@ -71,58 +134,29 @@ export function RightColumn({ className }: RightColumnProps) {
         break;
       }
     }
+    
+    // Navigate to Details panel (index 1)
+    navigateToPanel(1);
   };
 
   return (
     <div ref={mapContainerRef} className={cn("flex flex-col h-full", className)}>
-      {/* Map Container - takes most of the space */}
+      {/* Filter Header */}
+      <MapFilterHeader
+        locations={allLocations}
+        days={filterDays}
+        onFilteredLocationsChange={handleFilteredLocationsChange}
+      />
+      
+      {/* Map Container - takes remaining space */}
       <div className="flex-1 min-h-0">
         <OverviewMap
-          locations={mapLocations}
+          locations={filteredLocations}
           onMarkerClick={handleMarkerClick}
           highlightedPinId={highlightedMapPin}
           className="h-full"
         />
       </div>
-      
-      {/* Filter Chips */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-sm p-2">
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2">
-            <FilterChip label="All" active />
-            {days.slice(0, 7).map((day, index) => (
-              <FilterChip 
-                key={day.id}
-                label={`Day ${index + 1}`}
-              />
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </div>
     </div>
-  );
-}
-
-interface FilterChipProps {
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}
-
-function FilterChip({ label, active, onClick }: FilterChipProps) {
-  return (
-    <Badge
-      variant={active ? "default" : "outline"}
-      className={cn(
-        "cursor-pointer transition-colors whitespace-nowrap",
-        active 
-          ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-          : "hover:bg-accent"
-      )}
-      onClick={onClick}
-    >
-      {label}
-    </Badge>
   );
 }

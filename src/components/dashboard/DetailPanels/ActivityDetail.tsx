@@ -20,7 +20,7 @@ interface ActivityDetailProps {
  * Detailed view of a single activity for the center column
  */
 export function ActivityDetail({ activity }: ActivityDetailProps) {
-  const { panMap, highlightPin } = useDashboardSelection();
+  const { panMap, highlightPin, navigateToPanel } = useDashboardSelection();
   const { data: trip } = useActiveTrip();
   const { data: days } = useTripDays(trip?.id);
   const { data: locations } = useLocations(trip?.id);
@@ -50,6 +50,8 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
       if (activity.location_id) {
         highlightPin(activity.location_id);
       }
+      // Navigate to Map panel (index 2)
+      navigateToPanel(2);
     }
   };
 

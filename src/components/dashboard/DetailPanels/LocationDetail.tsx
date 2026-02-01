@@ -15,7 +15,7 @@ interface LocationDetailProps {
  * Detailed view of a location for the center column
  */
 export function LocationDetail({ location, isAccommodation }: LocationDetailProps) {
-  const { panMap } = useDashboardSelection();
+  const { panMap, highlightPin, navigateToPanel } = useDashboardSelection();
 
   if (!location) {
     return (
@@ -32,6 +32,9 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
   const handleShowOnMap = () => {
     if (lat && lng) {
       panMap(lat, lng);
+      highlightPin(location.id);
+      // Navigate to Map panel (index 2)
+      navigateToPanel(2);
     }
   };
 

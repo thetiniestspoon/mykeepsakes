@@ -53,7 +53,14 @@ export function SwipeableDashboard({
     if (selectedItem && activeIndex !== 1) {
       scrollToPanel(1);
     }
-  }, [selectedItem?.id, selectedItem?.type]); // Only trigger on new selections
+  }, [selectedItem?.id, selectedItem?.type]);
+
+  // Register panel navigator with context for bidirectional navigation
+  const { registerPanelNavigator } = useDashboardSelection();
+  
+  useEffect(() => {
+    return registerPanelNavigator(scrollToPanel);
+  }, [registerPanelNavigator, scrollToPanel]);
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-background">
