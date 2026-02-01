@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { AnimatedCheckbox } from '@/components/ui/animated-checkbox';
+import { FavoriteHeart } from '@/components/ui/favorite-heart';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Star, 
   ExternalLink, 
   Phone, 
   MapPin, 
@@ -122,7 +122,7 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
     >
       {/* Header row */}
       <div className="flex items-start gap-3">
-        <Checkbox
+        <AnimatedCheckbox
           checked={isCompleted}
           onCheckedChange={handleToggleComplete}
           className="mt-1"
@@ -280,21 +280,15 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
         
         {/* Action buttons */}
         <div className="flex flex-col gap-1">
-          <button
-            onClick={() => toggleFavorite.mutate({ 
+          <FavoriteHeart
+            isFavorite={isFavorite}
+            onToggle={() => toggleFavorite.mutate({ 
               itemId: activity.id, 
               itemType: activity.category,
               isFavorite: !isFavorite 
             })}
-            className={cn(
-              "p-1.5 rounded-full transition-colors",
-              isFavorite 
-                ? "text-beach-sunset-gold bg-beach-sunset-gold/20" 
-                : "text-muted-foreground hover:text-beach-sunset-gold"
-            )}
-          >
-            <Star className={cn("w-4 h-4", isFavorite && "fill-current")} />
-          </button>
+            size="sm"
+          />
           
           <button
             onClick={() => setShowNoteInput(!showNoteInput)}

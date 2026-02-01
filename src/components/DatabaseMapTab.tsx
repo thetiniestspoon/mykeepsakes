@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { MapModal } from '@/components/map/MapModal';
 import { OverviewMap } from '@/components/map/OverviewMap';
 import { LocationBottomSheet } from '@/components/map/LocationBottomSheet';
+import { StaggeredList } from '@/components/ui/staggered-list';
 import { useDatabaseLocations } from '@/hooks/use-database-itinerary';
 import { useLocations } from '@/hooks/use-locations';
 import { useMemories } from '@/hooks/use-memories';
@@ -321,49 +322,51 @@ export function DatabaseMapTab() {
               No locations match the current filters.
             </p>
           ) : (
-            filteredLocations.map((location) => {
-              const config = categoryConfig[location.category] || categoryConfig.activity;
-              const Icon = config.icon;
-              
-              return (
-                <button 
-                  key={location.id}
-                  onClick={() => handleMarkerClick(location)}
-                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary/30 transition-colors group w-full text-left"
-                >
-                  <div 
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 relative",
-                      location.pinState === 'visited' && "ring-2 ring-green-500",
-                      location.pinState === 'favorited' && "ring-2 ring-amber-500",
-                      location.pinState === 'has-memories' && "ring-2 ring-pink-500"
-                    )}
-                    style={{ backgroundColor: `${config.mapColor}20`, color: config.mapColor }}
+            <StaggeredList className="space-y-1" staggerDelay={40}>
+              {filteredLocations.map((location) => {
+                const config = categoryConfig[location.category] || categoryConfig.activity;
+                const Icon = config.icon;
+                
+                return (
+                  <button 
+                    key={location.id}
+                    onClick={() => handleMarkerClick(location)}
+                    className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary/30 transition-colors group w-full text-left"
                   >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm truncate">{location.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {location.dayLabel || config.label}
-                    </p>
-                  </div>
-                  {/* State indicators */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {location.hasMemories && (
-                      <Camera className="w-3.5 h-3.5 text-pink-500" />
-                    )}
-                    {location.isFavorited && (
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
-                    )}
-                    {location.isVisited && (
-                      <Check className="w-3.5 h-3.5 text-green-500" />
-                    )}
-                    <MapPin className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
-                  </div>
-                </button>
-              );
-            })
+                    <div 
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0 relative",
+                        location.pinState === 'visited' && "ring-2 ring-green-500",
+                        location.pinState === 'favorited' && "ring-2 ring-amber-500",
+                        location.pinState === 'has-memories' && "ring-2 ring-pink-500"
+                      )}
+                      style={{ backgroundColor: `${config.mapColor}20`, color: config.mapColor }}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{location.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {location.dayLabel || config.label}
+                      </p>
+                    </div>
+                    {/* State indicators */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {location.hasMemories && (
+                        <Camera className="w-3.5 h-3.5 text-pink-500" />
+                      )}
+                      {location.isFavorited && (
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
+                      )}
+                      {location.isVisited && (
+                        <Check className="w-3.5 h-3.5 text-green-500" />
+                      )}
+                      <MapPin className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
+                    </div>
+                  </button>
+                );
+              })}
+            </StaggeredList>
           )}
         </CardContent>
       </Card>

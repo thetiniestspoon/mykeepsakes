@@ -8,6 +8,7 @@ import { LodgingTab } from '@/components/LodgingTab';
 import { FavoritesTab } from '@/components/FavoritesTab';
 import { ContactsTab } from '@/components/ContactsTab';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AnimatedTabContent } from '@/components/ui/animated-tabs';
 import { ItinerarySkeleton, MapSkeleton, AlbumSkeleton, GenericSkeleton } from '@/components/LoadingSkeletons';
 import { usePin } from '@/hooks/use-trip-data';
 import { useQueryClient } from '@tanstack/react-query';
@@ -75,29 +76,31 @@ const Index = () => {
       
       <main className="container px-4 py-4">
         <ErrorBoundary>
-          {activeTab === 'itinerary' && (
-            <Suspense fallback={<ItinerarySkeleton />}>
-              <DatabaseItineraryTab />
-            </Suspense>
-          )}
-          {activeTab === 'lodging' && <LodgingTab />}
-          {activeTab === 'map' && (
-            <Suspense fallback={<MapSkeleton />}>
-              <DatabaseMapTab />
-            </Suspense>
-          )}
-          {activeTab === 'guide' && (
-            <Suspense fallback={<GenericSkeleton />}>
-              <GuideTab />
-            </Suspense>
-          )}
-          {activeTab === 'album' && (
-            <Suspense fallback={<AlbumSkeleton />}>
-              <AlbumTab />
-            </Suspense>
-          )}
-          {activeTab === 'favorites' && <FavoritesTab />}
-          {activeTab === 'contacts' && <ContactsTab />}
+          <AnimatedTabContent activeTab={activeTab}>
+            {activeTab === 'itinerary' && (
+              <Suspense fallback={<ItinerarySkeleton />}>
+                <DatabaseItineraryTab />
+              </Suspense>
+            )}
+            {activeTab === 'lodging' && <LodgingTab />}
+            {activeTab === 'map' && (
+              <Suspense fallback={<MapSkeleton />}>
+                <DatabaseMapTab />
+              </Suspense>
+            )}
+            {activeTab === 'guide' && (
+              <Suspense fallback={<GenericSkeleton />}>
+                <GuideTab />
+              </Suspense>
+            )}
+            {activeTab === 'album' && (
+              <Suspense fallback={<AlbumSkeleton />}>
+                <AlbumTab />
+              </Suspense>
+            )}
+            {activeTab === 'favorites' && <FavoritesTab />}
+            {activeTab === 'contacts' && <ContactsTab />}
+          </AnimatedTabContent>
         </ErrorBoundary>
       </main>
       
