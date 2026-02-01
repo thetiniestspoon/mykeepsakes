@@ -112,6 +112,7 @@ export function useLeafletMap(
   }, [logDebug]);
 
   // ResizeObserver to detect when container has valid dimensions
+  // AND continue monitoring for size changes after initialization
   useEffect(() => {
     if (!options.enabled || !containerRef.current) {
       return;
@@ -126,11 +127,20 @@ export function useLeafletMap(
       const { width, height } = entry.contentRect;
       logDebug('Container dimensions', { width, height });
 
-      if (width > 0 && height > 0 && !mapRef.current) {
-        // Small delay to ensure DOM is fully painted
-        requestAnimationFrame(() => {
-          initializeMap();
-        });
+      if (width > 0 && height > 0) {
+        if (!mapRef.current) {
+          // Initialize map when container has valid dimensions
+          requestAnimationFrame(() => {
+            initializeMap();
+          });
+        } else {
+          // Map already exists - invalidate size on container resize
+          // This handles dialog animations completing after map init
+          requestAnimationFrame(() => {
+            mapRef.current?.invalidateSize();
+            logDebug('invalidateSize called after resize');
+          });
+        }
       }
     });
 
@@ -141,6 +151,27 @@ export function useLeafletMap(
       observer.disconnect();
     };
   }, [options.enabled, containerRef, initializeMap, logDebug]);
+
+  // Fallback timer for slow animations - ensures invalidateSize runs
+  // after typical dialog animation duration (300ms)
+  useEffect(() => {
+    if (!options.enabled || !mapRef.current) {
+      return;
+    }
+
+    logDebug('Setting fallback invalidateSize timer');
+    
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+        logDebug('Fallback invalidateSize executed');
+      }
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [options.enabled, logDebug]);
 
   // Cleanup when disabled
   useEffect(() => {
