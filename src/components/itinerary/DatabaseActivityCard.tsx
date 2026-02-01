@@ -65,9 +65,10 @@ interface DatabaseActivityCardProps {
   activity: LegacyActivity;
   onOpenMap?: (location: SelectedLocation) => void;
   onOpenPhoto?: (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => void;
+  isNextActivity?: boolean;
 }
 
-export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto }: DatabaseActivityCardProps) {
+export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextActivity }: DatabaseActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,10 +112,14 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto }: Datab
   };
 
   return (
-    <div className={cn(
-      "relative p-4 rounded-lg border border-border bg-card transition-all",
-      isCompleted && "opacity-60 bg-muted/30"
-    )}>
+    <div 
+      className={cn(
+        "relative p-4 rounded-lg border border-border bg-card transition-all",
+        isCompleted && "opacity-60 bg-muted/30",
+        isNextActivity && "ring-2 ring-primary ring-offset-2"
+      )}
+      data-activity-id={activity.id}
+    >
       {/* Header row */}
       <div className="flex items-start gap-3">
         <Checkbox
