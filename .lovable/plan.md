@@ -1,163 +1,136 @@
 
-# MapModal Debugging & Fixes Plan
 
-## Investigation Summary
+# MapModal Container Structure Fix
 
-Based on extensive testing with the browser automation tools, I discovered:
+## Problem Identified
 
-### What's Working:
-1. **CSS Tile Fix** - Tiles ARE loading correctly at zoom levels 12 and 13 (200 status codes observed)
-2. **useLeafletMap Hook** - The ResizeObserver + onOpenAutoFocus approach is functioning
-3. **Flex Layout** - The `flex-col` + `flex-1` layout provides proper container sizing
+The map container has a nested div structure where `mapRef` is on an inner div, not the outer flex-1 container. This can cause dimension inheritance issues:
 
-### Remaining Issues Found:
+```text
+Current Structure:
+┌─ wrapper div (flex-1 min-h-[300px]) ─┐
+│  ┌─ mapRef div (w-full h-full) ─┐    │
+│  │     Leaflet map              │    │
+│  └──────────────────────────────┘    │
+│  + Loading overlay                    │
+│  + Error overlay                      │
+└──────────────────────────────────────┘
+```
 
-**Issue 1: Race Condition with `onOpenAutoFocus`**
-The `onOpenAutoFocus` event fires when focus is moved to the dialog, but this may happen slightly before the CSS transitions complete. In some cases, the map container might still have zero dimensions when observed.
-
-**Issue 2: Missing `invalidateSize` After Resize**
-The hook only calls `invalidateSize()` once during initial map creation, but if the dialog completes its entrance animation AFTER the map initializes, tiles could render incorrectly.
-
-**Issue 3: Console Warning About Refs**
-The warning "Function components cannot be given refs" is caused by `DropdownMenu` receiving a ref. This is a minor issue but indicates improper component composition.
+The inner div relies on `h-full` to inherit height, but percentage heights can fail if the parent doesn't have an explicit height (flex-1 doesn't always translate to a computable height for children).
 
 ---
 
-## Proposed Fixes
+## Solution
 
-### Fix 1: Add Animation Completion Detection
+Restructure so the `mapRef` is directly on the flex-1 container, with overlays positioned absolutely on top.
 
-Instead of relying solely on `onOpenAutoFocus`, also trigger a size recalculation after the dialog's animation completes.
+### File: `src/components/map/MapModal.tsx`
 
-**File: `src/components/map/MapModal.tsx`**
-
-Add a delayed `invalidateSize` call using `onAnimationEnd` on the container:
-
-```text
-Changes:
-1. Add onAnimationEnd to the map wrapper div
-2. Call map.invalidateSize() when the animation completes
-3. Pass the map instance down for this purpose
-```
-
-### Fix 2: Add Continuous Size Monitoring
-
-Enhance the `useLeafletMap` hook to continue monitoring container size and call `invalidateSize` when dimensions change after initialization.
-
-**File: `src/hooks/use-leaflet-map.ts`**
+**Changes:**
+1. Move `ref={mapRef}` to the outer wrapper div
+2. Keep the flex-1 sizing on that same element
+3. Remove the nested map container div
+4. Overlays remain as absolute positioned children (they'll sit on top of the map)
 
 ```text
-Changes:
-1. Keep ResizeObserver active after map init
-2. Call invalidateSize() when container dimensions change
-3. Add debouncing to prevent excessive calls
+New Structure:
+┌─ mapRef div (flex-1 min-h-[300px] relative) ─┐
+│     Leaflet map (fills entire container)      │
+│  ┌─ Loading overlay (absolute) ─┐             │
+│  └──────────────────────────────┘             │
+│  ┌─ Error overlay (absolute) ─┐               │
+│  └──────────────────────────────┘             │
+└──────────────────────────────────────────────┘
 ```
 
-### Fix 3: Fallback Timer for Slow Animations
+### Updated JSX (lines 90-118):
 
-Add a small fallback timer (300ms after enabled becomes true) to ensure `invalidateSize` is called even if events don't fire as expected.
-
-**File: `src/hooks/use-leaflet-map.ts`**
-
-```text
-Changes:
-1. Add a setTimeout(300ms) fallback when enabled becomes true
-2. Ensure map dimensions are valid after dialog animation completes
-3. Clean up timer on unmount or when disabled
+```jsx
+{/* Map container - flex-1 takes remaining space */}
+<div 
+  ref={mapRef}
+  className={cn(
+    "flex-1 min-h-[300px] relative",
+    !isReady && "invisible"
+  )}
+  onAnimationEnd={handleAnimationEnd}
+>
+  {/* Loading state overlay */}
+  {!isReady && !error && (
+    <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10 visible">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  )}
+  
+  {/* Error state overlay */}
+  {error && (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50 z-10 visible">
+      <AlertCircle className="w-8 h-8 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">Failed to load map</p>
+    </div>
+  )}
+</div>
 ```
 
-### Fix 4: Remove Console Warning
-
-Fix the DropdownMenu ref warning by ensuring proper component structure.
-
-**File: `src/components/map/MapModal.tsx`**
-
-```text
-Changes:
-1. The DropdownMenu trigger already uses `asChild` correctly
-2. This warning may be from a stale build - verify after rebuild
-```
+Note: Added `visible` class to overlays so they remain visible even when parent has `invisible` class.
 
 ---
 
-## Implementation Details
+## Debug Logging Enhancement
 
-### useLeafletMap Hook Updates
+### File: `src/hooks/use-leaflet-map.ts`
 
-```text
-// After map initialization, continue observing for resize
+Add explicit logging when containerRef is null to help diagnose timing issues:
+
+**Update effect (lines 116-153):**
+
+```typescript
 useEffect(() => {
-  if (!mapRef.current || !containerRef.current) return;
+  if (!options.enabled) {
+    logDebug('Map disabled, skipping observation');
+    return;
+  }
+  
+  if (!containerRef.current) {
+    logDebug('containerRef.current is null - Dialog may not have mounted yet');
+    return;
+  }
 
-  const observer = new ResizeObserver((entries) => {
-    const entry = entries[0];
-    if (!entry) return;
-    
-    // Debounced invalidateSize when container resizes
-    requestAnimationFrame(() => {
-      mapRef.current?.invalidateSize();
-    });
+  logDebug('Starting container observation', {
+    width: containerRef.current.offsetWidth,
+    height: containerRef.current.offsetHeight
   });
 
-  observer.observe(containerRef.current);
-  
-  return () => observer.disconnect();
-}, [isReady]);
-```
-
-### MapModal Fallback Timer
-
-```text
-// Add fallback invalidateSize after dialog animation
-useEffect(() => {
-  if (!isReady) return;
-  
-  // Fallback: ensure tiles are correct after animation
-  const timer = setTimeout(() => {
-    // Hook's updateView already handles this, but add explicit invalidateSize
-  }, 350);
-  
-  return () => clearTimeout(timer);
-}, [isReady]);
+  // ... rest of ResizeObserver logic
+}, [options.enabled, containerRef, initializeMap, logDebug]);
 ```
 
 ---
 
 ## Files Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/hooks/use-leaflet-map.ts` | MODIFY | Add continuous resize monitoring + fallback timer |
-| `src/components/map/MapModal.tsx` | MODIFY | Add animation completion handler |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/components/map/MapModal.tsx` | MODIFY | Move mapRef to flex-1 container, remove nested wrapper |
+| `src/hooks/use-leaflet-map.ts` | MODIFY | Add debug logging for null containerRef |
 
 ---
 
-## Technical Details
+## Why This Fixes the Issue
 
-### Why This Fixes the Issue
-
-The core problem is that Leaflet calculates tile positions based on container dimensions at initialization time. If those dimensions change afterward (due to CSS animations), tiles can appear misaligned or missing.
-
-The solution is to:
-1. **Monitor for size changes** after initialization
-2. **Call `invalidateSize()`** whenever dimensions stabilize
-3. **Use a fallback timer** to catch edge cases where ResizeObserver misses changes
-
-### Performance Considerations
-
-- ResizeObserver is very efficient and doesn't impact performance
-- `invalidateSize()` is a lightweight DOM measurement operation
-- Fallback timer only runs once per dialog open
+1. **Direct flex-1 sizing**: The mapRef div is now the direct recipient of flex-based sizing from the Dialog's flex-col layout
+2. **No percentage height inheritance**: Removing the nested div eliminates the need for `h-full` to calculate correctly
+3. **Overlays remain functional**: Using `visible` class ensures loading/error states display even when map container is invisible
+4. **Better debugging**: Explicit null-check logging helps identify if the issue is ref timing vs container sizing
 
 ---
 
-## Testing Checklist
+## Testing After Implementation
 
-After implementation:
-- [ ] Open MapModal immediately after page load
-- [ ] Open MapModal after scrolling through itinerary
-- [ ] Open multiple MapModals in quick succession
-- [ ] Verify no grey tiles appear
-- [ ] Check that marker and popup display correctly
-- [ ] Confirm console warning is resolved
+- [ ] Open MapModal from itinerary - map tiles should render without grey areas
+- [ ] Loading spinner should appear briefly during initialization
+- [ ] Error state should display if map fails to load
+- [ ] Marker and popup should be visible and correctly positioned
+- [ ] Console should show helpful debug messages when `debug: true`
 
