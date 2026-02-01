@@ -1,9 +1,15 @@
-import { Clock, MapPin, Phone, Link, StickyNote, Check, Camera } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, MapPin, Phone, Link, StickyNote, Check, Camera, Undo2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ItineraryItem } from '@/types/trip';
 import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
+import { useUpdateItemStatus } from '@/hooks/use-database-itinerary';
+import { MemoryCaptureDialog } from '@/components/album/MemoryCaptureDialog';
+import { useTripDays } from '@/hooks/use-trip';
+import { useActiveTrip } from '@/hooks/use-trip';
+import { useLocations } from '@/hooks/use-locations';
 import { cn } from '@/lib/utils';
 
 interface ActivityDetailProps {
@@ -14,7 +20,12 @@ interface ActivityDetailProps {
  * Detailed view of a single activity for the center column
  */
 export function ActivityDetail({ activity }: ActivityDetailProps) {
-  const { panMap } = useDashboardSelection();
+  const { panMap, highlightPin } = useDashboardSelection();
+  const { data: trip } = useActiveTrip();
+  const { data: days } = useTripDays(trip?.id);
+  const { data: locations } = useLocations(trip?.id);
+  const updateStatus = useUpdateItemStatus();
+  const [memoryDialogOpen, setMemoryDialogOpen] = useState(false);
 
   if (!activity) {
     return (
@@ -36,17 +47,47 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
   const handleShowOnMap = () => {
     if (activity.location?.lat && activity.location?.lng) {
       panMap(activity.location.lat, activity.location.lng);
+      if (activity.location_id) {
+        highlightPin(activity.location_id);
+      }
     }
   };
+
+  const handleToggleComplete = () => {
+    const newStatus = activity.status === 'done' ? 'planned' : 'done';
+    updateStatus.mutate({ itemId: activity.id, status: newStatus });
+  };
+
+  const handleAddMemory = () => {
+    setMemoryDialogOpen(true);
+  };
+
+  const isCompleted = activity.status === 'done';
+
+  // Convert days data to format needed by MemoryCaptureDialog
+  const legacyDays = days?.map((day, index) => ({
+    id: day.id,
+    date: day.date,
+    dayOfWeek: new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
+    title: day.title || `Day ${index + 1}`,
+    activities: [],
+  })) || [];
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-xl font-semibold text-foreground">{activity.title}</h2>
-          <Badge variant={activity.status === 'done' ? 'default' : 'secondary'}>
-            {activity.status === 'done' ? 'Completed' : 'Planned'}
+          <h2 className={cn(
+            "text-xl font-semibold text-foreground",
+            isCompleted && "line-through text-muted-foreground"
+          )}>
+            {activity.title}
+          </h2>
+          <Badge variant={isCompleted ? 'default' : 'secondary'} className={cn(
+            isCompleted && "bg-green-600"
+          )}>
+            {isCompleted ? 'Completed' : 'Planned'}
           </Badge>
         </div>
         
@@ -142,15 +183,40 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        <Button className="flex-1" variant={activity.status === 'done' ? 'outline' : 'default'}>
-          <Check className="w-4 h-4 mr-2" />
-          {activity.status === 'done' ? 'Undo Complete' : 'Mark Complete'}
+        <Button 
+          className="flex-1" 
+          variant={isCompleted ? 'outline' : 'default'}
+          onClick={handleToggleComplete}
+          disabled={updateStatus.isPending}
+        >
+          {isCompleted ? (
+            <>
+              <Undo2 className="w-4 h-4 mr-2" />
+              Undo Complete
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              Mark Complete
+            </>
+          )}
         </Button>
-        <Button variant="outline" className="flex-1">
+        <Button variant="outline" className="flex-1" onClick={handleAddMemory}>
           <Camera className="w-4 h-4 mr-2" />
           Add Memory
         </Button>
       </div>
+
+      {/* Memory Capture Dialog */}
+      <MemoryCaptureDialog
+        open={memoryDialogOpen}
+        onOpenChange={setMemoryDialogOpen}
+        tripId={trip?.id}
+        days={legacyDays}
+        locations={locations || []}
+        preselectedDayId={activity.day_id}
+        preselectedLocationId={activity.location_id || undefined}
+      />
     </div>
   );
 }
