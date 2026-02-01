@@ -213,6 +213,58 @@
       grid-template-columns: 220px 1fr 220px;
     }
   }
+
+  /* Swipeable Dashboard Container */
+  .swipe-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .swipe-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .swipe-panel {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .swipe-panel-content {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  /* Edge shadow hints */
+  .swipe-edge-shadow-left,
+  .swipe-edge-shadow-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.7;
+  }
+
+  .swipe-edge-shadow-left {
+    left: 0;
+    background: linear-gradient(to right, hsl(var(--muted) / 0.6), transparent);
+  }
+
+  .swipe-edge-shadow-right {
+    right: 0;
+    background: linear-gradient(to left, hsl(var(--muted) / 0.6), transparent);
+  }
 }
 
 /* ==============================================

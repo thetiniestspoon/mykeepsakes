@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 
 interface DashboardModeResult {
-  /** Whether to show the 3-column dashboard layout */
+  /** Whether to show the dashboard system (always true now) */
   isDashboard: boolean;
+  /** Whether to show side-by-side 3-column grid (vs swipeable accordion) */
+  isWideLayout: boolean;
   /** Whether the device is in portrait orientation */
   isPortrait: boolean;
   /** Whether this is a mobile device in landscape */
@@ -22,7 +24,7 @@ export function useDashboardMode(): DashboardModeResult {
   const [state, setState] = useState<DashboardModeResult>(() => {
     // SSR-safe initial state
     if (typeof window === 'undefined') {
-      return { isDashboard: false, isPortrait: true, isMobileLandscape: false };
+      return { isDashboard: true, isWideLayout: false, isPortrait: true, isMobileLandscape: false };
     }
     return calculateDashboardMode();
   });
@@ -65,17 +67,18 @@ function calculateDashboardMode(): DashboardModeResult {
   const isPortrait = height > width;
   const isLandscape = !isPortrait;
   
-  // Desktop/large tablet: always show dashboard
+  // Desktop/large tablet: show 3-column grid
   const isDesktop = width >= 900;
   
-  // Mobile landscape: show dashboard if width >= 667px
+  // Mobile landscape: show 3-column grid if width >= 667px
   const isMobileLandscape = isLandscape && width >= 667 && width < 900;
   
-  // Dashboard mode if either desktop or mobile landscape
-  const isDashboard = isDesktop || isMobileLandscape;
+  // Wide layout shows side-by-side columns, otherwise swipeable accordion
+  const isWideLayout = isDesktop || isMobileLandscape;
 
   return {
-    isDashboard,
+    isDashboard: true, // Always use dashboard system now
+    isWideLayout,
     isPortrait,
     isMobileLandscape,
   };
