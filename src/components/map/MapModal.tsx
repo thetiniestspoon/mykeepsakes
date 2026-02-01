@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,137 +34,104 @@ interface MapModalProps {
   zoom?: number;
 }
 
-export function MapModal({ 
-  open, 
-  onOpenChange, 
-  lat, 
-  lng, 
-  name, 
+export function MapModal({
+  open,
+  onOpenChange,
+  lat,
+  lng,
+  name,
   address,
-  zoom = 15 
+  zoom = 15
 }: MapModalProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
-  // Helper function to clean up the map container
-  const cleanupContainer = () => {
-    if (mapRef.current) {
-      const el = mapRef.current as HTMLElement & { _leaflet_id?: number };
-      delete el._leaflet_id;
-      mapRef.current.innerHTML = '';
-    }
-  };
-
-  // Helper function to clean up map instance
-  const cleanupMap = () => {
-    if (mapInstanceRef.current) {
-      try {
-        mapInstanceRef.current.remove();
-      } catch (e) {
-        console.warn('Error removing map:', e);
-      }
-      mapInstanceRef.current = null;
-      markerRef.current = null;
-    }
-  };
-
-  // Effect for map initialization/cleanup based on open state only
+  // Initialize map when dialog content is ready
   useEffect(() => {
-    let isMounted = true;
-
-    if (!open) {
-      // Synchronous cleanup when closing
-      cleanupMap();
-      cleanupContainer();
+    // Only initialize when open AND we have a container AND no map yet
+    if (!open || !mapRef.current || mapInstanceRef.current) {
       return;
     }
 
-    if (!mapRef.current) {
-      console.log('[MapModal] mapRef.current is null on effect run - Dialog may not have mounted yet');
-      return;
-    }
-    console.log('[MapModal] mapRef.current available, setting up initialization timer');
+    console.log('[MapModal] Initializing map...');
 
-    // Clean container before initializing (remove any stale Leaflet state)
-    cleanupMap();
-    cleanupContainer();
+    // Use requestAnimationFrame to ensure DOM is painted
+    const initMap = () => {
+      if (!mapRef.current) return;
 
-    // Wait for dialog to be fully rendered (animation complete)
-    const timer = setTimeout(() => {
-      if (!isMounted || !mapRef.current || mapInstanceRef.current) return;
-
-      // Ensure container is clean right before init
+      // Clean any stale Leaflet state
       const el = mapRef.current as HTMLElement & { _leaflet_id?: number };
-      delete el._leaflet_id;
+      if (el._leaflet_id) {
+        delete el._leaflet_id;
+      }
 
       try {
-        // Initialize new map
-        const map = L.map(mapRef.current, {
-          center: [lat, lng],
-          zoom: zoom,
-        });
+        // Initialize map - matching OverviewMap pattern
+        const map = L.map(mapRef.current).setView([lat, lng], zoom);
         mapInstanceRef.current = map;
 
-        // Add OpenStreetMap tiles with debug logging
-        const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        console.log('[MapModal] Map created, adding tile layer...');
+
+        // Add tile layer - identical to OverviewMap
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        });
-
-        // Debug: Track tile loading
-        tileLayer.on('loading', () => console.log('[MapModal] Tiles loading...'));
-        tileLayer.on('load', () => console.log('[MapModal] All tiles loaded'));
-        tileLayer.on('tileload', (e) => console.log('[MapModal] Tile loaded:', e.coords));
-        tileLayer.on('tileerror', (e) => console.error('[MapModal] Tile error:', e.coords, e.error));
-
-        tileLayer.addTo(map);
-        console.log('[MapModal] Map initialized at:', lat, lng, 'zoom:', zoom);
+        }).addTo(map);
 
         // Add marker
         const marker = L.marker([lat, lng]).addTo(map);
         marker.bindPopup(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`).openPopup();
         markerRef.current = marker;
 
-        // Force map to recalculate size after render
+        console.log('[MapModal] Map initialized at:', lat, lng);
+
+        // Force size recalculation after a brief delay
         setTimeout(() => {
-          if (isMounted && mapInstanceRef.current) {
-            const container = mapInstanceRef.current.getContainer();
-            console.log('[MapModal] Container size before invalidateSize:',
-              container.offsetWidth, 'x', container.offsetHeight);
+          if (mapInstanceRef.current) {
             mapInstanceRef.current.invalidateSize();
-            console.log('[MapModal] invalidateSize() called');
+            console.log('[MapModal] invalidateSize called');
+            setMapReady(true);
           }
         }, 100);
+
       } catch (e) {
-        console.error('Failed to initialize map:', e);
-        // Reset state for potential retry
-        cleanupContainer();
+        console.error('[MapModal] Failed to initialize map:', e);
       }
-    }, 400);
+    };
+
+    // Wait for dialog animation to complete, then init
+    const timer = setTimeout(initMap, 300);
 
     return () => {
-      isMounted = false;
       clearTimeout(timer);
-      cleanupMap();
-      cleanupContainer();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Map initialization only on open state change
+  }, [open, lat, lng, zoom, name, address]);
+
+  // Cleanup when closing
+  useEffect(() => {
+    if (!open && mapInstanceRef.current) {
+      console.log('[MapModal] Cleaning up map...');
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('[MapModal] Error removing map:', e);
+      }
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+      setMapReady(false);
+    }
   }, [open]);
 
-  // Separate effect to update view when location changes while open
+  // Update view when location changes (while map exists)
   useEffect(() => {
-    if (!open || !mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !markerRef.current) return;
 
-    // Update map view
     mapInstanceRef.current.setView([lat, lng], zoom);
-
-    // Update marker position
-    if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-      markerRef.current.setPopupContent(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`);
-    }
-  }, [lat, lng, zoom, name, address, open]);
+    markerRef.current.setLatLng([lat, lng]);
+    markerRef.current.setPopupContent(`<strong>${name}</strong>${address ? `<br/>${address}` : ''}`);
+  }, [lat, lng, zoom, name, address]);
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(name)}&ll=${lat},${lng}`;
@@ -191,9 +158,14 @@ export function MapModal({
         {/* Map container - uses flex-1 to fill remaining space */}
         <div
           ref={mapRef}
-          className="w-full flex-1"
+          className="w-full flex-1 relative"
           style={{ minHeight: '300px' }}
         />
+        {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50 pointer-events-none" style={{ top: '60px', bottom: '60px' }}>
+            <span className="text-muted-foreground">Loading map...</span>
+          </div>
+        )}
         
         {/* Footer with Get Directions dropdown */}
         <div className="p-3 border-t bg-background shrink-0">
