@@ -80,7 +80,11 @@ export function MapModal({
       return;
     }
 
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      console.log('[MapModal] mapRef.current is null on effect run - Dialog may not have mounted yet');
+      return;
+    }
+    console.log('[MapModal] mapRef.current available, setting up initialization timer');
 
     // Clean container before initializing (remove any stale Leaflet state)
     cleanupMap();
@@ -184,14 +188,11 @@ export function MapModal({
           )}
         </DialogHeader>
         
-        {/* Map container with explicit calculated height */}
-        <div 
-          ref={mapRef} 
-          className="w-full"
-          style={{ 
-            height: 'calc(100% - 120px)',
-            minHeight: '300px' 
-          }}
+        {/* Map container - uses flex-1 to fill remaining space */}
+        <div
+          ref={mapRef}
+          className="w-full flex-1"
+          style={{ minHeight: '300px' }}
         />
         
         {/* Footer with Get Directions dropdown */}
