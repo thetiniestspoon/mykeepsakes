@@ -25,7 +25,10 @@ const createColoredIcon = (color: string, pinState?: string, index?: number) => 
   let badgeHtml = '';
   let glowClass = '';
   
-  if (pinState === 'has-memories') {
+  if (pinState === 'highlighted') {
+    ringStyle = 'border: 4px solid #3B82F6;'; // blue ring for highlighted
+    glowClass = 'marker-glow-highlight';
+  } else if (pinState === 'has-memories') {
     ringStyle = 'border: 3px solid #EC4899;'; // pink ring for memories
     badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #EC4899; border-radius: 50%; border: 2px solid white;"></div>`;
     glowClass = 'marker-glow-memory';
@@ -88,9 +91,17 @@ const createColoredIcon = (color: string, pinState?: string, index?: number) => 
         .marker-glow-memory .marker-pin {
           animation: markerDropIn 0.5s ease-out forwards, glowPulse 2s ease-in-out infinite 0.5s;
         }
+        .marker-glow-highlight .marker-pin {
+          animation: markerDropIn 0.3s ease-out forwards, highlightPulse 1s ease-in-out infinite 0.3s;
+          transform: scale(1.15) rotate(-45deg) !important;
+        }
         @keyframes glowPulse {
           0%, 100% { box-shadow: 0 0 5px 2px rgba(236, 72, 153, 0.3), 0 2px 6px rgba(0,0,0,0.3); }
           50% { box-shadow: 0 0 15px 5px rgba(236, 72, 153, 0.5), 0 2px 6px rgba(0,0,0,0.3); }
+        }
+        @keyframes highlightPulse {
+          0%, 100% { box-shadow: 0 0 8px 3px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.6), 0 2px 6px rgba(0,0,0,0.3); }
         }
       </style>
     `,
@@ -117,6 +128,7 @@ const categoryColors: Record<string, string> = {
 interface OverviewMapProps {
   locations: MapLocation[];
   onMarkerClick?: (location: MapLocation) => void;
+  highlightedPinId?: string | null;
   className?: string;
   center?: [number, number];
   zoom?: number;
@@ -125,6 +137,7 @@ interface OverviewMapProps {
 export function OverviewMap({ 
   locations, 
   onMarkerClick,
+  highlightedPinId,
   className = '',
   center,
   zoom = 13
@@ -178,8 +191,10 @@ export function OverviewMap({
 
     // Add new markers with staggered animation
     locations.forEach((location, index) => {
+      const isHighlighted = highlightedPinId === location.id;
       const color = categoryColors[location.category] || categoryColors.activity;
-      const icon = createColoredIcon(color, location.pinState, index);
+      const pinState = isHighlighted ? 'highlighted' : location.pinState;
+      const icon = createColoredIcon(color, pinState, index);
       
       const marker = L.marker([location.lat, location.lng], { icon })
         .bindPopup(`
@@ -206,7 +221,7 @@ export function OverviewMap({
 
     // Invalidate size to handle container changes
     mapInstanceRef.current.invalidateSize();
-  }, [locations, bounds, onMarkerClick]);
+  }, [locations, bounds, onMarkerClick, highlightedPinId]);
 
   return (
     <div 
