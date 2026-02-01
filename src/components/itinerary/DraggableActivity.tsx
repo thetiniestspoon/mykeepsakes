@@ -36,9 +36,10 @@ export function DraggableActivity({ id, children, disabled }: DraggableActivityP
       {/* Drag handle */}
       {!disabled && (
         <button
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 p-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none hover:animate-wiggle"
           {...attributes}
           {...listeners}
+          aria-label="Drag to reorder"
         >
           <GripVertical className="w-4 h-4" />
         </button>

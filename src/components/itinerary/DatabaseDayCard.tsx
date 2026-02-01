@@ -27,6 +27,9 @@ import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCar
 import { SwipeableActivityCard } from '@/components/itinerary/SwipeableActivityCard';
 import { QuickAddRow } from '@/components/itinerary/QuickAddRow';
 import { WeatherBadge } from '@/components/itinerary/WeatherBadge';
+import { StaggeredList } from '@/components/ui/staggered-list';
+import { Confetti } from '@/components/ui/confetti';
+import { AnimatedCounter } from '@/components/ui/animated-counter';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { MemoryPromptDialog } from '@/components/itinerary/MemoryPromptDialog';
@@ -61,6 +64,10 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   // Memory prompt state
   const [memoryPromptOpen, setMemoryPromptOpen] = useState(false);
   const [completedActivity, setCompletedActivity] = useState<LegacyActivity | null>(null);
+  
+  // Confetti celebration state
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [prevCompletedCount, setPrevCompletedCount] = useState(0);
 
   const { data: collapsedSections } = useCollapsedSections();
   const toggleSection = useToggleSection();
@@ -82,6 +89,19 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   const completedCount = activityItems.filter(a => a.status === 'done').length;
   const totalCount = activityItems.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  
+  // Check for day completion celebration
+  const isDayComplete = totalCount > 0 && completedCount === totalCount;
+  
+  // Trigger confetti when all activities are completed
+  useMemo(() => {
+    if (isDayComplete && completedCount > prevCompletedCount && prevCompletedCount > 0) {
+      setShowConfetti(true);
+    }
+    if (completedCount !== prevCompletedCount) {
+      setPrevCompletedCount(completedCount);
+    }
+  }, [completedCount, isDayComplete, prevCompletedCount]);
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -148,6 +168,12 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   
   return (
     <>
+      {/* Confetti celebration for day completion */}
+      <Confetti 
+        trigger={showConfetti} 
+        onComplete={() => setShowConfetti(false)}
+      />
+      
       <Collapsible
         open={!isCollapsed}
         onOpenChange={(open) => toggleSection.mutate({ sectionId: day.id, isCollapsed: !open })}
@@ -174,13 +200,13 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Progress indicator */}
+                  {/* Progress indicator with animated counter */}
                   <div className="flex items-center gap-2">
                     {progressPercent === 100 && (
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-green-600 animate-bounce-in" />
                     )}
                     <span className="text-sm text-muted-foreground">
-                      {completedCount}/{totalCount}
+                      <AnimatedCounter value={completedCount} />/{totalCount}
                     </span>
                   </div>
                   <ChevronDown className={cn(
@@ -190,15 +216,18 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
                 </div>
               </div>
               
-              {/* Progress bar */}
+              {/* Animated Progress bar */}
               {totalCount > 0 && (
                 <div className="w-full h-1 bg-muted rounded-full mt-2 overflow-hidden">
                   <div 
                     className={cn(
-                      "h-full transition-all duration-300 rounded-full",
+                      "h-full rounded-full transition-all duration-500 ease-out",
                       progressPercent === 100 ? "bg-green-500" : "bg-primary"
                     )}
-                    style={{ width: `${progressPercent}%` }}
+                    style={{ 
+                      width: `${progressPercent}%`,
+                      transition: 'width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
                   />
                 </div>
               )}

@@ -6,6 +6,7 @@ import { EMERGENCY_CONTACTS, FERRY_INFO } from '@/lib/itinerary-data';
 import { useFamilyContacts, FamilyContact } from '@/hooks/use-trip-data';
 import { FamilyContactCard } from '@/components/contacts/FamilyContactCard';
 import { ContactEditor } from '@/components/contacts/ContactEditor';
+import { StaggeredList } from '@/components/ui/staggered-list';
 
 export function ContactsTab() {
   const [editorOpen, setEditorOpen] = useState(false);
@@ -71,7 +72,7 @@ export function ContactsTab() {
                   <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                     {label}
                   </h4>
-                  <div className="space-y-2">
+                  <StaggeredList className="space-y-2" staggerDelay={60}>
                     {contacts.map((contact) => (
                       <FamilyContactCard
                         key={contact.id}
@@ -79,7 +80,7 @@ export function ContactsTab() {
                         onEdit={handleEditContact}
                       />
                     ))}
-                  </div>
+                  </StaggeredList>
                 </div>
               );
             })

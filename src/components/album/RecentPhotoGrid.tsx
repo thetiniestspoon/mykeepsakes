@@ -2,6 +2,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { Clock, ImageOff } from 'lucide-react';
 import { getMemoryMediaUrl } from '@/hooks/use-memories';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StaggeredList } from '@/components/ui/staggered-list';
+import { KenBurnsImage } from '@/components/photos/KenBurnsImage';
 import type { Memory, MemoryMedia } from '@/types/trip';
 
 interface PhotoForViewer {
@@ -104,7 +106,7 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
   ].filter(g => g.items.length > 0);
 
   return (
-    <div className="space-y-6">
+    <StaggeredList className="space-y-6" staggerDelay={80}>
       {groups.map(group => (
         <div key={group.label}>
           <div className="flex items-center gap-2 mb-3">
@@ -125,11 +127,10 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
                   onClick={() => onOpenPhoto(allPhotos, globalIndex)}
                   className="aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary relative group"
                 >
-                  <img
+                  <KenBurnsImage
                     src={getMemoryMediaUrl(item.storage_path)}
                     alt=""
-                    className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
-                    loading="lazy"
+                    className="w-full h-full"
                   />
                 </button>
               );
@@ -137,6 +138,6 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
           </div>
         </div>
       ))}
-    </div>
+    </StaggeredList>
   );
 }

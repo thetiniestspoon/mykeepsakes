@@ -18,15 +18,17 @@ L.Icon.Default.mergeOptions({
 
 export type { MapLocation };
 
-// Custom colored marker icons with state indicators
-const createColoredIcon = (color: string, pinState?: string) => {
+// Custom colored marker icons with state indicators and animations
+const createColoredIcon = (color: string, pinState?: string, index?: number) => {
   // Determine ring/badge based on state
   let ringStyle = '';
   let badgeHtml = '';
+  let glowClass = '';
   
   if (pinState === 'has-memories') {
     ringStyle = 'border: 3px solid #EC4899;'; // pink ring for memories
     badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #EC4899; border-radius: 50%; border: 2px solid white;"></div>`;
+    glowClass = 'marker-glow-memory';
   } else if (pinState === 'favorited') {
     ringStyle = 'border: 3px solid #F59E0B;'; // gold ring for favorites
     badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #F59E0B; border-radius: 50%; border: 2px solid white;"></div>`;
@@ -39,11 +41,14 @@ const createColoredIcon = (color: string, pinState?: string) => {
     ringStyle = 'border: 3px solid white;';
   }
 
+  // Add animation delay based on index for staggered drop-in
+  const animationDelay = index !== undefined ? `animation-delay: ${index * 50}ms;` : '';
+
   return L.divIcon({
-    className: 'custom-marker',
+    className: `custom-marker ${glowClass}`,
     html: `
-      <div style="position: relative;">
-        <div style="
+      <div style="position: relative;" class="marker-container">
+        <div class="marker-pin" style="
           background-color: ${color};
           width: 28px;
           height: 28px;
@@ -54,6 +59,9 @@ const createColoredIcon = (color: string, pinState?: string) => {
           display: flex;
           align-items: center;
           justify-content: center;
+          animation: markerDropIn 0.5s ease-out forwards;
+          opacity: 0;
+          ${animationDelay}
         ">
           <div style="
             width: 10px;
@@ -65,6 +73,26 @@ const createColoredIcon = (color: string, pinState?: string) => {
         </div>
         ${badgeHtml}
       </div>
+      <style>
+        @keyframes markerDropIn {
+          0% { transform: translateY(-40px) rotate(-45deg); opacity: 0; }
+          60% { transform: translateY(5px) rotate(-45deg); opacity: 1; }
+          80% { transform: translateY(-3px) rotate(-45deg); }
+          100% { transform: translateY(0) rotate(-45deg); opacity: 1; }
+        }
+        .marker-container:hover .marker-pin {
+          transform: translateY(-4px) rotate(-45deg);
+          box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+          transition: all 0.15s ease-out;
+        }
+        .marker-glow-memory .marker-pin {
+          animation: markerDropIn 0.5s ease-out forwards, glowPulse 2s ease-in-out infinite 0.5s;
+        }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 5px 2px rgba(236, 72, 153, 0.3), 0 2px 6px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 15px 5px rgba(236, 72, 153, 0.5), 0 2px 6px rgba(0,0,0,0.3); }
+        }
+      </style>
     `,
     iconSize: [28, 28],
     iconAnchor: [14, 28],
@@ -148,10 +176,10 @@ export function OverviewMap({
     // Clear existing markers
     markersLayerRef.current.clearLayers();
 
-    // Add new markers
-    locations.forEach(location => {
+    // Add new markers with staggered animation
+    locations.forEach((location, index) => {
       const color = categoryColors[location.category] || categoryColors.activity;
-      const icon = createColoredIcon(color, location.pinState);
+      const icon = createColoredIcon(color, location.pinState, index);
       
       const marker = L.marker([location.lat, location.lng], { icon })
         .bindPopup(`

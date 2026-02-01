@@ -142,8 +142,10 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
             <img
               src={photoUrl}
               alt={currentPhoto.caption || 'Trip photo'}
-              className="max-w-full max-h-[70vh] object-contain select-none"
+              className="max-w-full max-h-[70vh] object-contain select-none transition-transform duration-300"
               draggable={false}
+              key={currentPhoto.id}
+              style={{ animation: 'fadeIn 0.3s ease-out' }}
             />
           </div>
 

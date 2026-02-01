@@ -2,6 +2,8 @@ import { format } from 'date-fns';
 import { Calendar, ImageOff } from 'lucide-react';
 import { getMemoryMediaUrl } from '@/hooks/use-memories';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StaggeredList } from '@/components/ui/staggered-list';
+import { KenBurnsImage } from '@/components/photos/KenBurnsImage';
 import type { Memory } from '@/types/trip';
 
 interface Day {
@@ -66,7 +68,7 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
   }
 
   return (
-    <div className="space-y-6">
+    <StaggeredList className="space-y-6" staggerDelay={100}>
       {memoriesByDay.map(({ day, media }) => (
         <div key={day.id}>
           <div className="flex items-center gap-2 mb-3">
@@ -92,11 +94,10 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
                   onClick={() => onOpenPhoto(photos, index)}
                   className="aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <img
+                  <KenBurnsImage
                     src={getMemoryMediaUrl(item.storage_path)}
                     alt=""
-                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-                    loading="lazy"
+                    className="w-full h-full"
                   />
                 </button>
               );
@@ -104,6 +105,6 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
           </div>
         </div>
       ))}
-    </div>
+    </StaggeredList>
   );
 }

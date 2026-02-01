@@ -84,11 +84,11 @@ export function QuickAddButton() {
   
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button with breathing animation */}
       <Button
         onClick={handleOpen}
         size="lg"
-        className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+        className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow animate-breathing"
       >
         <Plus className="w-6 h-6" />
         <span className="sr-only">Add activity</span>
