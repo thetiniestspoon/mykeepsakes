@@ -1,143 +1,166 @@
 
-# Fixing Map Issues: Invalid Dates and Infinite Pin Loop
+# "Show on Map" Filter Focus & Panel Navigation
 
-This plan addresses two bugs preventing the map from working correctly:
-1. **Invalid Date** - Day filter buttons show "Invalid Date" instead of day names
-2. **Infinite Pin Loop** - Markers continuously re-animate because of a render cycle
+This plan ensures that clicking "Show on Map" anywhere in the app:
+1. Resets map filters so the target location is visible
+2. Navigates to the Map panel (in portrait/swipe mode)
+3. Pans the map and highlights the pin
 
 ---
 
-## Root Cause Analysis
+## Current Behavior
 
-### Bug 1: Invalid Date
+When "Show on Map" is clicked:
+- `panMap(lat, lng)` - tells the map to fly to coordinates
+- `highlightPin(locationId)` - highlights the pin with pulsing animation
+- `navigateToPanel(2)` - swipes to Map panel (portrait mode)
 
-**Data Flow Issue:**
+**Problem**: If the user has filtered the map (e.g., showing only "Beaches"), the target location may not be visible because filters hide it.
 
-```text
-useTripDays() → ItineraryDay { date: "2026-07-25" }
-       ↓
-useDatabaseItinerary() → LegacyDay { date: "Saturday, July 25, 2026" }
-       ↓
-RightColumn.filterDays → { date: "Saturday, July 25, 2026" }
-       ↓
-MapFilterHeader → new Date("Saturday, July 25, 2026T00:00:00") → Invalid Date
-```
+---
 
-The `useDatabaseItinerary()` hook formats the date for display purposes, but `MapFilterHeader` expects the raw ISO date format for parsing.
-
-### Bug 2: Infinite Pin Loop
-
-**Render Cycle:**
+## Solution Architecture
 
 ```text
-RightColumn renders
-       ↓
-allLocations useMemo creates new array (dependencies changing)
-       ↓
-MapFilterHeader receives new locations prop
-       ↓
-filteredLocations useMemo creates new array
-       ↓
-useEffect calls onFilteredLocationsChange(filteredLocations)
-       ↓
-setFilteredLocations() triggers RightColumn re-render
-       ↓
-OverviewMap receives new filteredLocations, clears and re-adds all markers
-       ↓
-Markers play drop-in animation again... LOOP
+Detail Panel                         Context                          MapFilterHeader
+┌─────────────────┐                                                  ┌─────────────────┐
+│  [Show on Map]  │─────▶ focusLocation(id) ─────▶ focusedLocationId ─▶ Reset to "All"
+│                 │                                                   │  filters
+│                 │─────▶ panMap(lat, lng) ─────────────────────────▶│  Map pans
+│                 │                                                   │  Pin highlights
+│                 │─────▶ navigateToPanel(2) ───────────────────────▶│  [Portrait only]
+└─────────────────┘                                                  └─────────────────┘
 ```
 
 ---
 
-## Solution
+## Key Changes
 
-### Fix 1: Use Raw Days Data
+### 1. Extend DashboardSelectionContext
 
-`RightColumn` should get raw days from `useDatabaseLocations()` (which internally uses `useTripDays`) instead of the formatted days from `useDatabaseItinerary()`.
+Add a new state and action for focusing on a specific location:
+
+| Addition | Purpose |
+|----------|---------|
+| `focusedLocationId: string \| null` | ID of location to focus on (triggers filter reset) |
+| `focusLocation(id: string)` | Set the focused location, auto-clears after use |
+
+This keeps the context as the single source of truth for cross-panel coordination.
+
+### 2. Update MapFilterHeader
+
+When `focusedLocationId` changes to a non-null value:
+- Reset both category and day filters to "All"
+- This ensures the focused location will be visible regardless of previous filter state
+
+### 3. Update Detail Panels
+
+The `handleShowOnMap` function in both `ActivityDetail` and `LocationDetail` should:
+1. Call `focusLocation(locationId)` to reset filters
+2. Call `panMap(lat, lng)` to pan the map
+3. Call `highlightPin(locationId)` to highlight the pin
+4. Call `navigateToPanel(2)` to switch to Map panel (works in portrait)
+
+---
+
+## Implementation Details
+
+### DashboardSelectionContext Changes
 
 ```tsx
-// RightColumn.tsx - BEFORE
-const { days } = useDatabaseItinerary();
-const filterDays = useMemo(() => {
-  return days.map(day => ({
-    id: day.id,
-    date: day.date,  // ❌ Already formatted: "Saturday, July 25, 2026"
-    title: day.title,
-  }));
-}, [days]);
+// New state
+const [focusedLocationId, setFocusedLocationId] = useState<string | null>(null);
+
+// New action
+const focusLocation = useCallback((locationId: string) => {
+  setFocusedLocationId(locationId);
+}, []);
+
+// Clear focus after it's been consumed
+const clearLocationFocus = useCallback(() => {
+  setFocusedLocationId(null);
+}, []);
 ```
 
-```tsx
-// RightColumn.tsx - AFTER
-const { days: rawDays } = useDatabaseLocations();
-const filterDays = useMemo(() => {
-  return rawDays.map(day => ({
-    id: day.id,
-    date: day.date,  // ✅ Raw ISO: "2026-07-25"
-    title: day.title,
-  }));
-}, [rawDays]);
-```
+### MapFilterHeader Changes
 
-### Fix 2: Stabilize the Filter Effect
-
-The `useEffect` in `MapFilterHeader` that notifies the parent should not run on every render. We need to either:
-
-**Option A**: Remove `onFilteredLocationsChange` from the effect dependencies and compare values before calling:
+The component needs to receive `focusedLocationId` and reset filters when it changes:
 
 ```tsx
-// MapFilterHeader.tsx - Stabilized effect
-const prevFilteredRef = useRef<MapLocation[]>([]);
+interface MapFilterHeaderProps {
+  locations: MapLocation[];
+  days: Day[];
+  onFilteredLocationsChange: (locations: MapLocation[]) => void;
+  focusedLocationId?: string | null;
+  onFocusConsumed?: () => void;
+  className?: string;
+}
 
+// Inside component:
 useEffect(() => {
-  // Only call if the filtered locations actually changed
-  const prevIds = prevFilteredRef.current.map(l => l.id).join(',');
-  const newIds = filteredLocations.map(l => l.id).join(',');
-  
-  if (prevIds !== newIds) {
-    prevFilteredRef.current = filteredLocations;
-    onFilteredLocationsChange(filteredLocations);
+  if (focusedLocationId) {
+    // Reset all filters to "All" to ensure location is visible
+    setActiveCategories(new Set(['all']));
+    setActiveDays(new Set(['all']));
+    // Notify parent that focus has been consumed
+    onFocusConsumed?.();
   }
-}, [filteredLocations]); // Note: onFilteredLocationsChange intentionally omitted
+}, [focusedLocationId, onFocusConsumed]);
 ```
 
-**Option B**: Move the filter logic to the parent (`RightColumn`) so there's no callback needed:
+### RightColumn Changes
+
+Pass the focus props from context to MapFilterHeader:
 
 ```tsx
-// RightColumn.tsx - Filter state lifted to parent
-const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(['all']));
-const [activeDays, setActiveDays] = useState<Set<string>>(new Set(['all']));
+const { focusedLocationId, clearLocationFocus, ... } = useDashboardSelection();
 
-const filteredLocations = useMemo(() => {
-  // Filter logic here, no callback needed
-}, [allLocations, activeCategories, activeDays]);
+<MapFilterHeader
+  locations={allLocations}
+  days={filterDays}
+  onFilteredLocationsChange={handleFilteredLocationsChange}
+  focusedLocationId={focusedLocationId}
+  onFocusConsumed={clearLocationFocus}
+/>
 ```
 
-**Recommended**: Option A is simpler since it preserves the current component structure.
+### ActivityDetail Changes
 
-### Fix 3: Stabilize OverviewMap Marker Updates
-
-The `OverviewMap` clears and re-adds ALL markers whenever `locations` changes. This should be optimized to only update changed markers:
+Update the handler to also call focusLocation:
 
 ```tsx
-// OverviewMap.tsx - Add marker diffing
-useEffect(() => {
-  if (!mapInstanceRef.current || !markersLayerRef.current) return;
+const { panMap, highlightPin, navigateToPanel, focusLocation } = useDashboardSelection();
 
-  const currentMarkerIds = new Set(
-    Array.from(markersLayerRef.current.getLayers())
-      .map((m: any) => m.options.locationId)
-  );
-  const newLocationIds = new Set(locations.map(l => l.id));
+const handleShowOnMap = () => {
+  if (activity.location?.lat && activity.location?.lng) {
+    // Reset map filters to show this location
+    if (activity.location_id) {
+      focusLocation(activity.location_id);
+      highlightPin(activity.location_id);
+    }
+    panMap(activity.location.lat, activity.location.lng);
+    // Navigate to Map panel (index 2)
+    navigateToPanel(2);
+  }
+};
+```
 
-  // Only clear and rebuild if locations actually changed
-  const idsMatch = currentMarkerIds.size === newLocationIds.size && 
-    [...currentMarkerIds].every(id => newLocationIds.has(id));
+### LocationDetail Changes
 
-  if (idsMatch && !highlightedPinId) return; // Skip if no change
+Same pattern:
 
-  // ... rest of marker update logic
-}, [locations, highlightedPinId]);
+```tsx
+const { panMap, highlightPin, navigateToPanel, focusLocation } = useDashboardSelection();
+
+const handleShowOnMap = () => {
+  if (lat && lng) {
+    focusLocation(location.id);
+    panMap(lat, lng);
+    highlightPin(location.id);
+    // Navigate to Map panel (index 2)
+    navigateToPanel(2);
+  }
+};
 ```
 
 ---
@@ -146,97 +169,42 @@ useEffect(() => {
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/RightColumn.tsx` | Use raw days from `useDatabaseLocations()` instead of formatted days |
-| `src/components/dashboard/MapFilterHeader.tsx` | Add ref-based comparison to prevent redundant callbacks |
-| `src/components/map/OverviewMap.tsx` | Add marker diffing to prevent unnecessary re-renders |
+| `src/contexts/DashboardSelectionContext.tsx` | Add `focusedLocationId` state, `focusLocation()` and `clearLocationFocus()` actions |
+| `src/components/dashboard/MapFilterHeader.tsx` | Accept `focusedLocationId` prop, reset filters when set |
+| `src/components/dashboard/RightColumn.tsx` | Pass focus props from context to MapFilterHeader |
+| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | Call `focusLocation()` in handleShowOnMap |
+| `src/components/dashboard/DetailPanels/LocationDetail.tsx` | Call `focusLocation()` in handleShowOnMap |
 
 ---
 
-## Implementation Details
+## Technical Details
 
-### RightColumn.tsx Changes
+### Why Reset to "All" Filters?
 
-```tsx
-// BEFORE (line 24, 97-103)
-const { days } = useDatabaseItinerary();
-...
-const filterDays = useMemo(() => {
-  return days.map(day => ({
-    id: day.id,
-    date: day.date,
-    title: day.title,
-  }));
-}, [days]);
+When focusing on a specific location, we can't know which category or day filters would include it. The safest approach is to reset both to "All" so the location is guaranteed to be visible.
 
-// AFTER
-const { days: rawDays } = useDatabaseLocations();
-...
-const filterDays = useMemo(() => {
-  return rawDays.map(day => ({
-    id: day.id,
-    date: day.date,  // Now ISO format: "2026-07-25"
-    title: day.title,
-  }));
-}, [rawDays]);
-```
+An alternative would be to auto-detect the category and day of the focused location and set filters accordingly, but this adds complexity and may be confusing (suddenly switching to "Dining" filter when clicking on a restaurant).
 
-Note: We'll keep using `days` from `useDatabaseItinerary()` for the activity data since `handleMarkerClick` still needs it.
+### Focus Lifecycle
 
-### MapFilterHeader.tsx Changes
+1. User clicks "Show on Map" in a detail panel
+2. `focusLocation(id)` sets `focusedLocationId` in context
+3. `MapFilterHeader` detects the change, resets filters to "All"
+4. `MapFilterHeader` calls `onFocusConsumed()` to clear the focus
+5. Meanwhile, `panMap()` and `highlightPin()` update the map
+6. `navigateToPanel(2)` swipes to the Map (portrait mode only)
 
-```tsx
-// BEFORE (lines 89-92)
-useEffect(() => {
-  onFilteredLocationsChange(filteredLocations);
-}, [filteredLocations, onFilteredLocationsChange]);
+### No External Links
 
-// AFTER
-const prevFilteredRef = useRef<string>('');
-
-useEffect(() => {
-  const currentIds = filteredLocations.map(l => l.id).sort().join(',');
-  if (currentIds !== prevFilteredRef.current) {
-    prevFilteredRef.current = currentIds;
-    onFilteredLocationsChange(filteredLocations);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [filteredLocations]);
-```
-
-### OverviewMap.tsx Changes
-
-Add location ID tracking to markers and compare before clearing:
-
-```tsx
-// Track location IDs to detect actual changes
-const prevLocationIdsRef = useRef<string>('');
-
-useEffect(() => {
-  if (!mapInstanceRef.current || !markersLayerRef.current) return;
-
-  const newIds = locations.map(l => l.id).sort().join(',');
-  const idsChanged = newIds !== prevLocationIdsRef.current;
-  
-  // Only rebuild markers if locations actually changed
-  if (!idsChanged && !highlightedPinId) {
-    return;
-  }
-  
-  prevLocationIdsRef.current = newIds;
-  
-  // Clear existing markers
-  markersLayerRef.current.clearLayers();
-  
-  // ... rest of marker creation
-}, [locations, bounds, onMarkerClick, highlightedPinId]);
-```
+The "Get Directions" button opens Google Maps externally, but "Show on Map" always stays within the app. This is already the current behavior and will be preserved.
 
 ---
 
 ## Summary
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Invalid Date | `useDatabaseItinerary` returns formatted dates, `MapFilterHeader` expects ISO | Use `rawDays` from `useDatabaseLocations` which has ISO dates |
-| Infinite loop | Effect triggers callback on every render, causing state update cycle | Add ref-based comparison to only trigger callback when IDs actually change |
-| Repeated animations | `OverviewMap` clears/rebuilds all markers when `locations` array reference changes | Add ID comparison to skip rebuild when locations haven't actually changed |
+This enhancement ensures that clicking "Show on Map" always works correctly by:
+1. Automatically resetting any active filters that might hide the target location
+2. Panning to the location and highlighting its pin
+3. Switching to the Map panel in portrait/swipe mode
+
+The user never has to manually clear filters to see their selected location.
