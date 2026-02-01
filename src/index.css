@@ -171,3 +171,32 @@
     box-shadow: 0 10px 30px -8px hsl(var(--driftwood) / 0.2);
   }
 }
+
+/* ==============================================
+   Leaflet + Tailwind Compatibility Fix
+   Tailwind's preflight sets max-width: 100% on images,
+   which breaks Leaflet tiles that require exact 256x256 sizing.
+   ============================================== */
+
+/* Reset Tailwind's image constraints for Leaflet containers */
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Ensure tile images maintain exact sizing */
+.leaflet-container .leaflet-tile-pane img {
+  width: 256px !important;
+  height: 256px !important;
+}
+
+/* Fix for tile layer visibility during animations */
+.leaflet-container .leaflet-tile {
+  visibility: visible !important;
+}
+
+/* Ensure popup and control images also aren't constrained */
+.leaflet-container .leaflet-control img,
+.leaflet-container .leaflet-popup img {
+  max-width: none !important;
+}
