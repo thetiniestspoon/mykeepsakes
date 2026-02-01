@@ -29,6 +29,8 @@ interface MapFilterHeaderProps {
   locations: MapLocation[];
   days: Day[];
   onFilteredLocationsChange: (locations: MapLocation[]) => void;
+  focusedLocationId?: string | null;
+  onFocusConsumed?: () => void;
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export function MapFilterHeader({
   locations, 
   days, 
   onFilteredLocationsChange,
+  focusedLocationId,
+  onFocusConsumed,
   className 
 }: MapFilterHeaderProps) {
   const [activeCategories, setActiveCategories] = useState<Set<CategoryFilter>>(new Set(['all']));
@@ -98,6 +102,17 @@ export function MapFilterHeader({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredLocations]);
+
+  // Reset filters when a location needs to be focused (from "Show on Map" actions)
+  useEffect(() => {
+    if (focusedLocationId) {
+      // Reset all filters to "All" to ensure the focused location is visible
+      setActiveCategories(new Set(['all']));
+      setActiveDays(new Set(['all']));
+      // Notify parent that focus has been consumed
+      onFocusConsumed?.();
+    }
+  }, [focusedLocationId, onFocusConsumed]);
 
   const toggleCategory = useCallback((cat: CategoryFilter) => {
     setActiveCategories(prev => {

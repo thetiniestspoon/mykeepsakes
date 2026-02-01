@@ -25,6 +25,8 @@ interface DashboardSelectionState {
   panToLocation: PanTarget | null;
   /** Current trip mode (pre/active/post) - drives default focus */
   tripMode: TripMode;
+  /** Location ID to focus on (triggers filter reset in MapFilterHeader) */
+  focusedLocationId: string | null;
 }
 
 interface DashboardSelectionActions {
@@ -48,6 +50,10 @@ interface DashboardSelectionActions {
   navigateToPanel: (index: 0 | 1 | 2) => void;
   /** Register panel navigator (used by SwipeableDashboard) */
   registerPanelNavigator: (handler: (index: number) => void) => () => void;
+  /** Focus on a specific location (resets map filters to show it) */
+  focusLocation: (locationId: string) => void;
+  /** Clear the focused location after filters have been reset */
+  clearLocationFocus: () => void;
 }
 
 interface DashboardSelectionContextValue extends DashboardSelectionState, DashboardSelectionActions {
@@ -70,6 +76,7 @@ export function DashboardSelectionProvider({
   const [highlightedMapPin, setHighlightedMapPin] = useState<string | null>(null);
   const [panToLocation, setPanToLocation] = useState<PanTarget | null>(null);
   const [tripMode, setTripMode] = useState<TripMode>(initialTripMode);
+  const [focusedLocationId, setFocusedLocationId] = useState<string | null>(null);
   
   // Scroll handler for left column synchronization
   const scrollHandlerRef = useRef<((itemId: string) => void) | null>(null);
@@ -154,6 +161,14 @@ export function DashboardSelectionProvider({
     };
   }, []);
 
+  const focusLocation = useCallback((locationId: string) => {
+    setFocusedLocationId(locationId);
+  }, []);
+
+  const clearLocationFocus = useCallback(() => {
+    setFocusedLocationId(null);
+  }, []);
+
   const value = useMemo<DashboardSelectionContextValue>(() => ({
     // State
     selectedItem,
@@ -161,6 +176,7 @@ export function DashboardSelectionProvider({
     panToLocation,
     tripMode,
     defaultFocus,
+    focusedLocationId,
     // Actions
     selectItem,
     clearSelection,
@@ -172,12 +188,15 @@ export function DashboardSelectionProvider({
     registerScrollHandler,
     navigateToPanel,
     registerPanelNavigator,
+    focusLocation,
+    clearLocationFocus,
   }), [
     selectedItem,
     highlightedMapPin,
     panToLocation,
     tripMode,
     defaultFocus,
+    focusedLocationId,
     selectItem,
     clearSelection,
     highlightPin,
@@ -187,6 +206,8 @@ export function DashboardSelectionProvider({
     registerScrollHandler,
     navigateToPanel,
     registerPanelNavigator,
+    focusLocation,
+    clearLocationFocus,
   ]);
 
   return (

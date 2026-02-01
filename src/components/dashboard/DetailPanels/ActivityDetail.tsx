@@ -20,7 +20,7 @@ interface ActivityDetailProps {
  * Detailed view of a single activity for the center column
  */
 export function ActivityDetail({ activity }: ActivityDetailProps) {
-  const { panMap, highlightPin, navigateToPanel } = useDashboardSelection();
+  const { panMap, highlightPin, navigateToPanel, focusLocation } = useDashboardSelection();
   const { data: trip } = useActiveTrip();
   const { data: days } = useTripDays(trip?.id);
   const { data: locations } = useLocations(trip?.id);
@@ -46,10 +46,12 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
 
   const handleShowOnMap = () => {
     if (activity.location?.lat && activity.location?.lng) {
-      panMap(activity.location.lat, activity.location.lng);
+      // Reset map filters to show this location
       if (activity.location_id) {
+        focusLocation(activity.location_id);
         highlightPin(activity.location_id);
       }
+      panMap(activity.location.lat, activity.location.lng);
       // Navigate to Map panel (index 2)
       navigateToPanel(2);
     }
