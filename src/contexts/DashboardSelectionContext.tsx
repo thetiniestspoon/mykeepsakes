@@ -1,0 +1,187 @@
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import type { TripMode, ItineraryItem, Location, Memory } from '@/types/trip';
+import type { MapLocation } from '@/types/map';
+
+// Selection types for different entities
+export type SelectionType = 'activity' | 'location' | 'guide' | 'photo' | 'accommodation' | 'album';
+
+export interface SelectedItem {
+  type: SelectionType;
+  id: string;
+  data: ItineraryItem | Location | Memory | MapLocation | { section: string } | null;
+}
+
+interface PanTarget {
+  lat: number;
+  lng: number;
+}
+
+interface DashboardSelectionState {
+  /** Currently selected item in the dashboard */
+  selectedItem: SelectedItem | null;
+  /** Location ID to highlight on the map */
+  highlightedMapPin: string | null;
+  /** Target coordinates for map panning */
+  panToLocation: PanTarget | null;
+  /** Current trip mode (pre/active/post) - drives default focus */
+  tripMode: TripMode;
+}
+
+interface DashboardSelectionActions {
+  /** Select an item - syncs across all columns */
+  selectItem: (type: SelectionType, id: string, data?: SelectedItem['data']) => void;
+  /** Clear current selection */
+  clearSelection: () => void;
+  /** Highlight a specific pin on the map */
+  highlightPin: (locationId: string | null) => void;
+  /** Pan the map to specific coordinates */
+  panMap: (lat: number, lng: number) => void;
+  /** Clear the pan target (after map has panned) */
+  clearPanTarget: () => void;
+  /** Set the trip mode */
+  setTripMode: (mode: TripMode) => void;
+  /** Scroll a specific item into view in the left column */
+  scrollToItem: (itemId: string) => void;
+  /** Register a scroll handler for the left column */
+  registerScrollHandler: (handler: (itemId: string) => void) => () => void;
+}
+
+interface DashboardSelectionContextValue extends DashboardSelectionState, DashboardSelectionActions {
+  /** Default focus based on trip mode */
+  defaultFocus: 'guide' | 'current-activity' | 'album';
+}
+
+const DashboardSelectionContext = createContext<DashboardSelectionContextValue | null>(null);
+
+interface DashboardSelectionProviderProps {
+  children: React.ReactNode;
+  initialTripMode?: TripMode;
+}
+
+export function DashboardSelectionProvider({ 
+  children, 
+  initialTripMode = 'pre' 
+}: DashboardSelectionProviderProps) {
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [highlightedMapPin, setHighlightedMapPin] = useState<string | null>(null);
+  const [panToLocation, setPanToLocation] = useState<PanTarget | null>(null);
+  const [tripMode, setTripMode] = useState<TripMode>(initialTripMode);
+  
+  // Scroll handler for left column synchronization
+  const scrollHandlerRef = useRef<((itemId: string) => void) | null>(null);
+
+  // Update trip mode when prop changes
+  useEffect(() => {
+    setTripMode(initialTripMode);
+  }, [initialTripMode]);
+
+  // Compute default focus based on trip mode
+  const defaultFocus = useMemo(() => {
+    switch (tripMode) {
+      case 'pre':
+        return 'guide' as const;
+      case 'active':
+        return 'current-activity' as const;
+      case 'post':
+        return 'album' as const;
+      default:
+        return 'guide' as const;
+    }
+  }, [tripMode]);
+
+  const selectItem = useCallback((type: SelectionType, id: string, data?: SelectedItem['data']) => {
+    setSelectedItem({ type, id, data: data ?? null });
+    
+    // Auto-highlight map pin for location-related selections
+    if (type === 'location' || type === 'activity') {
+      // Extract location ID based on selection type
+      if (type === 'location') {
+        setHighlightedMapPin(id);
+      } else if (data && 'location_id' in data && data.location_id) {
+        setHighlightedMapPin(data.location_id);
+      } else if (data && 'location' in data && data.location) {
+        setHighlightedMapPin((data.location as Location).id);
+      }
+    }
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedItem(null);
+    setHighlightedMapPin(null);
+  }, []);
+
+  const highlightPin = useCallback((locationId: string | null) => {
+    setHighlightedMapPin(locationId);
+  }, []);
+
+  const panMap = useCallback((lat: number, lng: number) => {
+    setPanToLocation({ lat, lng });
+  }, []);
+
+  const clearPanTarget = useCallback(() => {
+    setPanToLocation(null);
+  }, []);
+
+  const scrollToItem = useCallback((itemId: string) => {
+    if (scrollHandlerRef.current) {
+      scrollHandlerRef.current(itemId);
+    }
+  }, []);
+
+  const registerScrollHandler = useCallback((handler: (itemId: string) => void) => {
+    scrollHandlerRef.current = handler;
+    return () => {
+      scrollHandlerRef.current = null;
+    };
+  }, []);
+
+  const value = useMemo<DashboardSelectionContextValue>(() => ({
+    // State
+    selectedItem,
+    highlightedMapPin,
+    panToLocation,
+    tripMode,
+    defaultFocus,
+    // Actions
+    selectItem,
+    clearSelection,
+    highlightPin,
+    panMap,
+    clearPanTarget,
+    setTripMode,
+    scrollToItem,
+    registerScrollHandler,
+  }), [
+    selectedItem,
+    highlightedMapPin,
+    panToLocation,
+    tripMode,
+    defaultFocus,
+    selectItem,
+    clearSelection,
+    highlightPin,
+    panMap,
+    clearPanTarget,
+    scrollToItem,
+    registerScrollHandler,
+  ]);
+
+  return (
+    <DashboardSelectionContext.Provider value={value}>
+      {children}
+    </DashboardSelectionContext.Provider>
+  );
+}
+
+export function useDashboardSelection(): DashboardSelectionContextValue {
+  const context = useContext(DashboardSelectionContext);
+  if (!context) {
+    throw new Error('useDashboardSelection must be used within DashboardSelectionProvider');
+  }
+  return context;
+}
+
+// Optional hook for components that may or may not be within the dashboard
+export function useDashboardSelectionOptional(): DashboardSelectionContextValue | null {
+  return useContext(DashboardSelectionContext);
+}
