@@ -1,463 +1,292 @@
 
-# Portrait Dashboard: Swipeable 3-Panel Accordion
+# Map Filtering & Bidirectional Navigation
 
-This plan converts the portrait view from the current tab-based layout to a swipeable accordion that mirrors the 3-column dashboard. Users swipe between Itinerary, Details, and Map panels, with a dots indicator at the bottom. All cross-column synchronization remains identical to landscape mode.
+This plan restores the full filtering functionality from the original Map tabs and adds bidirectional navigation between the Details panel and Map panel in the new dashboard architecture.
 
 ---
 
-## Architecture Overview
+## Current State
+
+The old `DatabaseMapTab.tsx` has robust filtering with:
+- **Category filters**: All, Beaches, Dining, Activities, Stay, Transport, Events, Lodging
+- **Day filters**: All Days, Mon, Tue, Wed, etc.
+- **Scrollable rows** with `ScrollArea` and horizontal `ScrollBar`
+- **Toggle logic**: Selecting "All" clears other filters; deselecting all reverts to "All"
+
+The new `RightColumn.tsx` has a simplified placeholder with just day chips that don't function.
+
+---
+
+## Architecture
+
+### Filtering Header at Top of Map
 
 ```text
-┌─────────────────────────────────────────┐
-│ Compact Header                          │
-├─────────────────────────────────────────┤
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │                                 │    │
-│  │   SWIPEABLE PANEL CONTAINER     │    │
-│  │                                 │    │
-│  │   ◀ LeftColumn │ CenterColumn │ RightColumn ▶
-│  │     (Itinerary)│   (Details)  │   (Map)      │
-│  │                                 │    │
-│  │   Subtle edge shadows hint      │    │
-│  │   at adjacent content           │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-├─────────────────────────────────────────┤
-│         ○    ●    ○                     │  ← Dots indicator
-│     Itinerary  Details  Map             │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Categories     [All] [Beaches] [Dining] ▶   │  ← Scrollable row
+├──────────────────────────────────────────────┤
+│  Days           [All] [Mon] [Tue] [Wed] ▶    │  ← Scrollable row
+├──────────────────────────────────────────────┤
+│                                              │
+│              OVERVIEW MAP                    │
+│           (filtered locations)               │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+### Bidirectional Navigation Flow
+
+```text
+DETAILS PANEL                         MAP PANEL
+┌─────────────────┐                 ┌─────────────────┐
+│  Activity/Loc   │                 │   Filtered Map  │
+│                 │                 │                 │
+│  [Show on Map]──┼────────────────▶│   Pin selected  │
+│                 │                 │   Map pans to   │
+│                 │                 │   location      │
+│                 │                 │                 │
+│                 │◀────────────────┼── [Pin Clicked] │
+│  Detail shown   │                 │                 │
+└─────────────────┘                 └─────────────────┘
+         │                                   │
+         └───── Context navigateToPanel(2) ──┘
+                         │
+         ┌───── Context navigateToPanel(1) ──┐
+         ▼                                   │
+    Details panel                      Map panel
 ```
 
 ---
 
 ## Key Changes
 
-### 1. Always Use Dashboard Mode
+### 1. Add Panel Navigation to Context
 
-Instead of switching between `DashboardLayout` (landscape) and `TabLayout` (portrait), the app will always use the synchronized dashboard system. The difference is how the 3 columns are displayed:
+Extend `DashboardSelectionContext` with:
+- `navigateToPanel: (index: 0 | 1 | 2) => void` - programmatic panel navigation
+- `registerPanelNavigator: (handler) => () => void` - for SwipeableDashboard to register
 
-| Viewport | Display Mode |
-|----------|--------------|
-| Width >= 900px OR Landscape >= 667px | Side-by-side 3-column grid |
-| Portrait / Narrow screens | Swipeable 3-panel accordion |
+This allows Detail panels to navigate to the Map panel (index 2) when "Show on Map" is clicked.
 
-This ensures identical interactivity across all screen sizes.
+### 2. Extract Map Filter Header Component
 
-### 2. New Swipeable Container Component
+Create a new `MapFilterHeader.tsx` that:
+- Contains category and day filter state
+- Renders two scrollable rows with toggle buttons
+- Exposes filtered location list via callback/state
+- Icons match the original: Waves (beach), Utensils (dining), Activity, Home (stay), etc.
 
-A new `SwipeableDashboard` component will:
-- Render all 3 columns in a horizontal scroll-snap container
-- Track active panel index (0, 1, 2)
-- Show dots indicator at bottom
-- Add subtle edge shadows on active panel
-- Support touch swipe and programmatic navigation
+### 3. Update RightColumn
 
----
+- Remove the old simplified filter chips at the bottom
+- Add `MapFilterHeader` at the top
+- Pass filtered locations to `OverviewMap`
+- Marker clicks: select location → navigate to Details panel (index 1)
 
-## Component Architecture
+### 4. Update Detail Panels
 
-### New Files
-
-| File | Purpose |
-|------|---------|
-| `src/components/dashboard/SwipeableDashboard.tsx` | Main swipeable container with scroll-snap |
-| `src/components/dashboard/PanelDotsIndicator.tsx` | Bottom dots navigation |
-
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `src/hooks/use-dashboard-mode.ts` | Add `isWideEnough` flag to distinguish display mode |
-| `src/pages/Index.tsx` | Always use dashboard context, choose grid vs swipe layout |
-| `src/index.css` | Add swipe container styles and edge shadows |
+- "Show on Map" button: call `navigateToPanel(2)` + `panMap()` + `highlightPin()`
+- This navigates to the Map panel and centers on the location
 
 ---
 
-## Swipeable Container Design
+## Component Changes
 
-### CSS Scroll-Snap Approach
-
-Using native CSS scroll-snap for smooth, performant swiping:
-
-```css
-.swipe-container {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Hide scrollbar */
-}
-
-.swipe-container::-webkit-scrollbar {
-  display: none;
-}
-
-.swipe-panel {
-  flex: 0 0 100%;
-  width: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  height: 100%;
-  overflow-y: auto;
-}
-```
-
-### Edge Shadow Hints
-
-Subtle gradient shadows on panel edges to hint at more content:
-
-```css
-.swipe-panel::before,
-.swipe-panel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.swipe-panel::before {
-  left: 0;
-  background: linear-gradient(to right, hsl(var(--background) / 0.8), transparent);
-}
-
-.swipe-panel::after {
-  right: 0;
-  background: linear-gradient(to left, hsl(var(--background) / 0.8), transparent);
-}
-
-/* Hide left shadow on first panel, right shadow on last */
-.swipe-panel:first-child::before { display: none; }
-.swipe-panel:last-child::after { display: none; }
-```
-
----
-
-## Dots Indicator Component
-
-```text
-┌────────────────────────────────────────┐
-│         ○    ●    ○                    │
-│     Itinerary  Details  Map            │
-└────────────────────────────────────────┘
-```
-
-### Behavior
-
-- Shows 3 dots with subtle labels below
-- Active dot is filled (primary color)
-- Inactive dots are outlined
-- Tapping a dot navigates to that panel
-- Updates on scroll via intersection observer
-
-### Implementation
+### New File: `src/components/dashboard/MapFilterHeader.tsx`
 
 ```tsx
-interface PanelDotsIndicatorProps {
-  activeIndex: number;
-  onDotClick: (index: number) => void;
+interface MapFilterHeaderProps {
+  locations: MapLocation[];
+  days: Day[];
+  onFilteredLocationsChange: (locations: MapLocation[]) => void;
+  onLocationFocus?: (locationId: string) => void;
 }
 
-const panels = [
-  { label: 'Itinerary' },
-  { label: 'Details' },
-  { label: 'Map' },
-];
+function MapFilterHeader({ 
+  locations, 
+  days, 
+  onFilteredLocationsChange,
+  onLocationFocus 
+}: MapFilterHeaderProps) {
+  const [activeCategories, setActiveCategories] = useState<Set<CategoryFilter>>(new Set(['all']));
+  const [activeDays, setActiveDays] = useState<Set<string>>(new Set(['all']));
 
-function PanelDotsIndicator({ activeIndex, onDotClick }) {
-  return (
-    <nav className="flex items-center justify-center gap-6 py-3 border-t">
-      {panels.map((panel, i) => (
-        <button
-          key={i}
-          onClick={() => onDotClick(i)}
-          className="flex flex-col items-center gap-1"
-        >
-          <span className={cn(
-            "w-2.5 h-2.5 rounded-full transition-colors",
-            i === activeIndex
-              ? "bg-primary"
-              : "border-2 border-muted-foreground"
-          )} />
-          <span className="text-xs text-muted-foreground">
-            {panel.label}
-          </span>
-        </button>
-      ))}
-    </nav>
-  );
-}
-```
+  // Filter logic (same as DatabaseMapTab)
+  const filteredLocations = useMemo(() => {
+    // Category filtering
+    // Day filtering  
+    // Deduplication
+  }, [locations, activeCategories, activeDays]);
 
----
-
-## SwipeableDashboard Component
-
-### Structure
-
-```tsx
-function SwipeableDashboard({ header, leftColumn, centerColumn, rightColumn }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(1); // Start on Details
-
-  // Track scroll position to update active index
+  // Notify parent of filtered results
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    onFilteredLocationsChange(filteredLocations);
+  }, [filteredLocations, onFilteredLocationsChange]);
 
-    const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const panelWidth = container.offsetWidth;
-      const index = Math.round(scrollLeft / panelWidth);
-      setActiveIndex(index);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Programmatic navigation
-  const scrollToPanel = (index: number) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const panelWidth = container.offsetWidth;
-    container.scrollTo({ left: index * panelWidth, behavior: 'smooth' });
-  };
+  // Focus on specific location (e.g., from context)
+  useEffect(() => {
+    if (onLocationFocus) {
+      // Set filters to show this location
+    }
+  }, [onLocationFocus]);
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden">
-      <header>{header}</header>
-      
-      <div
-        ref={containerRef}
-        className="flex-1 swipe-container"
-      >
-        <div className="swipe-panel">{leftColumn}</div>
-        <div className="swipe-panel">{centerColumn}</div>
-        <div className="swipe-panel">{rightColumn}</div>
+    <div className="border-b border-border bg-card/95 backdrop-blur-sm">
+      {/* Category Row */}
+      <div className="px-3 py-2 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">Categories</p>
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex gap-1.5 pb-1">
+            {/* Filter buttons with icons */}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </div>
       
-      <PanelDotsIndicator
-        activeIndex={activeIndex}
-        onDotClick={scrollToPanel}
-      />
+      {/* Day Row */}
+      <div className="px-3 py-2 space-y-1 border-t border-border/50">
+        <p className="text-xs font-medium text-muted-foreground">Days</p>
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex gap-1.5 pb-1">
+            {/* Day buttons */}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
     </div>
   );
 }
 ```
 
----
+### Modified: `src/contexts/DashboardSelectionContext.tsx`
 
-## Updated Mode Detection
+Add panel navigation capability:
 
-### Hook Changes
-
-```typescript
-interface DashboardModeResult {
-  isDashboard: boolean;     // Always true now (we always use dashboard)
-  isWideLayout: boolean;    // True = side-by-side grid, False = swipeable
-  isPortrait: boolean;
-  isMobileLandscape: boolean;
-}
-
-function calculateDashboardMode(): DashboardModeResult {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  const isPortrait = height > width;
-  const isLandscape = !isPortrait;
+```tsx
+interface DashboardSelectionActions {
+  // ... existing actions
   
-  // Wide layout: show 3-column grid
-  const isDesktop = width >= 900;
-  const isMobileLandscape = isLandscape && width >= 667 && width < 900;
-  const isWideLayout = isDesktop || isMobileLandscape;
-
-  return {
-    isDashboard: true, // Always dashboard mode now
-    isWideLayout,
-    isPortrait,
-    isMobileLandscape,
-  };
+  /** Navigate to a specific panel (0=Itinerary, 1=Details, 2=Map) */
+  navigateToPanel: (index: 0 | 1 | 2) => void;
+  
+  /** Register panel navigator (used by SwipeableDashboard) */
+  registerPanelNavigator: (handler: (index: number) => void) => () => void;
 }
 ```
 
----
+### Modified: `src/components/dashboard/SwipeableDashboard.tsx`
 
-## Index.tsx Changes
+Register the panel navigator with context:
 
 ```tsx
-const Index = () => {
-  const { isWideLayout } = useDashboardMode();
-  
-  // Always wrap in DashboardSelectionProvider
-  // Choose layout based on screen width
-  
-  if (isWideLayout) {
-    return (
-      <DashboardSelectionProvider>
-        <DashboardLayout ... />
-      </DashboardSelectionProvider>
-    );
+const { registerPanelNavigator } = useDashboardSelection();
+
+useEffect(() => {
+  return registerPanelNavigator(scrollToPanel);
+}, [registerPanelNavigator, scrollToPanel]);
+```
+
+### Modified: `src/components/dashboard/RightColumn.tsx`
+
+Complete rewrite to:
+- Add MapFilterHeader at top
+- Remove old filter chips at bottom
+- Use filtered locations from header
+- On marker click: navigate to Details panel
+
+### Modified: `src/components/dashboard/DetailPanels/ActivityDetail.tsx`
+
+Update "Show on Map" to navigate:
+
+```tsx
+const handleShowOnMap = () => {
+  if (activity.location?.lat && activity.location?.lng) {
+    panMap(activity.location.lat, activity.location.lng);
+    highlightPin(activity.location_id);
+    navigateToPanel(2); // Navigate to Map panel
   }
-  
-  return (
-    <DashboardSelectionProvider>
-      <SwipeableDashboard
-        header={<CompactHeader />}
-        leftColumn={<LeftColumn />}
-        centerColumn={<CenterColumn />}
-        rightColumn={<RightColumn />}
-      />
-    </DashboardSelectionProvider>
-  );
 };
 ```
 
+### Modified: `src/components/dashboard/DetailPanels/LocationDetail.tsx`
+
+Same pattern - "Show on Map" navigates to panel 2.
+
 ---
 
-## Synchronization Behavior
+## Filter Button Styling
 
-Since both layouts use the same `DashboardSelectionContext` and the same column components, all synchronization works identically:
-
-### Activity Selection (Left Panel)
-1. User taps activity in LeftColumn
-2. `selectItem('activity', ...)` called
-3. CenterColumn shows ActivityDetail
-4. RightColumn highlights map pin
-5. **In swipe mode**: User can swipe to Details or Map to see the result
-
-### Map Pin Click (Right Panel)
-1. User taps pin in RightColumn
-2. `selectItem('location', ...)` called
-3. CenterColumn shows LocationDetail
-4. LeftColumn scrolls to matching activity
-5. **In swipe mode**: User can swipe left to see details
-
-### Auto-Navigate Option (Enhancement)
-
-Optionally, we can auto-swipe to the Details panel when an item is selected:
+Compact buttons that work on narrow screens:
 
 ```tsx
-// In SwipeableDashboard
-useEffect(() => {
-  // When something is selected, auto-swipe to center panel
-  if (selectedItem && activeIndex !== 1) {
-    scrollToPanel(1);
-  }
-}, [selectedItem]);
+<Button
+  size="sm"
+  variant={active ? 'default' : 'outline'}
+  onClick={onClick}
+  className="shrink-0 h-7 px-2 text-xs"
+>
+  <Icon className="w-3.5 h-3.5 mr-1" />
+  {label}
+</Button>
 ```
 
----
-
-## CSS Additions to index.css
-
-```css
-/* Swipeable Dashboard Container */
-.swipe-container {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.swipe-container::-webkit-scrollbar {
-  display: none;
-}
-
-.swipe-panel {
-  flex: 0 0 100%;
-  width: 100%;
-  min-width: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  height: 100%;
-  overflow-y: auto;
-  position: relative;
-}
-
-/* Edge shadow hints */
-.swipe-panel-wrapper {
-  position: relative;
-}
-
-.swipe-edge-shadow-left,
-.swipe-edge-shadow-right {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  pointer-events: none;
-  z-index: 10;
-  opacity: 0.6;
-}
-
-.swipe-edge-shadow-left {
-  left: 0;
-  background: linear-gradient(to right, hsl(var(--muted) / 0.5), transparent);
-}
-
-.swipe-edge-shadow-right {
-  right: 0;
-  background: linear-gradient(to left, hsl(var(--muted) / 0.5), transparent);
-}
-```
-
----
-
-## Implementation Steps
-
-### Step 1: Update Hook
-- Modify `use-dashboard-mode.ts` to add `isWideLayout` flag
-- Keep `isDashboard: true` always
-
-### Step 2: Create Swipe Components
-- Create `SwipeableDashboard.tsx` with scroll-snap container
-- Create `PanelDotsIndicator.tsx` with tappable dots
-
-### Step 3: Add CSS
-- Add swipe container styles to `index.css`
-- Add edge shadow styles
-
-### Step 4: Update Index.tsx
-- Always wrap in `DashboardSelectionProvider`
-- Conditionally render `DashboardLayout` or `SwipeableDashboard`
-- Remove old tab-based layout code
-
-### Step 5: Test Synchronization
-- Verify activity selection syncs across all panels
-- Verify map pin clicks update other panels
-- Test swipe gesture smoothness
-- Verify dots indicator tracks correctly
+Category config matches the original:
+- beach: Waves icon, seafoam color
+- dining: Utensils icon, coral color
+- activity: Activity icon, blue color
+- accommodation: Home icon, purple color
+- lodging: Building icon, pink color
+- transport: Car icon, gray color
+- event: PartyPopper icon, gold color
 
 ---
 
 ## Files Summary
 
-### New Files (2)
+### New Files (1)
 
 | File | Purpose |
 |------|---------|
-| `src/components/dashboard/SwipeableDashboard.tsx` | Swipeable 3-panel container |
-| `src/components/dashboard/PanelDotsIndicator.tsx` | Bottom dots navigation |
+| `src/components/dashboard/MapFilterHeader.tsx` | Scrollable category and day filter rows |
 
-### Modified Files (3)
+### Modified Files (5)
 
 | File | Changes |
 |------|---------|
-| `src/hooks/use-dashboard-mode.ts` | Add `isWideLayout` flag |
-| `src/pages/Index.tsx` | Always use dashboard, choose layout mode |
-| `src/index.css` | Add swipe container and edge shadow styles |
+| `src/contexts/DashboardSelectionContext.tsx` | Add `navigateToPanel` and `registerPanelNavigator` |
+| `src/components/dashboard/SwipeableDashboard.tsx` | Register panel navigator with context |
+| `src/components/dashboard/RightColumn.tsx` | Add filter header, remove old chips, wire up bidirectional nav |
+| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | "Show on Map" navigates to Map panel |
+| `src/components/dashboard/DetailPanels/LocationDetail.tsx` | "Show on Map" navigates to Map panel |
 
 ---
 
-## Removed Code
+## Technical Details
 
-The old tab-based layout can be removed since we're unifying on the dashboard system:
-- `BottomNav` component no longer needed for main navigation
-- `TabId` type simplified or removed
-- Old tab switching logic in Index.tsx replaced
+### Filter State Management
+
+Filters are local to `MapFilterHeader` since they're map-specific. The component calls `onFilteredLocationsChange` whenever filters change, and the parent `RightColumn` passes filtered locations to `OverviewMap`.
+
+### Focus on Specific Location
+
+When "Show on Map" is clicked from Details:
+1. `navigateToPanel(2)` - swipes to Map panel
+2. `panMap(lat, lng)` - tells map to fly to coordinates  
+3. `highlightPin(locationId)` - highlights the pin with pulsing animation
+
+Optionally, filters could auto-adjust to ensure the location is visible (e.g., if filtering by "Beaches" but the location is a restaurant, we could reset to "All").
+
+### ScrollArea Constraint
+
+Using `ScrollArea` with `whitespace-nowrap` and `shrink-0` on buttons ensures the filter rows scroll horizontally without wrapping or overflowing the container.
+
+---
+
+## Implementation Order
+
+1. **Add context navigation** - `navigateToPanel` + `registerPanelNavigator` in context
+2. **Register navigator** - SwipeableDashboard registers its `scrollToPanel` function
+3. **Create MapFilterHeader** - Extract filter UI and logic into reusable component
+4. **Update RightColumn** - Integrate MapFilterHeader, wire up bidirectional navigation
+5. **Update Detail panels** - "Show on Map" calls `navigateToPanel(2)`
+6. **Test end-to-end** - Verify filtering works, bidirectional nav works in both layout modes
