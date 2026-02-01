@@ -102,11 +102,20 @@ export function MapModal({
         });
         mapInstanceRef.current = map;
 
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Add OpenStreetMap tiles with debug logging
+        const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+        });
+
+        // Debug: Track tile loading
+        tileLayer.on('loading', () => console.log('[MapModal] Tiles loading...'));
+        tileLayer.on('load', () => console.log('[MapModal] All tiles loaded'));
+        tileLayer.on('tileload', (e) => console.log('[MapModal] Tile loaded:', e.coords));
+        tileLayer.on('tileerror', (e) => console.error('[MapModal] Tile error:', e.coords, e.error));
+
+        tileLayer.addTo(map);
+        console.log('[MapModal] Map initialized at:', lat, lng, 'zoom:', zoom);
 
         // Add marker
         const marker = L.marker([lat, lng]).addTo(map);
@@ -116,7 +125,11 @@ export function MapModal({
         // Force map to recalculate size after render
         setTimeout(() => {
           if (isMounted && mapInstanceRef.current) {
+            const container = mapInstanceRef.current.getContainer();
+            console.log('[MapModal] Container size before invalidateSize:',
+              container.offsetWidth, 'x', container.offsetHeight);
             mapInstanceRef.current.invalidateSize();
+            console.log('[MapModal] invalidateSize() called');
           }
         }, 100);
       } catch (e) {
