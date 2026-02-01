@@ -42,13 +42,20 @@ export function MapModal({
 
   const popupContent = `<strong>${name}</strong>${address ? `<br/>${address}` : ''}`;
 
-  const { isReady, error, updateView, updateMarker } = useLeafletMap(mapRef, {
+  const { map, isReady, error, updateView, updateMarker } = useLeafletMap(mapRef, {
     center: [lat, lng],
     zoom,
     enabled: open && dialogReady,
     markerPopup: popupContent,
     debug: false, // Enable for troubleshooting
   });
+
+  // Handle animation end - additional invalidateSize for safety
+  const handleAnimationEnd = () => {
+    if (map) {
+      map.invalidateSize();
+    }
+  };
 
   // Update view and marker when location changes (after map is ready)
   useEffect(() => {
@@ -81,7 +88,10 @@ export function MapModal({
         </DialogHeader>
         
         {/* Map container - flex-1 takes remaining space */}
-        <div className="flex-1 min-h-[300px] relative">
+        <div 
+          className="flex-1 min-h-[300px] relative"
+          onAnimationEnd={handleAnimationEnd}
+        >
           {/* Loading state */}
           {!isReady && !error && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
