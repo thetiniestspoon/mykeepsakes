@@ -93,14 +93,17 @@ export function RightColumn({ className }: RightColumnProps) {
     return locations;
   }, [dbLocations, lodgingOptions, fullLocations, memories, favorites]);
 
-  // Days data for the filter header
+  // Get raw days from useDatabaseLocations for ISO date format (needed for MapFilterHeader parsing)
+  const { days: rawDays } = useDatabaseLocations();
+
+  // Days data for the filter header - use rawDays for ISO dates
   const filterDays = useMemo(() => {
-    return days.map(day => ({
+    return rawDays.map(day => ({
       id: day.id,
-      date: day.date,
+      date: day.date,  // ISO format: "2026-07-25"
       title: day.title,
     }));
-  }, [days]);
+  }, [rawDays]);
 
   // Handle filtered locations from the filter header
   const handleFilteredLocationsChange = useCallback((locations: MapLocation[]) => {

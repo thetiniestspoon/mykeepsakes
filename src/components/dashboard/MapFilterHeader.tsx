@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -86,10 +86,18 @@ export function MapFilterHeader({
     });
   }, [locations, activeCategories, activeDays]);
 
-  // Notify parent of filtered results
+  // Track previous filtered IDs to prevent redundant callbacks
+  const prevFilteredIdsRef = useRef<string>('');
+
+  // Notify parent of filtered results - only when IDs actually change
   useEffect(() => {
-    onFilteredLocationsChange(filteredLocations);
-  }, [filteredLocations, onFilteredLocationsChange]);
+    const currentIds = filteredLocations.map(l => l.id).sort().join(',');
+    if (currentIds !== prevFilteredIdsRef.current) {
+      prevFilteredIdsRef.current = currentIds;
+      onFilteredLocationsChange(filteredLocations);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLocations]);
 
   const toggleCategory = useCallback((cat: CategoryFilter) => {
     setActiveCategories(prev => {
