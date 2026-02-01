@@ -87,34 +87,29 @@ export function MapModal({
           )}
         </DialogHeader>
         
-        {/* Map container - flex-1 takes remaining space */}
+        {/* Map container - flex-1 takes remaining space, mapRef directly on flex container */}
         <div 
-          className="flex-1 min-h-[300px] relative"
+          ref={mapRef}
+          className={cn(
+            "flex-1 min-h-[300px] relative",
+            !isReady && "invisible"
+          )}
           onAnimationEnd={handleAnimationEnd}
         >
-          {/* Loading state */}
+          {/* Loading state overlay */}
           {!isReady && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10 visible">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           )}
           
-          {/* Error state */}
+          {/* Error state overlay */}
           {error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50 z-10">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50 z-10 visible">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Failed to load map</p>
             </div>
           )}
-          
-          {/* Actual map container */}
-          <div 
-            ref={mapRef} 
-            className={cn(
-              "w-full h-full",
-              !isReady && "invisible"
-            )}
-          />
         </div>
         
         {/* Footer with Get Directions dropdown */}

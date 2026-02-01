@@ -114,11 +114,20 @@ export function useLeafletMap(
   // ResizeObserver to detect when container has valid dimensions
   // AND continue monitoring for size changes after initialization
   useEffect(() => {
-    if (!options.enabled || !containerRef.current) {
+    if (!options.enabled) {
+      logDebug('Map disabled, skipping observation');
+      return;
+    }
+    
+    if (!containerRef.current) {
+      logDebug('containerRef.current is null - Dialog may not have mounted yet');
       return;
     }
 
-    logDebug('Starting container observation');
+    logDebug('Starting container observation', {
+      width: containerRef.current.offsetWidth,
+      height: containerRef.current.offsetHeight
+    });
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
