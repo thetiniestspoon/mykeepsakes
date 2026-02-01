@@ -13,6 +13,14 @@ import { ItinerarySkeleton, MapSkeleton, AlbumSkeleton, GenericSkeleton } from '
 import { usePin } from '@/hooks/use-trip-data';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { useDashboardMode } from '@/hooks/use-dashboard-mode';
+import { DashboardSelectionProvider } from '@/contexts/DashboardSelectionContext';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { LeftColumn } from '@/components/dashboard/LeftColumn';
+import { CenterColumn } from '@/components/dashboard/CenterColumn';
+import { RightColumn } from '@/components/dashboard/RightColumn';
+import { CompactHeader } from '@/components/dashboard/CompactHeader';
+import { useActiveTrip, getTripMode } from '@/hooks/use-trip';
 
 // Lazy load heavy components
 const DatabaseMapTab = lazy(() => import('@/components/DatabaseMapTab'));
@@ -26,7 +34,12 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   
   const { data: pin, isLoading: pinLoading } = usePin();
+  const { data: trip } = useActiveTrip();
+  const { isDashboard } = useDashboardMode();
   const queryClient = useQueryClient();
+  
+  // Get trip mode for dashboard context
+  const tripMode = trip ? getTripMode(trip) : 'pre';
   
   // Check for existing session
   useEffect(() => {
@@ -69,7 +82,28 @@ const Index = () => {
     );
   }
   
-  // Main app
+  // Dashboard layout for landscape/desktop
+  if (isDashboard) {
+    return (
+      <DashboardSelectionProvider initialTripMode={tripMode}>
+        <DashboardLayout
+          header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
+          leftColumn={<LeftColumn />}
+          centerColumn={<CenterColumn />}
+          rightColumn={<RightColumn />}
+        />
+        
+        <SettingsDialog 
+          open={settingsOpen} 
+          onOpenChange={setSettingsOpen}
+          currentPin={pin}
+          onLogout={handleLogout}
+        />
+      </DashboardSelectionProvider>
+    );
+  }
+  
+  // Tab-based layout for portrait mobile
   return (
     <div className="min-h-screen bg-background">
       <TripHeader onOpenSettings={() => setSettingsOpen(true)} />
