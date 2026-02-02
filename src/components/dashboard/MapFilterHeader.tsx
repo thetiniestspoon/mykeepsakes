@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Waves, Utensils, Activity, Home, Car, PartyPopper, Building } from 'lucide-react';
+import { MapPin, Waves, Utensils, Activity, Home, Car, PartyPopper, Building, Search, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MapLocation } from '@/types/map';
 
@@ -37,19 +37,24 @@ interface MapFilterHeaderProps {
   onFilteredLocationsChange: (locations: MapLocation[]) => void;
   focusedLocation?: FocusedLocation | null;
   onFocusConsumed?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   className?: string;
 }
 
 /**
  * Scrollable filter header for the map with category and day filters
+ * Can be collapsed to a small search button in the corner
  */
-export function MapFilterHeader({ 
-  locations, 
-  days, 
+export function MapFilterHeader({
+  locations,
+  days,
   onFilteredLocationsChange,
   focusedLocation,
   onFocusConsumed,
-  className 
+  isCollapsed = false,
+  onToggleCollapse,
+  className
 }: MapFilterHeaderProps) {
   const [activeCategories, setActiveCategories] = useState<Set<CategoryFilter>>(new Set(['all']));
   const [activeDays, setActiveDays] = useState<Set<string>>(new Set(['all']));
@@ -187,15 +192,60 @@ export function MapFilterHeader({
     });
   }, []);
 
+  // Check if any filters are active (not just "all")
+  const hasActiveFilters = !activeCategories.has('all') || !activeDays.has('all');
+
+  // Collapsed state - show floating search button
+  if (isCollapsed) {
+    return (
+      <div className={cn("absolute top-2 right-2 z-10", className)}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={onToggleCollapse}
+          className={cn(
+            "h-9 w-9 p-0 rounded-full shadow-md",
+            hasActiveFilters && "ring-2 ring-primary ring-offset-2"
+          )}
+          title="Open filters"
+        >
+          <Search className="w-4 h-4" />
+        </Button>
+        {hasActiveFilters && (
+          <Badge
+            variant="default"
+            className="absolute -top-1 -left-1 h-5 min-w-5 p-0 flex items-center justify-center text-[10px]"
+          >
+            {filteredLocations.length}
+          </Badge>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded state - show full filter panel
   return (
     <div className={cn("border-b border-border bg-card/95 backdrop-blur-sm", className)}>
       {/* Category Row */}
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Categories</p>
-          <Badge variant="secondary" className="text-xs h-5">
-            {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs h-5">
+              {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
+            </Badge>
+            {onToggleCollapse && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onToggleCollapse}
+                className="h-6 w-6 p-0"
+                title="Collapse filters"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-1.5 pb-1">
@@ -229,7 +279,7 @@ export function MapFilterHeader({
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
-      
+
       {/* Day Row */}
       {days.length > 0 && (
         <div className="px-3 py-2 space-y-1 border-t border-border/50">

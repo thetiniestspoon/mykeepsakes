@@ -1,36 +1,31 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
 } from '@/components/ui/accordion';
-import { 
-  Waves, 
-  Utensils, 
-  Backpack, 
-  Star, 
-  ExternalLink, 
-  Phone, 
+import {
+  Waves,
+  Utensils,
+  Star,
+  ExternalLink,
+  Phone,
   MapPin,
   StickyNote,
   Camera,
   X,
   Trash2,
   Compass,
-  PartyPopper,
-  Home
+  PartyPopper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { BEACHES, RESTAURANTS, PACKING_LIST, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
-import type { GuideItem, PackingItem } from '@/lib/itinerary-data';
+import { BEACHES, RESTAURANTS, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
+import type { GuideItem } from '@/lib/itinerary-data';
 import {
-  useChecklistItems,
-  useToggleChecklistItem,
   useFavorites,
   useToggleFavorite,
   useNotes,
@@ -41,11 +36,8 @@ import {
   useDeletePhoto,
   getPhotoUrl
 } from '@/hooks/use-trip-data';
-import { useSelectedLodging } from '@/hooks/use-lodging';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
-import { StayCard } from '@/components/guide/StayCard';
-import { PhotoAlbumSection } from '@/components/guide/PhotoAlbumSection';
 
 interface SelectedLocation {
   lat: number;
@@ -246,54 +238,12 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
   );
 }
 
-interface PackingItemRowProps {
-  item: PackingItem;
-}
-
-function PackingItemRow({ item }: PackingItemRowProps) {
-  const { data: checklistItems } = useChecklistItems();
-  const toggleChecklist = useToggleChecklistItem();
-  
-  const isCompleted = checklistItems?.[item.id] ?? false;
-
-  return (
-    <label className="flex items-center gap-3 p-2 rounded hover:bg-secondary/30 cursor-pointer">
-      <Checkbox
-        checked={isCompleted}
-        onCheckedChange={(checked) => 
-          toggleChecklist.mutate({ itemId: item.id, isCompleted: !!checked })
-        }
-      />
-      <span className={cn(
-        "text-sm",
-        isCompleted && "line-through text-muted-foreground"
-      )}>
-        {item.item}
-      </span>
-    </label>
-  );
-}
-
 export function GuideTab() {
-  const { data: checklistItems } = useChecklistItems();
-  const { data: allPhotos } = usePhotos();
-  const { data: selectedLodging } = useSelectedLodging();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerPhotos, setPhotoViewerPhotos] = useState<Array<{ id: string; storage_path: string; caption?: string | null }>>([]);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
-  
-  // Group packing items by category
-  const packingByCategory = PACKING_LIST.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, PackingItem[]>);
-  
-  // Calculate packing progress
-  const packedCount = PACKING_LIST.filter(item => checklistItems?.[item.id]).length;
-  const totalItems = PACKING_LIST.length;
 
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
@@ -314,38 +264,6 @@ export function GuideTab() {
       </div>
       
       <Accordion type="single" collapsible className="space-y-4">
-        {/* Photo Album */}
-        <PhotoAlbumSection 
-          photos={allPhotos} 
-          onOpenPhoto={openPhotoViewer} 
-        />
-
-        {/* Stay */}
-        <AccordionItem value="stay" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-beach-ocean/20 flex items-center justify-center">
-                <Home className="w-5 h-5 text-beach-ocean" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Stay</span>
-                <p className="text-sm text-muted-foreground">
-                  {selectedLodging ? selectedLodging.name : 'No accommodation selected'}
-                </p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4">
-            {selectedLodging ? (
-              <StayCard lodging={selectedLodging} onOpenMap={openMapModal} />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Add your accommodation in the Lodging tab to see it here.
-              </p>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
         {/* Activities */}
         <AccordionItem value="activities" className="border rounded-lg shadow-warm overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
@@ -423,35 +341,6 @@ export function GuideTab() {
             {RESTAURANTS.map((restaurant) => (
               <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
             ))}
-          </AccordionContent>
-        </AccordionItem>
-        
-        {/* Packing List */}
-        <AccordionItem value="packing" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                <Backpack className="w-5 h-5 text-secondary-foreground" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Packing List</span>
-                <p className="text-sm text-muted-foreground">{packedCount}/{totalItems} items packed</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4">
-            <div className="space-y-4">
-              {Object.entries(packingByCategory).map(([category, items]) => (
-                <div key={category}>
-                  <h4 className="font-medium text-foreground mb-2">{category}</h4>
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <PackingItemRow key={item.id} item={item} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
