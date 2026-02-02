@@ -36,7 +36,7 @@ export function RightColumn({ className }: RightColumnProps) {
     selectItem,
     scrollToItem,
     navigateToPanel,
-    focusedLocationId,
+    focusedLocation,
     clearLocationFocus
   } = useDashboardSelection();
   
@@ -151,7 +151,7 @@ export function RightColumn({ className }: RightColumnProps) {
         locations={allLocations}
         days={filterDays}
         onFilteredLocationsChange={handleFilteredLocationsChange}
-        focusedLocationId={focusedLocationId}
+        focusedLocation={focusedLocation}
         onFocusConsumed={clearLocationFocus}
       />
       

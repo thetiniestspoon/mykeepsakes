@@ -1,5 +1,5 @@
 
-# "Show on Map" - Set Filters to Show Target Location
+# "Show on Map" - Set Filters to Show Target Location ✅ IMPLEMENTED
 
 This plan changes the behavior from "reset all filters to All" to "set filters specifically to the location's category and day" so only the target pin is shown on the map.
 

@@ -46,9 +46,13 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
 
   const handleShowOnMap = () => {
     if (activity.location?.lat && activity.location?.lng) {
-      // Reset map filters to show this location
+      // Set map filters to show this location's category and day
       if (activity.location_id) {
-        focusLocation(activity.location_id);
+        focusLocation({
+          id: activity.location_id,
+          category: activity.category,
+          dayId: activity.day_id,
+        });
         highlightPin(activity.location_id);
       }
       panMap(activity.location.lat, activity.location.lng);
