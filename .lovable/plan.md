@@ -1,34 +1,31 @@
 
-# "Show on Map" Filter Focus & Panel Navigation
+# "Show on Map" - Set Filters to Show Target Location
 
-This plan ensures that clicking "Show on Map" anywhere in the app:
-1. Resets map filters so the target location is visible
-2. Navigates to the Map panel (in portrait/swipe mode)
-3. Pans the map and highlights the pin
+This plan changes the behavior from "reset all filters to All" to "set filters specifically to the location's category and day" so only the target pin is shown on the map.
 
 ---
 
-## Current Behavior
+## Current vs. Desired Behavior
 
-When "Show on Map" is clicked:
-- `panMap(lat, lng)` - tells the map to fly to coordinates
-- `highlightPin(locationId)` - highlights the pin with pulsing animation
-- `navigateToPanel(2)` - swipes to Map panel (portrait mode)
-
-**Problem**: If the user has filtered the map (e.g., showing only "Beaches"), the target location may not be visible because filters hide it.
+| Current | Desired |
+|---------|---------|
+| Click "Show on Map" → filters reset to "All" → all pins visible | Click "Show on Map" → filters set to that item's category + day → only that pin (and similar) visible |
 
 ---
 
-## Solution Architecture
+## Solution
+
+Instead of just passing `locationId`, we pass the location's category and dayId through the context. The `MapFilterHeader` then sets both filters to those specific values.
 
 ```text
-Detail Panel                         Context                          MapFilterHeader
+ActivityDetail                       Context                          MapFilterHeader
 ┌─────────────────┐                                                  ┌─────────────────┐
-│  [Show on Map]  │─────▶ focusLocation(id) ─────▶ focusedLocationId ─▶ Reset to "All"
-│                 │                                                   │  filters
-│                 │─────▶ panMap(lat, lng) ─────────────────────────▶│  Map pans
-│                 │                                                   │  Pin highlights
-│                 │─────▶ navigateToPanel(2) ───────────────────────▶│  [Portrait only]
+│  [Show on Map]  │                                                  │                 │
+│                 │─────▶ focusLocation({              focusedLoc ──▶│  Set category   │
+│  category:      │         id: "abc",              ──────────────▶ │  to "dining"    │
+│    "dining"     │         category: "dining",                      │                 │
+│  day_id: "xyz"  │         dayId: "xyz"                             │  Set day to     │
+│                 │       })                                         │  "xyz"          │
 └─────────────────┘                                                  └─────────────────┘
 ```
 
@@ -36,131 +33,111 @@ Detail Panel                         Context                          MapFilterH
 
 ## Key Changes
 
-### 1. Extend DashboardSelectionContext
+### 1. Extend Context State
 
-Add a new state and action for focusing on a specific location:
+Change from a single `focusedLocationId: string` to a richer focus object:
 
-| Addition | Purpose |
-|----------|---------|
-| `focusedLocationId: string \| null` | ID of location to focus on (triggers filter reset) |
-| `focusLocation(id: string)` | Set the focused location, auto-clears after use |
+```tsx
+interface FocusedLocation {
+  id: string;
+  category?: string;  // e.g., "dining", "beach", "activity"
+  dayId?: string;     // e.g., "day-uuid-123"
+}
 
-This keeps the context as the single source of truth for cross-panel coordination.
+interface DashboardSelectionState {
+  // ...existing
+  focusedLocation: FocusedLocation | null;  // Changed from focusedLocationId
+}
+
+interface DashboardSelectionActions {
+  // ...existing
+  focusLocation: (focus: FocusedLocation) => void;  // Now accepts object
+  clearLocationFocus: () => void;
+}
+```
 
 ### 2. Update MapFilterHeader
 
-When `focusedLocationId` changes to a non-null value:
-- Reset both category and day filters to "All"
-- This ensures the focused location will be visible regardless of previous filter state
+When `focusedLocation` is set, apply specific filters:
+
+```tsx
+useEffect(() => {
+  if (focusedLocation) {
+    // Set category filter to this location's category
+    if (focusedLocation.category) {
+      // Map 'restaurant' to 'dining' for consistency
+      const cat = focusedLocation.category === 'restaurant' 
+        ? 'dining' 
+        : focusedLocation.category;
+      setActiveCategories(new Set([cat as CategoryFilter]));
+    } else {
+      // No category info - reset to all
+      setActiveCategories(new Set(['all']));
+    }
+    
+    // Set day filter to this location's day
+    if (focusedLocation.dayId) {
+      setActiveDays(new Set([focusedLocation.dayId]));
+    } else {
+      // No day info (guide items, lodging) - reset to all
+      setActiveDays(new Set(['all']));
+    }
+    
+    onFocusConsumed?.();
+  }
+}, [focusedLocation, onFocusConsumed]);
+```
 
 ### 3. Update Detail Panels
 
-The `handleShowOnMap` function in both `ActivityDetail` and `LocationDetail` should:
-1. Call `focusLocation(locationId)` to reset filters
-2. Call `panMap(lat, lng)` to pan the map
-3. Call `highlightPin(locationId)` to highlight the pin
-4. Call `navigateToPanel(2)` to switch to Map panel (works in portrait)
+Pass category and dayId from the activity/location:
 
----
-
-## Implementation Details
-
-### DashboardSelectionContext Changes
-
+**ActivityDetail.tsx:**
 ```tsx
-// New state
-const [focusedLocationId, setFocusedLocationId] = useState<string | null>(null);
-
-// New action
-const focusLocation = useCallback((locationId: string) => {
-  setFocusedLocationId(locationId);
-}, []);
-
-// Clear focus after it's been consumed
-const clearLocationFocus = useCallback(() => {
-  setFocusedLocationId(null);
-}, []);
-```
-
-### MapFilterHeader Changes
-
-The component needs to receive `focusedLocationId` and reset filters when it changes:
-
-```tsx
-interface MapFilterHeaderProps {
-  locations: MapLocation[];
-  days: Day[];
-  onFilteredLocationsChange: (locations: MapLocation[]) => void;
-  focusedLocationId?: string | null;
-  onFocusConsumed?: () => void;
-  className?: string;
-}
-
-// Inside component:
-useEffect(() => {
-  if (focusedLocationId) {
-    // Reset all filters to "All" to ensure location is visible
-    setActiveCategories(new Set(['all']));
-    setActiveDays(new Set(['all']));
-    // Notify parent that focus has been consumed
-    onFocusConsumed?.();
+const handleShowOnMap = () => {
+  if (activity.location?.lat && activity.location?.lng) {
+    if (activity.location_id) {
+      focusLocation({
+        id: activity.location_id,
+        category: activity.category,  // "dining", "beach", etc.
+        dayId: activity.day_id,
+      });
+      highlightPin(activity.location_id);
+    }
+    panMap(activity.location.lat, activity.location.lng);
+    navigateToPanel(2);
   }
-}, [focusedLocationId, onFocusConsumed]);
+};
 ```
 
-### RightColumn Changes
+**LocationDetail.tsx:**
+```tsx
+const handleShowOnMap = () => {
+  if (lat && lng) {
+    focusLocation({
+      id: location.id,
+      category: location.category || undefined,
+      dayId: 'dayId' in location ? location.dayId : undefined,
+    });
+    panMap(lat, lng);
+    highlightPin(location.id);
+    navigateToPanel(2);
+  }
+};
+```
 
-Pass the focus props from context to MapFilterHeader:
+### 4. Update RightColumn
+
+Pass the full focus object instead of just ID:
 
 ```tsx
-const { focusedLocationId, clearLocationFocus, ... } = useDashboardSelection();
-
 <MapFilterHeader
   locations={allLocations}
   days={filterDays}
   onFilteredLocationsChange={handleFilteredLocationsChange}
-  focusedLocationId={focusedLocationId}
+  focusedLocation={focusedLocation}  // Changed from focusedLocationId
   onFocusConsumed={clearLocationFocus}
 />
-```
-
-### ActivityDetail Changes
-
-Update the handler to also call focusLocation:
-
-```tsx
-const { panMap, highlightPin, navigateToPanel, focusLocation } = useDashboardSelection();
-
-const handleShowOnMap = () => {
-  if (activity.location?.lat && activity.location?.lng) {
-    // Reset map filters to show this location
-    if (activity.location_id) {
-      focusLocation(activity.location_id);
-      highlightPin(activity.location_id);
-    }
-    panMap(activity.location.lat, activity.location.lng);
-    // Navigate to Map panel (index 2)
-    navigateToPanel(2);
-  }
-};
-```
-
-### LocationDetail Changes
-
-Same pattern:
-
-```tsx
-const { panMap, highlightPin, navigateToPanel, focusLocation } = useDashboardSelection();
-
-const handleShowOnMap = () => {
-  if (lat && lng) {
-    focusLocation(location.id);
-    panMap(lat, lng);
-    highlightPin(location.id);
-    // Navigate to Map panel (index 2)
-    navigateToPanel(2);
-  }
-};
 ```
 
 ---
@@ -169,42 +146,49 @@ const handleShowOnMap = () => {
 
 | File | Changes |
 |------|---------|
-| `src/contexts/DashboardSelectionContext.tsx` | Add `focusedLocationId` state, `focusLocation()` and `clearLocationFocus()` actions |
-| `src/components/dashboard/MapFilterHeader.tsx` | Accept `focusedLocationId` prop, reset filters when set |
-| `src/components/dashboard/RightColumn.tsx` | Pass focus props from context to MapFilterHeader |
-| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | Call `focusLocation()` in handleShowOnMap |
-| `src/components/dashboard/DetailPanels/LocationDetail.tsx` | Call `focusLocation()` in handleShowOnMap |
+| `src/contexts/DashboardSelectionContext.tsx` | Change `focusedLocationId` to `focusedLocation` object with category/dayId |
+| `src/components/dashboard/MapFilterHeader.tsx` | Set filters to specific values based on focusedLocation |
+| `src/components/dashboard/RightColumn.tsx` | Pass `focusedLocation` instead of `focusedLocationId` |
+| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | Pass category and day_id to focusLocation |
+| `src/components/dashboard/DetailPanels/LocationDetail.tsx` | Pass category and dayId to focusLocation |
+
+---
+
+## Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| Activity has category + day | Filter to that category AND that day |
+| Guide location (no day) | Filter to category, but "All Days" |
+| Location with no category | Filter to "All" categories, specific day if available |
+| Unknown category | Fall back to "All" categories |
 
 ---
 
 ## Technical Details
 
-### Why Reset to "All" Filters?
+### Category Normalization
 
-When focusing on a specific location, we can't know which category or day filters would include it. The safest approach is to reset both to "All" so the location is guaranteed to be visible.
+The database uses both "dining" and "restaurant" for food places. The filter normalizes:
+- `restaurant` → treated as `dining` in filters
+- Both map locations marked as "restaurant" or "dining" will be shown when "Dining" filter is active
 
-An alternative would be to auto-detect the category and day of the focused location and set filters accordingly, but this adds complexity and may be confusing (suddenly switching to "Dining" filter when clicking on a restaurant).
+### MapLocation Type
 
-### Focus Lifecycle
+`MapLocation` already has `dayId` as an optional property:
+```ts
+export interface MapLocation {
+  id: string;
+  category: string;
+  dayId?: string;  // Already exists
+  // ...
+}
+```
 
-1. User clicks "Show on Map" in a detail panel
-2. `focusLocation(id)` sets `focusedLocationId` in context
-3. `MapFilterHeader` detects the change, resets filters to "All"
-4. `MapFilterHeader` calls `onFocusConsumed()` to clear the focus
-5. Meanwhile, `panMap()` and `highlightPin()` update the map
-6. `navigateToPanel(2)` swipes to the Map (portrait mode only)
-
-### No External Links
-
-The "Get Directions" button opens Google Maps externally, but "Show on Map" always stays within the app. This is already the current behavior and will be preserved.
+This makes it compatible with the new focus behavior.
 
 ---
 
 ## Summary
 
-This enhancement ensures that clicking "Show on Map" always works correctly by:
-1. Automatically resetting any active filters that might hide the target location
-2. Panning to the location and highlighting its pin
-3. Switching to the Map panel in portrait/swipe mode
-
-The user never has to manually clear filters to see their selected location.
+This change ensures clicking "Show on Map" sets filters to show specifically that location's category and day, giving users a focused view of just that pin (and similar items on the same day in the same category).
