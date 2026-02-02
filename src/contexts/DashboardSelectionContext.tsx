@@ -3,7 +3,7 @@ import type { TripMode, ItineraryItem, Location, Memory } from '@/types/trip';
 import type { MapLocation } from '@/types/map';
 
 // Selection types for different entities
-export type SelectionType = 'activity' | 'location' | 'guide' | 'photo' | 'accommodation' | 'album';
+export type SelectionType = 'activity' | 'location' | 'guide' | 'photo' | 'accommodation' | 'album' | 'stay' | 'packing';
 
 export interface SelectedItem {
   type: SelectionType;

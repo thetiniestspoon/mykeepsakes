@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { MapPin, X } from 'lucide-react';
 import L from 'leaflet';
 
+const FILTER_COLLAPSED_KEY = 'map-filter-collapsed';
+
 interface RightColumnProps {
   className?: string;
 }
@@ -52,6 +54,27 @@ export function RightColumn({ className }: RightColumnProps) {
   
   // Filtered locations from the filter header
   const [filteredLocations, setFilteredLocations] = useState<MapLocation[]>();
+
+  // Filter collapsed state with localStorage persistence
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(FILTER_COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFilterCollapsed = useCallback(() => {
+    setIsFilterCollapsed(prev => {
+      const newValue = !prev;
+      try {
+        localStorage.setItem(FILTER_COLLAPSED_KEY, String(newValue));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return newValue;
+    });
+  }, []);
 
   // Calculate pin states for each location
   const getPinState = (locationId: string): PinState => {
@@ -209,7 +232,7 @@ export function RightColumn({ className }: RightColumnProps) {
   };
 
   return (
-    <div ref={mapContainerRef} className={cn("flex flex-col h-full", className)}>
+    <div ref={mapContainerRef} className={cn("flex flex-col h-full relative", className)}>
       {/* Filter Header */}
       <MapFilterHeader
         locations={allLocations}
@@ -217,10 +240,12 @@ export function RightColumn({ className }: RightColumnProps) {
         onFilteredLocationsChange={handleFilteredLocationsChange}
         focusedLocation={focusedLocation}
         onFocusConsumed={clearLocationFocus}
+        isCollapsed={isFilterCollapsed}
+        onToggleCollapse={toggleFilterCollapsed}
       />
       
-      {/* Highlight banner - shown when pins are highlighted with a label */}
-      {highlightedMapPins.length > 0 && highlightLabel && (
+      {/* Highlight banner - shown when pins are highlighted with a label (and not collapsed) */}
+      {highlightedMapPins.length > 0 && highlightLabel && !isFilterCollapsed && (
         <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/20">
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4 text-primary" />

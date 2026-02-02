@@ -4,6 +4,8 @@ import { LocationDetail } from './DetailPanels/LocationDetail';
 import { GuideDetail } from './DetailPanels/GuideDetail';
 import { PhotoDetail } from './DetailPanels/PhotoDetail';
 import { AlbumExperience } from './DetailPanels/AlbumExperience';
+import { StayDetail } from './DetailPanels/StayDetail';
+import { PackingDetail } from './DetailPanels/PackingDetail';
 import { DefaultCenterContent } from './DetailPanels/DefaultCenterContent';
 import type { ItineraryItem, Location, Memory } from '@/types/trip';
 import type { MapLocation } from '@/types/map';
@@ -38,6 +40,10 @@ export function CenterColumn({ className }: CenterColumnProps) {
           return <AlbumExperience />;
         case 'accommodation':
           return <LocationDetail location={selectedItem.data as Location} isAccommodation />;
+        case 'stay':
+          return <StayDetail />;
+        case 'packing':
+          return <PackingDetail />;
         default:
           return <DefaultCenterContent focus={defaultFocus} />;
       }
