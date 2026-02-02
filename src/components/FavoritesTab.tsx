@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, ExternalLink, Phone, MapPin, Calendar } from 'lucide-react';
 import { useFavorites, useNotes, usePhotos, getPhotoUrl } from '@/hooks/use-trip-data';
+import { useMapHighlight } from '@/contexts/MapHighlightContext';
 import { ITINERARY, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
 import type { Activity, GuideItem } from '@/lib/itinerary-data';
 import { MapModal } from '@/components/map/MapModal';
@@ -18,6 +19,7 @@ export function FavoritesTab() {
   const { data: favorites } = useFavorites();
   const { data: notes } = useNotes();
   const { data: photos } = usePhotos();
+  const { showOnMap } = useMapHighlight();
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
@@ -155,16 +157,18 @@ export function FavoritesTab() {
                     <h4 className="font-medium text-foreground">{beach.name}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{beach.description}</p>
                     {beach.location && (
-                      <button 
-                        onClick={() => openMapModal({ 
-                          lat: beach.location!.lat, 
-                          lng: beach.location!.lng, 
-                          name: beach.name 
+                      <button
+                        onClick={() => showOnMap({
+                          id: beach.id,
+                          lat: beach.location!.lat,
+                          lng: beach.location!.lng,
+                          name: beach.name,
+                          category: 'beach',
                         })}
                         className="text-xs text-accent hover:underline inline-flex items-center gap-1 mt-2"
                       >
                         <MapPin className="w-3 h-3" />
-                        View Map
+                        Show on Map
                       </button>
                     )}
                   </div>

@@ -3,11 +3,11 @@ import { AnimatedCheckbox } from '@/components/ui/animated-checkbox';
 import { FavoriteHeart } from '@/components/ui/favorite-heart';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  ExternalLink, 
-  Phone, 
-  MapPin, 
-  StickyNote, 
+import {
+  ExternalLink,
+  Phone,
+  MapPin,
+  StickyNote,
   Camera,
   Utensils,
   Waves,
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { 
+import {
   useFavorites,
   useToggleFavorite,
   useNotes,
@@ -33,6 +33,7 @@ import {
   getPhotoUrl
 } from '@/hooks/use-trip-data';
 import { useUpdateItemStatus } from '@/hooks/use-database-itinerary';
+import { useMapHighlightOptional } from '@/contexts/MapHighlightContext';
 import type { LegacyActivity } from '@/hooks/use-database-itinerary';
 import type { ItemStatus } from '@/types/trip';
 
@@ -72,7 +73,8 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  const mapHighlight = useMapHighlightOptional();
   const { data: favorites } = useFavorites();
   const { data: notes } = useNotes();
   const { data: photos } = usePhotos();
@@ -183,17 +185,27 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
               </a>
             )}
             
-            {activity.location && onOpenMap && (
+            {activity.location && (mapHighlight || onOpenMap) && (
               <button
-                onClick={() => onOpenMap({ 
-                  lat: activity.location!.lat, 
-                  lng: activity.location!.lng, 
-                  name: activity.location!.name 
-                })}
+                onClick={() => {
+                  const location = {
+                    id: activity.id,
+                    lat: activity.location!.lat,
+                    lng: activity.location!.lng,
+                    name: activity.location!.name,
+                    category: activity.category,
+                  };
+                  // Prefer context (switches to Map tab), fall back to modal
+                  if (mapHighlight) {
+                    mapHighlight.showOnMap(location);
+                  } else if (onOpenMap) {
+                    onOpenMap(location);
+                  }
+                }}
                 className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
               >
                 <MapPin className="w-3 h-3" />
-                Map
+                Show on Map
               </button>
             )}
           </div>

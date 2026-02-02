@@ -1,5 +1,6 @@
 import { ExternalLink, MapPin } from 'lucide-react';
 import type { LodgingOption } from '@/hooks/use-lodging';
+import { useMapHighlightOptional } from '@/contexts/MapHighlightContext';
 
 interface SelectedLocation {
   lat: number;
@@ -14,6 +15,7 @@ interface StayCardProps {
 }
 
 export function StayCard({ lodging, onOpenMap }: StayCardProps) {
+  const mapHighlight = useMapHighlightOptional();
   return (
     <div className="p-4 rounded-lg border border-border bg-card">
       <h4 className="font-semibold text-foreground">{lodging.name}</h4>
@@ -62,18 +64,27 @@ export function StayCard({ lodging, onOpenMap }: StayCardProps) {
             View Listing
           </a>
         )}
-        {lodging.location_lat && lodging.location_lng && onOpenMap && (
+        {lodging.location_lat && lodging.location_lng && (mapHighlight || onOpenMap) && (
           <button
-            onClick={() => onOpenMap({
-              lat: lodging.location_lat!,
-              lng: lodging.location_lng!,
-              name: lodging.name,
-              address: lodging.address || undefined
-            })}
+            onClick={() => {
+              const location = {
+                id: lodging.id,
+                lat: lodging.location_lat!,
+                lng: lodging.location_lng!,
+                name: lodging.name,
+                address: lodging.address || undefined,
+                category: 'lodging',
+              };
+              if (mapHighlight) {
+                mapHighlight.showOnMap(location);
+              } else if (onOpenMap) {
+                onOpenMap(location);
+              }
+            }}
             className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
             <MapPin className="w-3 h-3" />
-            Map
+            Show on Map
           </button>
         )}
       </div>

@@ -2,19 +2,19 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
 } from '@/components/ui/accordion';
-import { 
-  Waves, 
-  Utensils, 
-  Backpack, 
-  Star, 
-  ExternalLink, 
-  Phone, 
+import {
+  Waves,
+  Utensils,
+  Backpack,
+  Star,
+  ExternalLink,
+  Phone,
   MapPin,
   StickyNote,
   Camera,
@@ -42,6 +42,7 @@ import {
   getPhotoUrl
 } from '@/hooks/use-trip-data';
 import { useSelectedLodging } from '@/hooks/use-lodging';
+import { useMapHighlightOptional } from '@/contexts/MapHighlightContext';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { StayCard } from '@/components/guide/StayCard';
@@ -64,7 +65,8 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  const mapHighlight = useMapHighlightOptional();
   const { data: favorites } = useFavorites();
   const { data: notes } = useNotes();
   const { data: photos } = usePhotos();
@@ -122,17 +124,25 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
                 {item.phone}
               </a>
             )}
-            {item.location && onOpenMap && (
+            {item.location && (mapHighlight || onOpenMap) && (
               <button
-                onClick={() => onOpenMap({ 
-                  lat: item.location!.lat, 
-                  lng: item.location!.lng, 
-                  name: item.name 
-                })}
+                onClick={() => {
+                  const location = {
+                    id: item.id,
+                    lat: item.location!.lat,
+                    lng: item.location!.lng,
+                    name: item.name,
+                  };
+                  if (mapHighlight) {
+                    mapHighlight.showOnMap(location);
+                  } else if (onOpenMap) {
+                    onOpenMap(location);
+                  }
+                }}
                 className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
               >
                 <MapPin className="w-3 h-3" />
-                Map
+                Show on Map
               </button>
             )}
           </div>

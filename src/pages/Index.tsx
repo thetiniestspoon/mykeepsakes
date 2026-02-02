@@ -10,6 +10,7 @@ import { ContactsTab } from '@/components/ContactsTab';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AnimatedTabContent } from '@/components/ui/animated-tabs';
 import { ItinerarySkeleton, MapSkeleton, AlbumSkeleton, GenericSkeleton } from '@/components/LoadingSkeletons';
+import { MapHighlightProvider } from '@/contexts/MapHighlightContext';
 import { usePin } from '@/hooks/use-trip-data';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -71,48 +72,50 @@ const Index = () => {
   
   // Main app
   return (
-    <div className="min-h-screen bg-background">
-      <TripHeader onOpenSettings={() => setSettingsOpen(true)} />
-      
-      <main className="container px-4 py-4">
-        <ErrorBoundary>
-          <AnimatedTabContent activeTab={activeTab}>
-            {activeTab === 'itinerary' && (
-              <Suspense fallback={<ItinerarySkeleton />}>
-                <DatabaseItineraryTab />
-              </Suspense>
-            )}
-            {activeTab === 'lodging' && <LodgingTab />}
-            {activeTab === 'map' && (
-              <Suspense fallback={<MapSkeleton />}>
-                <DatabaseMapTab />
-              </Suspense>
-            )}
-            {activeTab === 'guide' && (
-              <Suspense fallback={<GenericSkeleton />}>
-                <GuideTab />
-              </Suspense>
-            )}
-            {activeTab === 'album' && (
-              <Suspense fallback={<AlbumSkeleton />}>
-                <AlbumTab />
-              </Suspense>
-            )}
-            {activeTab === 'favorites' && <FavoritesTab />}
-            {activeTab === 'contacts' && <ContactsTab />}
-          </AnimatedTabContent>
-        </ErrorBoundary>
-      </main>
-      
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <SettingsDialog 
-        open={settingsOpen} 
-        onOpenChange={setSettingsOpen}
-        currentPin={pin}
-        onLogout={handleLogout}
-      />
-    </div>
+    <MapHighlightProvider onTabChange={setActiveTab}>
+      <div className="min-h-screen bg-background">
+        <TripHeader onOpenSettings={() => setSettingsOpen(true)} />
+
+        <main className="container px-4 py-4">
+          <ErrorBoundary>
+            <AnimatedTabContent activeTab={activeTab}>
+              {activeTab === 'itinerary' && (
+                <Suspense fallback={<ItinerarySkeleton />}>
+                  <DatabaseItineraryTab />
+                </Suspense>
+              )}
+              {activeTab === 'lodging' && <LodgingTab />}
+              {activeTab === 'map' && (
+                <Suspense fallback={<MapSkeleton />}>
+                  <DatabaseMapTab />
+                </Suspense>
+              )}
+              {activeTab === 'guide' && (
+                <Suspense fallback={<GenericSkeleton />}>
+                  <GuideTab />
+                </Suspense>
+              )}
+              {activeTab === 'album' && (
+                <Suspense fallback={<AlbumSkeleton />}>
+                  <AlbumTab />
+                </Suspense>
+              )}
+              {activeTab === 'favorites' && <FavoritesTab />}
+              {activeTab === 'contacts' && <ContactsTab />}
+            </AnimatedTabContent>
+          </ErrorBoundary>
+        </main>
+
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          currentPin={pin}
+          onLogout={handleLogout}
+        />
+      </div>
+    </MapHighlightProvider>
   );
 };
 

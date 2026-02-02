@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Map, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, Building, Layers, Loader2, Check, Star, Camera } from 'lucide-react';
+import { Map, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, Building, Layers, Loader2, Check, Star, Camera, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MapModal } from '@/components/map/MapModal';
 import { OverviewMap } from '@/components/map/OverviewMap';
@@ -17,6 +17,7 @@ import { useMemories } from '@/hooks/use-memories';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useFavorites } from '@/hooks/use-trip-data';
 import { useLodgingOptions } from '@/hooks/use-lodging';
+import { useMapHighlight } from '@/contexts/MapHighlightContext';
 import type { MapLocation, PinState } from '@/types/map';
 import type { Location } from '@/types/trip';
 
@@ -48,7 +49,10 @@ export function DatabaseMapTab() {
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedMapLocation, setSelectedMapLocation] = useState<{ lat: number; lng: number; name: string; address?: string } | null>(null);
-  
+
+  // Get highlighted location from context (when user clicks "Show on Map" elsewhere)
+  const { highlightedLocation, clearHighlight } = useMapHighlight();
+
   const { data: trip } = useActiveTrip();
   const { locations: dbLocations, isLoading, days } = useDatabaseLocations();
   const { data: fullLocations = [] } = useLocations(trip?.id);
@@ -100,8 +104,25 @@ export function DatabaseMapTab() {
   
   // Filter locations
   const filteredLocations = useMemo(() => {
+    // If there's a highlighted location from "Show on Map", only show that one
+    if (highlightedLocation) {
+      const highlighted = allLocations.find(
+        loc => loc.id === highlightedLocation.id ||
+               (loc.lat === highlightedLocation.lat && loc.lng === highlightedLocation.lng)
+      );
+      return highlighted ? [highlighted] : [{
+        id: highlightedLocation.id,
+        lat: highlightedLocation.lat,
+        lng: highlightedLocation.lng,
+        name: highlightedLocation.name,
+        address: highlightedLocation.address,
+        category: highlightedLocation.category || 'activity',
+        pinState: 'planned' as PinState,
+      }];
+    }
+
     let filtered = allLocations;
-    
+
     // Filter by category
     if (!activeCategories.has('all')) {
       filtered = filtered.filter(loc => {
@@ -111,7 +132,7 @@ export function DatabaseMapTab() {
         return activeCategories.has(loc.category as CategoryFilter);
       });
     }
-    
+
     // Filter by day - when specific days are selected, only show locations with matching dayId
     if (!activeDays.has('all')) {
       filtered = filtered.filter(loc => {
@@ -120,7 +141,7 @@ export function DatabaseMapTab() {
         return activeDays.has(loc.dayId);
       });
     }
-    
+
     // Deduplicate by name (same location might appear multiple times)
     const seen = new Set<string>();
     return filtered.filter(loc => {
@@ -129,7 +150,7 @@ export function DatabaseMapTab() {
       seen.add(key);
       return true;
     });
-  }, [allLocations, activeCategories, activeDays]);
+  }, [allLocations, activeCategories, activeDays, highlightedLocation]);
   
   const toggleCategory = (cat: CategoryFilter) => {
     setActiveCategories(prev => {
@@ -206,8 +227,29 @@ export function DatabaseMapTab() {
     <div className="space-y-4 pb-20">
       <div className="text-center py-4">
         <h2 className="font-display text-2xl text-foreground">Trip Map</h2>
-        <p className="text-muted-foreground">All locations at a glance</p>
+        <p className="text-muted-foreground">
+          {highlightedLocation ? `Showing: ${highlightedLocation.name}` : 'All locations at a glance'}
+        </p>
       </div>
+
+      {/* Highlighted location banner */}
+      {highlightedLocation && (
+        <div className="mx-4 bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <MapPin className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-medium truncate">{highlightedLocation.name}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearHighlight}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Show All
+          </Button>
+        </div>
+      )}
       
       {/* Toggle for overview map */}
       <div className="px-4 flex items-center justify-between">
