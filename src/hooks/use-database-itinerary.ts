@@ -38,6 +38,7 @@ export interface LegacyActivity {
   description: string;
   category: 'activity' | 'dining' | 'beach' | 'accommodation' | 'transport' | 'event';
   location?: {
+    id: string;
     lat: number;
     lng: number;
     name: string;
@@ -73,6 +74,7 @@ function toActivities(items: ItineraryItem[]): LegacyActivity[] {
     description: item.description || '',
     category: item.category as LegacyActivity['category'],
     location: item.location ? {
+      id: item.location.id,
       lat: item.location.lat!,
       lng: item.location.lng!,
       name: item.location.name,

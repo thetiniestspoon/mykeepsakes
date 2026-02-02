@@ -128,7 +128,8 @@ const categoryColors: Record<string, string> = {
 interface OverviewMapProps {
   locations: MapLocation[];
   onMarkerClick?: (location: MapLocation) => void;
-  highlightedPinId?: string | null;
+  /** Array of location IDs to highlight (supports multi-pin highlighting) */
+  highlightedPinIds?: string[];
   className?: string;
   center?: [number, number];
   zoom?: number;
@@ -141,7 +142,7 @@ interface OverviewMapProps {
 export function OverviewMap({ 
   locations, 
   onMarkerClick,
-  highlightedPinId,
+  highlightedPinIds = [],
   className = '',
   center,
   zoom = 13,
@@ -152,7 +153,7 @@ export function OverviewMap({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const prevLocationIdsRef = useRef<string>('');
-  const prevHighlightedPinRef = useRef<string | null>(null);
+  const prevHighlightedPinsRef = useRef<string>('');
 
   // Calculate bounds from locations
   const bounds = useMemo(() => {
@@ -200,7 +201,8 @@ export function OverviewMap({
     // Check if locations actually changed by comparing IDs
     const newIds = locations.map(l => l.id).sort().join(',');
     const idsChanged = newIds !== prevLocationIdsRef.current;
-    const highlightChanged = highlightedPinId !== prevHighlightedPinRef.current;
+    const newHighlightIds = highlightedPinIds.sort().join(',');
+    const highlightChanged = newHighlightIds !== prevHighlightedPinsRef.current;
     
     // Skip if nothing actually changed
     if (!idsChanged && !highlightChanged) {
@@ -208,14 +210,14 @@ export function OverviewMap({
     }
     
     prevLocationIdsRef.current = newIds;
-    prevHighlightedPinRef.current = highlightedPinId ?? null;
+    prevHighlightedPinsRef.current = newHighlightIds;
 
     // Clear existing markers
     markersLayerRef.current.clearLayers();
 
     // Add new markers with staggered animation
     locations.forEach((location, index) => {
-      const isHighlighted = highlightedPinId === location.id;
+      const isHighlighted = highlightedPinIds.includes(location.id);
       const color = categoryColors[location.category] || categoryColors.activity;
       const pinState = isHighlighted ? 'highlighted' : location.pinState;
       const icon = createColoredIcon(color, pinState, index);
@@ -247,7 +249,7 @@ export function OverviewMap({
 
     // Invalidate size to handle container changes
     mapInstanceRef.current.invalidateSize();
-  }, [locations, bounds, onMarkerClick, highlightedPinId, skipBoundsFit]);
+  }, [locations, bounds, onMarkerClick, highlightedPinIds, skipBoundsFit]);
 
   return (
     <div 

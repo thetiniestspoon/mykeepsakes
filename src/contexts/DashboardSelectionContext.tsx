@@ -28,8 +28,10 @@ export interface FocusedLocation {
 interface DashboardSelectionState {
   /** Currently selected item in the dashboard */
   selectedItem: SelectedItem | null;
-  /** Location ID to highlight on the map */
-  highlightedMapPin: string | null;
+  /** Location IDs to highlight on the map (array for multi-pin support) */
+  highlightedMapPins: string[];
+  /** Label for highlighted pins group (e.g., "Friday - Beach Day") */
+  highlightLabel: string | null;
   /** Target coordinates for map panning */
   panToLocation: PanTarget | null;
   /** Current trip mode (pre/active/post) - drives default focus */
@@ -43,8 +45,12 @@ interface DashboardSelectionActions {
   selectItem: (type: SelectionType, id: string, data?: SelectedItem['data']) => void;
   /** Clear current selection */
   clearSelection: () => void;
-  /** Highlight a specific pin on the map */
+  /** Highlight a specific pin on the map (backward compatible - wraps single ID in array) */
   highlightPin: (locationId: string | null) => void;
+  /** Highlight multiple pins on the map with a group label */
+  highlightPins: (locationIds: string[], label: string) => void;
+  /** Clear all highlighted pins */
+  clearHighlightedPins: () => void;
   /** Pan the map to specific coordinates */
   panMap: (lat: number, lng: number) => void;
   /** Clear the pan target (after map has panned) */
@@ -82,7 +88,8 @@ export function DashboardSelectionProvider({
   initialTripMode = 'pre' 
 }: DashboardSelectionProviderProps) {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
-  const [highlightedMapPin, setHighlightedMapPin] = useState<string | null>(null);
+  const [highlightedMapPins, setHighlightedMapPins] = useState<string[]>([]);
+  const [highlightLabel, setHighlightLabel] = useState<string | null>(null);
   const [panToLocation, setPanToLocation] = useState<PanTarget | null>(null);
   const [tripMode, setTripMode] = useState<TripMode>(initialTripMode);
   const [focusedLocation, setFocusedLocation] = useState<FocusedLocation | null>(null);
@@ -118,22 +125,45 @@ export function DashboardSelectionProvider({
     if (type === 'location' || type === 'activity') {
       // Extract location ID based on selection type
       if (type === 'location') {
-        setHighlightedMapPin(id);
+        setHighlightedMapPins([id]);
+        setHighlightLabel(null);
       } else if (data && 'location_id' in data && data.location_id) {
-        setHighlightedMapPin(data.location_id);
+        setHighlightedMapPins([data.location_id]);
+        setHighlightLabel(null);
       } else if (data && 'location' in data && data.location) {
-        setHighlightedMapPin((data.location as Location).id);
+        setHighlightedMapPins([(data.location as Location).id]);
+        setHighlightLabel(null);
       }
     }
   }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedItem(null);
-    setHighlightedMapPin(null);
+    setHighlightedMapPins([]);
+    setHighlightLabel(null);
   }, []);
 
+  // Single pin (backward compatible - wraps into array)
   const highlightPin = useCallback((locationId: string | null) => {
-    setHighlightedMapPin(locationId);
+    if (locationId) {
+      setHighlightedMapPins([locationId]);
+      setHighlightLabel(null);
+    } else {
+      setHighlightedMapPins([]);
+      setHighlightLabel(null);
+    }
+  }, []);
+
+  // Multiple pins with label
+  const highlightPins = useCallback((locationIds: string[], label: string) => {
+    setHighlightedMapPins(locationIds);
+    setHighlightLabel(label);
+  }, []);
+
+  // Clear all highlighted pins
+  const clearHighlightedPins = useCallback(() => {
+    setHighlightedMapPins([]);
+    setHighlightLabel(null);
   }, []);
 
   const panMap = useCallback((lat: number, lng: number) => {
@@ -181,7 +211,8 @@ export function DashboardSelectionProvider({
   const value = useMemo<DashboardSelectionContextValue>(() => ({
     // State
     selectedItem,
-    highlightedMapPin,
+    highlightedMapPins,
+    highlightLabel,
     panToLocation,
     tripMode,
     defaultFocus,
@@ -190,6 +221,8 @@ export function DashboardSelectionProvider({
     selectItem,
     clearSelection,
     highlightPin,
+    highlightPins,
+    clearHighlightedPins,
     panMap,
     clearPanTarget,
     setTripMode,
@@ -201,7 +234,8 @@ export function DashboardSelectionProvider({
     clearLocationFocus,
   }), [
     selectedItem,
-    highlightedMapPin,
+    highlightedMapPins,
+    highlightLabel,
     panToLocation,
     tripMode,
     defaultFocus,
@@ -209,6 +243,8 @@ export function DashboardSelectionProvider({
     selectItem,
     clearSelection,
     highlightPin,
+    highlightPins,
+    clearHighlightedPins,
     panMap,
     clearPanTarget,
     scrollToItem,

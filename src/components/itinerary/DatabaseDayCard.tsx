@@ -20,8 +20,10 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, CheckCircle2, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
+import { toast } from 'sonner';
 import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCard';
 import { SwipeableActivityCard } from '@/components/itinerary/SwipeableActivityCard';
@@ -73,6 +75,7 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   const toggleSection = useToggleSection();
   const updateStatus = useUpdateItemStatus();
   const reorderItems = useReorderDayItems();
+  const { highlightPins, navigateToPanel } = useDashboardSelection();
   
   // Get weather for this day's date
   const dayDateStr = useMemo(() => {
@@ -166,6 +169,25 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
     updateStatus.mutate({ itemId: activity.id, status: 'skipped' });
   }, [updateStatus]);
   
+  // Handle showing all day's locations on the map
+  const handleShowDayOnMap = useCallback(() => {
+    // Get activities with valid location coordinates
+    const locationsWithCoords = day.activities
+      .filter(a => a.location?.lat && a.location?.lng && a.location?.id)
+      .map(a => a.location!.id);
+    
+    if (locationsWithCoords.length === 0) {
+      toast.info('No locations to show on map for this day');
+      return;
+    }
+    
+    // Highlight all pins for this day
+    highlightPins(locationsWithCoords, `${day.dayOfWeek} - ${day.title}`);
+    
+    // Navigate to Map panel
+    navigateToPanel(2);
+  }, [day, highlightPins, navigateToPanel]);
+  
   return (
     <>
       {/* Confetti celebration for day completion */}
@@ -200,6 +222,18 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* Show Day on Map button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent collapsible toggle
+                      handleShowDayOnMap();
+                    }}
+                    className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-accent transition-colors"
+                    title="Show day on map"
+                  >
+                    <Map className="w-4 h-4" />
+                  </button>
+                  
                   {/* Progress indicator with animated counter */}
                   <div className="flex items-center gap-2">
                     {progressPercent === 100 && (
