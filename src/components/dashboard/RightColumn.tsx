@@ -40,11 +40,14 @@ export function RightColumn({ className }: RightColumnProps) {
     clearLocationFocus
   } = useDashboardSelection();
   
-  // Reference to the map for panning
+  // Reference to the map container
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
+  // Reference to the Leaflet map instance for panning
+  const leafletMapRef = useRef<L.Map | null>(null);
+  
   // Filtered locations from the filter header
-  const [filteredLocations, setFilteredLocations] = useState<MapLocation[]>([]);
+  const [filteredLocations, setFilteredLocations] = useState<MapLocation[]>();
 
   // Calculate pin states for each location
   const getPinState = (locationId: string): PinState => {
@@ -112,18 +115,25 @@ export function RightColumn({ className }: RightColumnProps) {
     setFilteredLocations(locations);
   }, []);
 
+  // Handle map ready callback
+  const handleMapReady = useCallback((map: L.Map) => {
+    leafletMapRef.current = map;
+  }, []);
+
   // Handle map panning when panToLocation changes
   useEffect(() => {
-    if (panToLocation && mapContainerRef.current) {
-      // Find the Leaflet map instance and pan to location
-      const mapElement = mapContainerRef.current.querySelector('.leaflet-container');
-      if (mapElement && (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map) {
-        const map = (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map!;
-        map.flyTo([panToLocation.lat, panToLocation.lng], 15, { duration: 0.5 });
-      }
+    if (panToLocation && leafletMapRef.current) {
+      leafletMapRef.current.flyTo(
+        [panToLocation.lat, panToLocation.lng], 
+        15, 
+        { duration: 0.5 }
+      );
       clearPanTarget();
     }
   }, [panToLocation, clearPanTarget]);
+
+  // Track if we have a pending pan to skip auto-fit
+  const hasPendingPan = panToLocation !== null;
 
   // Handle map marker clicks - navigate to Details panel
   const handleMarkerClick = (location: MapLocation) => {
@@ -158,9 +168,11 @@ export function RightColumn({ className }: RightColumnProps) {
       {/* Map Container - takes remaining space */}
       <div className="flex-1 min-h-0">
         <OverviewMap
-          locations={filteredLocations}
+          locations={filteredLocations || []}
           onMarkerClick={handleMarkerClick}
           highlightedPinId={highlightedMapPin}
+          onMapReady={handleMapReady}
+          skipBoundsFit={hasPendingPan}
           className="h-full"
         />
       </div>

@@ -47,10 +47,11 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
   const handleShowOnMap = () => {
     if (activity.location?.lat && activity.location?.lng) {
       // Set map filters to show this location's category and day
+      // Use location's category (not activity's) to match map pin filtering
       if (activity.location_id) {
         focusLocation({
           id: activity.location_id,
-          category: activity.category,
+          category: activity.location.category || activity.category,
           dayId: activity.day_id,
         });
         highlightPin(activity.location_id);
