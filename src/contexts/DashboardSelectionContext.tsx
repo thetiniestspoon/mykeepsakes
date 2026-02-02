@@ -16,6 +16,13 @@ interface PanTarget {
   lng: number;
 }
 
+/** Focus object containing location ID and optional category/day for specific filtering */
+export interface FocusedLocation {
+  id: string;
+  category?: string;  // e.g., "dining", "beach", "activity"
+  dayId?: string;     // e.g., "day-uuid-123"
+}
+
 interface DashboardSelectionState {
   /** Currently selected item in the dashboard */
   selectedItem: SelectedItem | null;
@@ -25,8 +32,8 @@ interface DashboardSelectionState {
   panToLocation: PanTarget | null;
   /** Current trip mode (pre/active/post) - drives default focus */
   tripMode: TripMode;
-  /** Location ID to focus on (triggers filter reset in MapFilterHeader) */
-  focusedLocationId: string | null;
+  /** Location to focus on (triggers specific filter set in MapFilterHeader) */
+  focusedLocation: FocusedLocation | null;
 }
 
 interface DashboardSelectionActions {
@@ -50,8 +57,8 @@ interface DashboardSelectionActions {
   navigateToPanel: (index: 0 | 1 | 2) => void;
   /** Register panel navigator (used by SwipeableDashboard) */
   registerPanelNavigator: (handler: (index: number) => void) => () => void;
-  /** Focus on a specific location (resets map filters to show it) */
-  focusLocation: (locationId: string) => void;
+  /** Focus on a specific location (sets map filters to show its category/day) */
+  focusLocation: (focus: FocusedLocation) => void;
   /** Clear the focused location after filters have been reset */
   clearLocationFocus: () => void;
 }
@@ -76,7 +83,7 @@ export function DashboardSelectionProvider({
   const [highlightedMapPin, setHighlightedMapPin] = useState<string | null>(null);
   const [panToLocation, setPanToLocation] = useState<PanTarget | null>(null);
   const [tripMode, setTripMode] = useState<TripMode>(initialTripMode);
-  const [focusedLocationId, setFocusedLocationId] = useState<string | null>(null);
+  const [focusedLocation, setFocusedLocation] = useState<FocusedLocation | null>(null);
   
   // Scroll handler for left column synchronization
   const scrollHandlerRef = useRef<((itemId: string) => void) | null>(null);
@@ -161,12 +168,12 @@ export function DashboardSelectionProvider({
     };
   }, []);
 
-  const focusLocation = useCallback((locationId: string) => {
-    setFocusedLocationId(locationId);
+  const focusLocation = useCallback((focus: FocusedLocation) => {
+    setFocusedLocation(focus);
   }, []);
 
   const clearLocationFocus = useCallback(() => {
-    setFocusedLocationId(null);
+    setFocusedLocation(null);
   }, []);
 
   const value = useMemo<DashboardSelectionContextValue>(() => ({
@@ -176,7 +183,7 @@ export function DashboardSelectionProvider({
     panToLocation,
     tripMode,
     defaultFocus,
-    focusedLocationId,
+    focusedLocation,
     // Actions
     selectItem,
     clearSelection,
@@ -196,7 +203,7 @@ export function DashboardSelectionProvider({
     panToLocation,
     tripMode,
     defaultFocus,
-    focusedLocationId,
+    focusedLocation,
     selectItem,
     clearSelection,
     highlightPin,

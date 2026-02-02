@@ -31,8 +31,12 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
 
   const handleShowOnMap = () => {
     if (lat && lng) {
-      // Reset map filters to show this location
-      focusLocation(location.id);
+      // Set map filters to show this location's category and day
+      focusLocation({
+        id: location.id,
+        category: location.category || undefined,
+        dayId: 'dayId' in location ? location.dayId : undefined,
+      });
       panMap(lat, lng);
       highlightPin(location.id);
       // Navigate to Map panel (index 2)

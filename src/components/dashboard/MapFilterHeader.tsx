@@ -25,11 +25,17 @@ interface Day {
   title?: string | null;
 }
 
+interface FocusedLocation {
+  id: string;
+  category?: string;
+  dayId?: string;
+}
+
 interface MapFilterHeaderProps {
   locations: MapLocation[];
   days: Day[];
   onFilteredLocationsChange: (locations: MapLocation[]) => void;
-  focusedLocationId?: string | null;
+  focusedLocation?: FocusedLocation | null;
   onFocusConsumed?: () => void;
   className?: string;
 }
@@ -41,7 +47,7 @@ export function MapFilterHeader({
   locations, 
   days, 
   onFilteredLocationsChange,
-  focusedLocationId,
+  focusedLocation,
   onFocusConsumed,
   className 
 }: MapFilterHeaderProps) {
@@ -103,16 +109,33 @@ export function MapFilterHeader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredLocations]);
 
-  // Reset filters when a location needs to be focused (from "Show on Map" actions)
+  // Set filters specifically to match the focused location (from "Show on Map" actions)
   useEffect(() => {
-    if (focusedLocationId) {
-      // Reset all filters to "All" to ensure the focused location is visible
-      setActiveCategories(new Set(['all']));
-      setActiveDays(new Set(['all']));
+    if (focusedLocation) {
+      // Set category filter to this location's category
+      if (focusedLocation.category) {
+        // Map 'restaurant' to 'dining' for consistency
+        const cat = focusedLocation.category === 'restaurant' 
+          ? 'dining' 
+          : focusedLocation.category;
+        setActiveCategories(new Set([cat as CategoryFilter]));
+      } else {
+        // No category info - reset to all
+        setActiveCategories(new Set(['all']));
+      }
+      
+      // Set day filter to this location's day
+      if (focusedLocation.dayId) {
+        setActiveDays(new Set([focusedLocation.dayId]));
+      } else {
+        // No day info (guide items, lodging) - reset to all
+        setActiveDays(new Set(['all']));
+      }
+      
       // Notify parent that focus has been consumed
       onFocusConsumed?.();
     }
-  }, [focusedLocationId, onFocusConsumed]);
+  }, [focusedLocation, onFocusConsumed]);
 
   const toggleCategory = useCallback((cat: CategoryFilter) => {
     setActiveCategories(prev => {
