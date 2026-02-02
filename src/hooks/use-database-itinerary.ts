@@ -43,6 +43,7 @@ export interface LegacyActivity {
     lng: number;
     name: string;
     address?: string;
+    category?: string;  // Location's category from database
   };
   link?: string;
   linkLabel?: string;
@@ -79,6 +80,7 @@ function toActivities(items: ItineraryItem[]): LegacyActivity[] {
       lng: item.location.lng!,
       name: item.location.name,
       address: item.location.address || undefined,
+      category: item.location.category || undefined,
     } : undefined,
     link: item.link || undefined,
     linkLabel: item.link_label || undefined,
