@@ -138,20 +138,24 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
+      <div className="flex items-start justify-between gap-3">
         <h2 className={cn(
-          "text-xl font-semibold text-foreground",
+          "text-xl font-semibold text-foreground flex-1",
           isCompleted && "line-through text-muted-foreground"
         )}>
           {activity.title}
         </h2>
         
         {activity.start_time && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-            <Clock className="w-4 h-4" />
-            {formatTime(activity.start_time)}
-            {activity.end_time && ` - ${formatTime(activity.end_time)}`}
-          </p>
+          <div className="text-right text-sm text-muted-foreground flex-shrink-0">
+            <div className="flex items-center justify-end gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {formatTime(activity.start_time)}
+            </div>
+            {activity.end_time && (
+              <div className="text-xs">to {formatTime(activity.end_time)}</div>
+            )}
+          </div>
         )}
       </div>
 
