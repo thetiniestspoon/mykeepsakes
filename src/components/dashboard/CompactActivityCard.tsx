@@ -54,7 +54,8 @@ export function CompactActivityCard({ activity, isNextActivity, dayId }: Compact
     id: activity.id,
     title: activity.title,
     description: activity.description,
-    start_time: activity.time,
+    start_time: activity.rawStartTime || null,  // Use raw database time
+    end_time: activity.rawEndTime || null,      // Use raw database end time
     category: activity.category,
     status: activity.status,
     location_id: activity.location?.id || null,
@@ -83,7 +84,6 @@ export function CompactActivityCard({ activity, isNextActivity, dayId }: Compact
     source: 'manual' as const,
     external_ref: null,
     sort_index: 0,
-    end_time: null,
     completed_at: null,
     created_at: '',
     updated_at: '',

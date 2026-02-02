@@ -33,7 +33,9 @@ function getDayOfWeek(dateStr: string): string {
 // Legacy Activity interface for backward compatibility with existing components
 export interface LegacyActivity {
   id: string;
-  time?: string;
+  time?: string;  // Formatted display time (e.g., "6:30 PM")
+  rawStartTime?: string;  // Raw database time (e.g., "18:30:00")
+  rawEndTime?: string;  // Raw database end time
   title: string;
   description: string;
   category: 'activity' | 'dining' | 'beach' | 'accommodation' | 'transport' | 'event';
@@ -71,6 +73,8 @@ function toActivities(items: ItineraryItem[]): LegacyActivity[] {
   return items.map(item => ({
     id: item.id,
     time: formatTime(item.start_time),
+    rawStartTime: item.start_time || undefined,
+    rawEndTime: item.end_time || undefined,
     title: item.title,
     description: item.description || '',
     category: item.category as LegacyActivity['category'],
