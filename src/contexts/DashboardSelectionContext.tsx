@@ -19,8 +19,10 @@ interface PanTarget {
 /** Focus object containing location ID and optional category/day for specific filtering */
 export interface FocusedLocation {
   id: string;
-  category?: string;  // e.g., "dining", "beach", "activity"
-  dayId?: string;     // e.g., "day-uuid-123"
+  /** e.g., "dining", "beach", "activity" */
+  category?: string;
+  /** e.g., "day-uuid-123" */
+  dayId?: string;
 }
 
 interface DashboardSelectionState {
