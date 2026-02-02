@@ -1,339 +1,151 @@
 
-
-# Details Panel Redesign: Icon Actions + Content Sections
+# Map Marker Click → Activity Details Panel
 
 ## Overview
 
-Redesign the `ActivityDetail` component to have:
-1. **Compact icon-only action buttons** in a consistent order
-2. **Clear content sections** for description, contact info, and website
-3. **Photo accordion** showing memories linked to this location
+When tapping a map pin, show the same detailed activity information that appears when clicking the corresponding item in the itinerary. Currently, map pins show a simpler "LocationDetail" view instead of the richer "ActivityDetail" panel with action icons, photos, etc.
 
 ---
 
-## Current State
-
-The `ActivityDetail.tsx` component currently has:
-- Full-width text buttons ("Mark Complete", "Add Memory")
-- Scattered cards for phone, link, notes, location
-- No photo display from the album
-
----
-
-## Proposed Layout
+## Current Flow
 
 ```text
-┌─────────────────────────────────────────┐
-│ [Title]                    [Status Badge]│
-│ 10:00 AM - 12:00 PM                     │
-├─────────────────────────────────────────┤
-│ ⬤   ★   📷   🛤️   📍                    │  ← Icon action row
-│ Visited Fav Memory Route  Map           │  ← Tooltips on hover
-├─────────────────────────────────────────┤
-│ 📝 Description                          │
-│ Lorem ipsum activity description...     │
-├─────────────────────────────────────────┤
-│ 📍 Location                             │
-│ Beach House Restaurant                  │
-│ 123 Oceanview Dr, Malibu                │
-├─────────────────────────────────────────┤
-│ 📞 (310) 555-1234                       │
-│ 🔗 www.beachhouse.com                   │
-├─────────────────────────────────────────┤
-│ ▶ Photos (3)                            │  ← Collapsible
-│   [img] [img] [img]                     │
-└─────────────────────────────────────────┘
+Map Pin Click
+     ↓
+selectItem('location', locationId, location)
+     ↓
+CenterColumn renders → LocationDetail
+```
+
+## Proposed Flow
+
+```text
+Map Pin Click
+     ↓
+Find linked itinerary activity (if exists)
+     ↓
+Build complete activity data
+     ↓
+selectItem('activity', activityId, activityData)
+     ↓
+CenterColumn renders → ActivityDetail
 ```
 
 ---
 
-## Icon Buttons Design
+## Implementation Details
 
-| Order | Action | Icon | Active State |
-|-------|--------|------|--------------|
-| 1 | Mark Visited | `Check` / `Undo2` | Green bg when done |
-| 2 | Favorite | `Star` (FavoriteHeart) | Gold fill when favorited |
-| 3 | Add Memory | `Camera` | Opens dialog |
-| 4 | Get Directions | `Route` | Opens Google Maps |
-| 5 | Show on Map | `MapPin` | Navigates to map panel |
+### File: `src/components/dashboard/RightColumn.tsx`
 
-The `Route` icon from Lucide shows a curved path between two circular pins - perfect for "Get Directions".
+**Changes:**
 
----
+1. **Update handleMarkerClick** to find the linked activity and select it as an 'activity' type instead of 'location'
 
-## Files to Modify
+2. **Build proper ItineraryItem data** from the LegacyActivity found in the days array, matching the same data transformation used in `CompactActivityCard`
 
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | Complete redesign with icon actions, structured content, photo accordion |
-
----
-
-## Detailed Implementation
-
-### 1. New Imports
-
+**Current Code (lines 142-159):**
 ```tsx
-import { 
-  Clock, MapPin, Phone, Globe, Check, Camera, Undo2, 
-  Route, ChevronDown, Image 
-} from 'lucide-react';
-import { FavoriteHeart } from '@/components/ui/favorite-heart';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useFavorites, useToggleFavorite } from '@/hooks/use-trip-data';
-import { useLocationMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
-```
-
-### 2. Icon Action Row
-
-Replace the current `<div className="flex gap-2">` with:
-
-```tsx
-{/* Icon Action Row */}
-<TooltipProvider>
-  <div className="flex items-center justify-center gap-1 py-3 border-b border-border">
-    {/* Mark Visited */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant={isCompleted ? 'default' : 'ghost'}
-          size="icon"
-          onClick={handleToggleComplete}
-          disabled={updateStatus.isPending}
-          className={cn(
-            "h-10 w-10 rounded-full",
-            isCompleted && "bg-green-600 hover:bg-green-700 text-white"
-          )}
-        >
-          {isCompleted ? <Undo2 className="h-5 w-5" /> : <Check className="h-5 w-5" />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        {isCompleted ? 'Mark as not visited' : 'Mark as visited'}
-      </TooltipContent>
-    </Tooltip>
-
-    {/* Favorite */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div>
-          <FavoriteHeart
-            isFavorite={isFavorite}
-            onToggle={handleToggleFavorite}
-            size="md"
-          />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
-        {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      </TooltipContent>
-    </Tooltip>
-
-    {/* Add Memory */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleAddMemory}>
-          <Camera className="h-5 w-5" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>Add memory</TooltipContent>
-    </Tooltip>
-
-    {/* Get Directions */}
-    {activity.location?.lat && activity.location?.lng && (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleGetDirections}>
-            <Route className="h-5 w-5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Get directions</TooltipContent>
-      </Tooltip>
-    )}
-
-    {/* Show on Map */}
-    {activity.location && (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleShowOnMap}>
-            <MapPin className="h-5 w-5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Show on map</TooltipContent>
-      </Tooltip>
-    )}
-  </div>
-</TooltipProvider>
-```
-
-### 3. Get Directions Handler
-
-```tsx
-const handleGetDirections = () => {
-  if (activity.location?.lat && activity.location?.lng) {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${activity.location.lat},${activity.location.lng}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+const handleMarkerClick = (location: MapLocation) => {
+  selectItem('location', location.id, location);
+  
+  for (const day of days) {
+    const linkedActivity = day.activities.find(a => 
+      a.location?.name === location.name
+    );
+    if (linkedActivity) {
+      scrollToItem(linkedActivity.id);
+      break;
+    }
   }
+  
+  navigateToPanel(1);
 };
 ```
 
-### 4. Favorite Hook Integration
-
+**New Logic:**
 ```tsx
-const { data: favorites } = useFavorites();
-const toggleFavorite = useToggleFavorite();
-
-const isFavorite = favorites?.[activity.id] ?? false;
-
-const handleToggleFavorite = () => {
-  toggleFavorite.mutate({
-    itemId: activity.id,
-    itemType: activity.category,
-    isFavorite: !isFavorite
-  });
-};
-```
-
-### 5. Structured Content Sections
-
-Replace the scattered cards with organized sections:
-
-```tsx
-{/* Description */}
-{activity.description && (
-  <div className="space-y-1">
-    <p className="text-sm text-foreground leading-relaxed">{activity.description}</p>
-  </div>
-)}
-
-{/* Location */}
-{activity.location && (
-  <div className="space-y-1">
-    <div className="flex items-start gap-2">
-      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-      <div>
-        <p className="font-medium text-sm">{activity.location.name}</p>
-        {activity.location.address && (
-          <p className="text-xs text-muted-foreground">{activity.location.address}</p>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-
-{/* Contact Row - Phone & Website inline */}
-{(activity.phone || activity.link) && (
-  <div className="flex flex-wrap gap-4 text-sm">
-    {activity.phone && (
-      <a href={`tel:${activity.phone}`} className="flex items-center gap-1.5 text-accent hover:underline">
-        <Phone className="w-4 h-4" />
-        {activity.phone}
-      </a>
-    )}
-    {activity.link && (
-      <a 
-        href={activity.link} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 text-accent hover:underline truncate max-w-[200px]"
-      >
-        <Globe className="w-4 h-4 flex-shrink-0" />
-        {activity.link_label || new URL(activity.link).hostname}
-      </a>
-    )}
-  </div>
-)}
-```
-
-### 6. Photo Accordion
-
-```tsx
-{/* Photos Section */}
-{locationPhotos.length > 0 && (
-  <Collapsible open={photosOpen} onOpenChange={setPhotosOpen}>
-    <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:bg-accent/30 rounded-md px-2 -mx-2">
-      <div className="flex items-center gap-2">
-        <Image className="w-4 h-4" />
-        Photos
-        <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">
-          {locationPhotos.length}
-        </span>
-      </div>
-      <ChevronDown className={cn(
-        "w-4 h-4 transition-transform",
-        photosOpen && "rotate-180"
-      )} />
-    </CollapsibleTrigger>
-    <CollapsibleContent>
-      <div className="flex gap-2 overflow-x-auto py-2 scrollbar-hide">
-        {locationPhotos.map((media, index) => (
-          <button
-            key={media.id}
-            onClick={() => handleOpenPhoto(index)}
-            className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden focus:ring-2 focus:ring-primary"
-          >
-            <img
-              src={getMemoryMediaUrl(media.storage_path)}
-              alt=""
-              className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-              loading="lazy"
-            />
-          </button>
-        ))}
-      </div>
-    </CollapsibleContent>
-  </Collapsible>
-)}
-```
-
-### 7. Photo Data Hook
-
-Use `useLocationMemories` to fetch photos linked to this activity's location:
-
-```tsx
-const { data: locationMemories = [] } = useLocationMemories(activity.location_id || undefined);
-
-// Flatten all media from location memories
-const locationPhotos = useMemo(() => {
-  return locationMemories.flatMap(m => m.media || []);
-}, [locationMemories]);
-
-// State for photo viewer
-const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
-const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
-const [photosOpen, setPhotosOpen] = useState(true);
-
-const handleOpenPhoto = (index: number) => {
-  setPhotoViewerIndex(index);
-  setPhotoViewerOpen(true);
+const handleMarkerClick = (location: MapLocation) => {
+  // Find activity linked to this location
+  let foundActivity: LegacyActivity | null = null;
+  let foundDayId: string | null = null;
+  
+  for (const day of days) {
+    const linkedActivity = day.activities.find(a => 
+      a.location?.id === location.id
+    );
+    if (linkedActivity) {
+      foundActivity = linkedActivity;
+      foundDayId = day.id;
+      scrollToItem(linkedActivity.id);
+      break;
+    }
+  }
+  
+  if (foundActivity && foundDayId) {
+    // Build ItineraryItem-shaped data for ActivityDetail
+    const activityData = {
+      id: foundActivity.id,
+      title: foundActivity.title,
+      description: foundActivity.description,
+      start_time: foundActivity.rawStartTime || null,
+      end_time: foundActivity.rawEndTime || null,
+      category: foundActivity.category,
+      status: foundActivity.status,
+      location_id: foundActivity.location?.id || null,
+      location: foundActivity.location ? {
+        id: foundActivity.location.id,
+        name: foundActivity.location.name,
+        lat: foundActivity.location.lat,
+        lng: foundActivity.location.lng,
+        category: foundActivity.location.category || foundActivity.category,
+        trip_id: trip?.id || '',
+        address: foundActivity.location.address || null,
+        phone: null,
+        url: null,
+        notes: null,
+        visited_at: null,
+        created_at: '',
+        updated_at: '',
+      } : null,
+      link: foundActivity.link,
+      link_label: foundActivity.linkLabel,
+      phone: foundActivity.phone,
+      notes: foundActivity.notes,
+      day_id: foundDayId,
+      trip_id: trip?.id || '',
+      item_type: foundActivity.itemType,
+      source: 'manual' as const,
+      external_ref: null,
+      sort_index: 0,
+      completed_at: foundActivity.completedAt || null,
+      created_at: '',
+      updated_at: '',
+    };
+    
+    selectItem('activity', foundActivity.id, activityData);
+  } else {
+    // Fallback for locations without activities (e.g., lodging)
+    selectItem('location', location.id, location);
+  }
+  
+  navigateToPanel(1);
 };
 ```
 
 ---
 
-## Mobile Optimization
+## Additional Considerations
 
-- Icon buttons use `h-10 w-10` for comfortable touch targets (40px)
-- Photo thumbnails are `w-16 h-16` (64px) - easy to tap
-- Horizontal scroll on photos with `overflow-x-auto` 
-- Content sections have appropriate spacing for scanning
-- Collapsible photos save space when not needed
+- **Location ID matching**: Changed from matching by `location.name` to matching by `location.id` for more reliable linking
+- **Fallback behavior**: If no activity is linked (like standalone lodging pins), still show `LocationDetail` 
+- **Trip ID access**: Already available via `useActiveTrip` hook in the component
 
 ---
 
 ## Testing Checklist
 
-- [ ] Icon buttons display in correct order
-- [ ] Tooltips appear on hover/focus
-- [ ] "Mark Visited" toggles status and shows green state
-- [ ] Favorite toggle works and shows gold fill
-- [ ] "Add Memory" opens the memory capture dialog
-- [ ] "Get Directions" opens Google Maps in new tab
-- [ ] "Show on Map" navigates to map panel with correct filters
-- [ ] Description, location, phone, website display correctly
-- [ ] Photo accordion shows correct count and images
-- [ ] Photo viewer opens when clicking thumbnails
-- [ ] All elements are touch-friendly on mobile
-- [ ] Layout works well on both portrait and landscape
-
+- Tap a map pin for an activity → ActivityDetail opens with icon buttons, time, photos
+- Tap a map pin for lodging (no activity) → LocationDetail opens as fallback
+- Activity status (visited/favorite) is correctly displayed
+- "Add Memory" button works from map-opened detail
+- Scrolling sync works (itinerary scrolls to the matching activity)
