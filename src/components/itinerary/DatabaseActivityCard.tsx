@@ -188,6 +188,8 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
             {activity.location && (mapHighlight || onOpenMap) && (
               <button
                 onClick={() => {
+                  console.log('[DatabaseActivityCard] Show on Map clicked!');
+                  console.log('[DatabaseActivityCard] mapHighlight available:', !!mapHighlight);
                   const location = {
                     id: activity.id,
                     lat: activity.location!.lat,
@@ -195,10 +197,12 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
                     name: activity.location!.name,
                     category: activity.category,
                   };
+                  console.log('[DatabaseActivityCard] Location to show:', location);
                   // Prefer context (switches to Map tab), fall back to modal
                   if (mapHighlight) {
                     mapHighlight.showOnMap(location);
                   } else if (onOpenMap) {
+                    console.log('[DatabaseActivityCard] Falling back to onOpenMap');
                     onOpenMap(location);
                   }
                 }}

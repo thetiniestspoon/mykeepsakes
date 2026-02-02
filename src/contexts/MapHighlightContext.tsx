@@ -29,7 +29,9 @@ export function MapHighlightProvider({ children, onTabChange }: MapHighlightProv
   const [highlightedLocation, setHighlightedLocation] = useState<HighlightedLocation | null>(null);
 
   const showOnMap = useCallback((location: HighlightedLocation) => {
+    console.log('[MapHighlightContext] showOnMap called with:', location);
     setHighlightedLocation(location);
+    console.log('[MapHighlightContext] Switching to map tab...');
     onTabChange('map');
   }, [onTabChange]);
 
