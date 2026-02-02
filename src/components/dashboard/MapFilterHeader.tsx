@@ -98,6 +98,9 @@ export function MapFilterHeader({
 
   // Track previous filtered IDs to prevent redundant callbacks
   const prevFilteredIdsRef = useRef<string>('');
+  
+  // Track if we just applied focus filters (for phased focus consumption)
+  const justAppliedFocusRef = useRef(false);
 
   // Notify parent of filtered results - only when IDs actually change
   useEffect(() => {
@@ -109,7 +112,8 @@ export function MapFilterHeader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredLocations]);
 
-  // Set filters specifically to match the focused location (from "Show on Map" actions)
+  // Effect 1: Apply filters from focused location (from "Show on Map" actions)
+  // Note: onFocusConsumed is NOT called here - we wait for filters to propagate
   useEffect(() => {
     if (focusedLocation) {
       // Set category filter to this location's category
@@ -132,10 +136,22 @@ export function MapFilterHeader({
         setActiveDays(new Set(['all']));
       }
       
-      // Notify parent that focus has been consumed
-      onFocusConsumed?.();
+      // Mark that we just applied focus - consumption happens in next effect
+      justAppliedFocusRef.current = true;
     }
-  }, [focusedLocation, onFocusConsumed]);
+  }, [focusedLocation]);
+
+  // Effect 2: Consume focus AFTER filters have been applied and propagated
+  // This runs when filteredLocations changes, ensuring state is fully updated
+  useEffect(() => {
+    if (justAppliedFocusRef.current) {
+      justAppliedFocusRef.current = false;
+      // Use rAF to ensure React has completed its render cycle
+      requestAnimationFrame(() => {
+        onFocusConsumed?.();
+      });
+    }
+  }, [filteredLocations, onFocusConsumed]);
 
   const toggleCategory = useCallback((cat: CategoryFilter) => {
     setActiveCategories(prev => {
