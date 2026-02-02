@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Trip, TripMode, ItineraryDay } from '@/types/trip';
 
+const SELECTED_TRIP_KEY = 'selected-trip-id';
+
 // Calculate trip mode based on dates
 export function getTripMode(trip: Trip): TripMode {
   const today = new Date();
@@ -64,11 +66,28 @@ export function useTrip(tripId: string | undefined) {
   });
 }
 
-// Get the active/default trip (most recently starting trip that hasn't ended)
+// Get the active/default trip (respects manual selection, falls back to date-based)
 export function useActiveTrip() {
   return useQuery({
     queryKey: ['active-trip'],
     queryFn: async () => {
+      // First check for manually selected trip in localStorage
+      const selectedId = localStorage.getItem(SELECTED_TRIP_KEY);
+      if (selectedId) {
+        const { data: selected, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('id', selectedId)
+          .maybeSingle();
+        
+        // If the selected trip exists, return it
+        if (!error && selected) return selected as Trip;
+        
+        // If trip was deleted, clear the selection
+        localStorage.removeItem(SELECTED_TRIP_KEY);
+      }
+      
+      // Fall back to date-based auto-selection
       const today = new Date().toISOString().split('T')[0];
       
       // First try to find an active trip (today is between start and end)
@@ -107,6 +126,34 @@ export function useActiveTrip() {
       
       if (past.error) throw past.error;
       return past.data as Trip | null;
+    }
+  });
+}
+
+// Select a trip and persist to localStorage
+export function useSelectTrip() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (tripId: string) => {
+      localStorage.setItem(SELECTED_TRIP_KEY, tripId);
+      
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('id', tripId)
+        .single();
+      
+      if (error) throw error;
+      return data as Trip;
+    },
+    onSuccess: (trip) => {
+      queryClient.setQueryData(['active-trip'], trip);
+      queryClient.invalidateQueries({ queryKey: ['active-trip'] });
+      toast.success(`Switched to ${trip.title}`);
+    },
+    onError: () => {
+      toast.error('Failed to switch trip');
     }
   });
 }
@@ -173,6 +220,12 @@ export function useDeleteTrip() {
   
   return useMutation({
     mutationFn: async (tripId: string) => {
+      // Clear selection if deleting the selected trip
+      const selectedId = localStorage.getItem(SELECTED_TRIP_KEY);
+      if (selectedId === tripId) {
+        localStorage.removeItem(SELECTED_TRIP_KEY);
+      }
+      
       const { error } = await supabase
         .from('trips')
         .delete()
