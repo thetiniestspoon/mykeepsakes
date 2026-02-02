@@ -139,19 +139,12 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <div className="flex items-start justify-between gap-2">
-          <h2 className={cn(
-            "text-xl font-semibold text-foreground",
-            isCompleted && "line-through text-muted-foreground"
-          )}>
-            {activity.title}
-          </h2>
-          <Badge variant={isCompleted ? 'default' : 'secondary'} className={cn(
-            isCompleted && "bg-green-600"
-          )}>
-            {isCompleted ? 'Visited' : 'Planned'}
-          </Badge>
-        </div>
+        <h2 className={cn(
+          "text-xl font-semibold text-foreground",
+          isCompleted && "line-through text-muted-foreground"
+        )}>
+          {activity.title}
+        </h2>
         
         {activity.start_time && (
           <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
