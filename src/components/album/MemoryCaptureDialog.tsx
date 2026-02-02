@@ -188,12 +188,12 @@ export function MemoryCaptureDialog({
           {/* Day Selection */}
           <div>
             <Label className="text-sm font-medium">Day (optional)</Label>
-            <Select value={selectedDayId} onValueChange={setSelectedDayId}>
+            <Select value={selectedDayId || 'none'} onValueChange={(v) => setSelectedDayId(v === 'none' ? '' : v)}>
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Select a day" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific day</SelectItem>
+                <SelectItem value="none">No specific day</SelectItem>
                 {days.map(day => (
                   <SelectItem key={day.id} value={day.id}>
                     {format(new Date(day.date), 'EEE, MMM d')}
@@ -207,12 +207,12 @@ export function MemoryCaptureDialog({
           {/* Location Selection */}
           <div>
             <Label className="text-sm font-medium">Location (optional)</Label>
-            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+            <Select value={selectedLocationId || 'none'} onValueChange={(v) => setSelectedLocationId(v === 'none' ? '' : v)}>
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific location</SelectItem>
+                <SelectItem value="none">No specific location</SelectItem>
                 {locations.map(loc => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
