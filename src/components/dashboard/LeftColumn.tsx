@@ -1,5 +1,4 @@
 import { QuickIconRow } from './QuickIconRow';
-import { AlbumSummaryCard } from './AlbumSummaryCard';
 import { DashboardItinerary } from './DashboardItinerary';
 
 interface LeftColumnProps {
@@ -8,9 +7,8 @@ interface LeftColumnProps {
 
 /**
  * Left column of the dashboard containing:
- * - Quick access icons (Guide, Stay, Packing)
+ * - Quick access icons (Guide, Packing, Stay, Album)
  * - Scrollable itinerary with compact activity cards
- * - Album summary card at bottom
  */
 export function LeftColumn({ className }: LeftColumnProps) {
   return (
@@ -21,11 +19,6 @@ export function LeftColumn({ className }: LeftColumnProps) {
       {/* Scrollable Itinerary */}
       <div className="flex-1 overflow-y-auto">
         <DashboardItinerary />
-      </div>
-      
-      {/* Album Summary Card */}
-      <div className="border-t border-border">
-        <AlbumSummaryCard />
       </div>
     </div>
   );
