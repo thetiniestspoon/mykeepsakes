@@ -7,7 +7,7 @@ import { useLocations } from '@/hooks/use-locations';
 import { useMemories } from '@/hooks/use-memories';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useFavorites } from '@/hooks/use-trip-data';
-import { useLodgingOptions } from '@/hooks/use-lodging';
+import { useAccommodations } from '@/hooks/use-accommodations';
 import { cn } from '@/lib/utils';
 import type { MapLocation, PinState } from '@/types/map';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export function RightColumn({ className }: RightColumnProps) {
   const { data: fullLocations = [] } = useLocations(trip?.id);
   const { data: memories = [] } = useMemories(trip?.id);
   const { data: favorites = {} } = useFavorites();
-  const { data: lodgingOptions = [] } = useLodgingOptions();
+  const { data: accommodations = [] } = useAccommodations();
   
   const { 
     highlightedMapPins,
@@ -107,23 +107,23 @@ export function RightColumn({ className }: RightColumnProps) {
       hasMemories: memories.some(m => m.location_id === loc.id),
     }));
     
-    // Add lodging options from database
-    lodgingOptions.forEach(lodging => {
-      if (lodging.location_lat && lodging.location_lng) {
+    // Add accommodations from database
+    accommodations.forEach(accommodation => {
+      if (accommodation.location_lat && accommodation.location_lng) {
         locations.push({
-          id: lodging.id,
-          lat: lodging.location_lat,
-          lng: lodging.location_lng,
-          name: lodging.name,
+          id: accommodation.id,
+          lat: accommodation.location_lat,
+          lng: accommodation.location_lng,
+          name: accommodation.title,
           category: 'lodging',
-          address: lodging.address || undefined,
+          address: accommodation.address || undefined,
           pinState: 'planned',
         });
       }
     });
     
     return locations;
-  }, [dbLocations, lodgingOptions, fullLocations, memories, favorites]);
+  }, [dbLocations, accommodations, fullLocations, memories, favorites]);
 
   // Get raw days from useDatabaseLocations for ISO date format (needed for MapFilterHeader parsing)
   const { days: rawDays } = useDatabaseLocations();

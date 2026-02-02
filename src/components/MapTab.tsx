@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { ITINERARY, getAllLocations, PTOWN_CENTER, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
 import { MapModal } from '@/components/map/MapModal';
 import { OverviewMap, MapLocation } from '@/components/map/OverviewMap';
-import { useLodgingOptions } from '@/hooks/use-lodging';
+import { useAccommodations } from '@/hooks/use-accommodations';
 
 type CategoryFilter = 'all' | 'beach' | 'dining' | 'activity' | 'accommodation' | 'transport' | 'event' | 'lodging';
 
@@ -39,7 +39,7 @@ export function MapTab() {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   
-  const { data: lodgingOptions = [] } = useLodgingOptions();
+  const { data: accommodations = [] } = useAccommodations();
   
   // Get base locations from itinerary
   const baseLocations = getAllLocations();
@@ -91,22 +91,22 @@ export function MapTab() {
       }
     });
     
-    // Add lodging options from database
-    lodgingOptions.forEach(lodging => {
-      if (lodging.location_lat && lodging.location_lng) {
+    // Add accommodations from database
+    accommodations.forEach(accommodation => {
+      if (accommodation.location_lat && accommodation.location_lng) {
         locations.push({
-          id: lodging.id,
-          lat: lodging.location_lat,
-          lng: lodging.location_lng,
-          name: lodging.name,
+          id: accommodation.id,
+          lat: accommodation.location_lat,
+          lng: accommodation.location_lng,
+          name: accommodation.title,
           category: 'lodging',
-          address: lodging.address || undefined,
+          address: accommodation.address || undefined,
         });
       }
     });
     
     return locations;
-  }, [lodgingOptions]);
+  }, [accommodations]);
   
   // Filter locations
   const filteredLocations = useMemo(() => {

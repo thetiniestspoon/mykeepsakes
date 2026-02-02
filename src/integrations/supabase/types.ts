@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      accommodations: {
+        Row: {
+          address: string | null
+          check_in: string | null
+          check_out: string | null
+          created_at: string | null
+          id: string
+          is_deprioritized: boolean | null
+          is_selected: boolean | null
+          location_lat: number | null
+          location_lng: number | null
+          notes: string | null
+          sort_order: number | null
+          title: string
+          trip_id: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          address?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string | null
+          id?: string
+          is_deprioritized?: boolean | null
+          is_selected?: boolean | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          sort_order?: number | null
+          title: string
+          trip_id: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          address?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string | null
+          id?: string
+          is_deprioritized?: boolean | null
+          is_selected?: boolean | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          sort_order?: number | null
+          title?: string
+          trip_id?: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_order: {
         Row: {
           activity_id: string

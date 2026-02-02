@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  ThumbsUp, 
-  ThumbsDown, 
   MoreHorizontal, 
-  Archive, 
-  ArchiveRestore,
+  EyeOff, 
+  Eye,
   Trash2, 
   ExternalLink,
   Home,
@@ -16,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -28,11 +27,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { LodgingOption, useVoteLodging, useArchiveLodging, useDeleteLodging } from '@/hooks/use-lodging';
+import { useDeprioritizeAccommodation, useUnhideAccommodation, useDeleteAccommodation } from '@/hooks/use-accommodations';
 import { LodgingIframeModal } from './LodgingIframeModal';
+import type { Accommodation } from '@/types/accommodation';
+import { toast } from 'sonner';
 
 interface LodgingLinkTileProps {
-  lodging: LodgingOption;
+  accommodation: Accommodation;
 }
 
 function getDomainFromUrl(url: string): string {
@@ -44,29 +45,36 @@ function getDomainFromUrl(url: string): string {
   }
 }
 
-export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
+export function LodgingLinkTile({ accommodation }: LodgingLinkTileProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const voteMutation = useVoteLodging();
-  const archiveMutation = useArchiveLodging();
-  const deleteMutation = useDeleteLodging();
+  const deprioritizeMutation = useDeprioritizeAccommodation();
+  const unhideMutation = useUnhideAccommodation();
+  const deleteMutation = useDeleteAccommodation();
 
-  const domain = lodging.url ? getDomainFromUrl(lodging.url) : 'No URL';
-  const voteScore = (lodging.votes_up || 0) - (lodging.votes_down || 0);
-  const displayLabel = lodging.name || domain;
+  const domain = accommodation.url ? getDomainFromUrl(accommodation.url) : 'No URL';
+  const displayLabel = accommodation.title || domain;
 
-  const handleVote = (e: React.MouseEvent, voteType: 'up' | 'down') => {
-    e.stopPropagation();
-    voteMutation.mutate({ id: lodging.id, voteType });
-  };
-
-  const handleArchive = () => {
-    archiveMutation.mutate({ id: lodging.id, isArchived: !lodging.is_archived });
+  const handleToggleDeprioritize = () => {
+    if (accommodation.is_deprioritized) {
+      unhideMutation.mutate(accommodation.id, {
+        onSuccess: () => toast.success('Restored'),
+        onError: () => toast.error('Failed to restore'),
+      });
+    } else {
+      deprioritizeMutation.mutate(accommodation.id, {
+        onSuccess: () => toast.success('Hidden'),
+        onError: () => toast.error('Failed to hide'),
+      });
+    }
   };
 
   const handleDelete = () => {
-    deleteMutation.mutate(lodging.id);
+    deleteMutation.mutate(accommodation.id, {
+      onSuccess: () => toast.success('Deleted'),
+      onError: () => toast.error('Failed to delete'),
+    });
     setDeleteDialogOpen(false);
   };
 
@@ -74,7 +82,7 @@ export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
     <>
       <Card 
         className="cursor-pointer hover:bg-accent/50 transition-colors"
-        onClick={() => setModalOpen(true)}
+        onClick={() => accommodation.url && setModalOpen(true)}
       >
         <CardContent className="py-3 px-4">
           <div className="flex items-center gap-3">
@@ -87,37 +95,12 @@ export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{displayLabel}</p>
               <p className="text-sm text-muted-foreground truncate">{domain}</p>
-              {lodging.notes && (
+              {accommodation.notes && (
                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                   <StickyNote className="w-3 h-3" />
-                  <span className="truncate">{lodging.notes}</span>
+                  <span className="truncate">{accommodation.notes}</span>
                 </div>
               )}
-            </div>
-
-            {/* Voting */}
-            <div className="flex flex-col items-center gap-0.5 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => handleVote(e, 'up')}
-                disabled={voteMutation.isPending}
-              >
-                <ThumbsUp className="w-4 h-4" />
-              </Button>
-              <span className={`text-sm font-medium ${voteScore > 0 ? 'text-green-600' : voteScore < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
-                {voteScore > 0 ? `+${voteScore}` : voteScore}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => handleVote(e, 'down')}
-                disabled={voteMutation.isPending}
-              >
-                <ThumbsDown className="w-4 h-4" />
-              </Button>
             </div>
 
             {/* Actions Menu */}
@@ -128,10 +111,10 @@ export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {lodging.url && (
+                {accommodation.url && (
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
-                    window.open(lodging.url!, '_blank');
+                    window.open(accommodation.url!, '_blank');
                   }}>
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Open in New Tab
@@ -139,20 +122,21 @@ export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
                 )}
                 <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();
-                  handleArchive();
+                  handleToggleDeprioritize();
                 }}>
-                  {lodging.is_archived ? (
+                  {accommodation.is_deprioritized ? (
                     <>
-                      <ArchiveRestore className="w-4 h-4 mr-2" />
+                      <Eye className="w-4 h-4 mr-2" />
                       Restore
                     </>
                   ) : (
                     <>
-                      <Archive className="w-4 h-4 mr-2" />
-                      Archive
+                      <EyeOff className="w-4 h-4 mr-2" />
+                      Hide
                     </>
                   )}
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive"
                   onClick={(e) => {
@@ -170,12 +154,14 @@ export function LodgingLinkTile({ lodging }: LodgingLinkTileProps) {
       </Card>
 
       {/* Iframe Modal */}
-      <LodgingIframeModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        url={lodging.url || ''}
-        label={displayLabel}
-      />
+      {accommodation.url && (
+        <LodgingIframeModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          url={accommodation.url}
+          label={displayLabel}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
