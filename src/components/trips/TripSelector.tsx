@@ -9,8 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Plus, Calendar, MapPin, Check, Loader2 } from 'lucide-react';
-import { useTrips, useActiveTrip, getTripMode } from '@/hooks/use-trip';
-import { useQueryClient } from '@tanstack/react-query';
+import { useTrips, useActiveTrip, useSelectTrip, getTripMode } from '@/hooks/use-trip';
 import { CreateTripDialog } from './CreateTripDialog';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -36,12 +35,10 @@ export function TripSelector({ className }: TripSelectorProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { data: trips = [], isLoading } = useTrips();
   const { data: activeTrip } = useActiveTrip();
-  const queryClient = useQueryClient();
+  const selectTrip = useSelectTrip();
 
   const handleSelectTrip = (trip: Trip) => {
-    // For now, we invalidate the active-trip query to trigger a refetch
-    // In a full implementation, you'd store the selected trip in localStorage/state
-    queryClient.setQueryData(['active-trip'], trip);
+    selectTrip.mutate(trip.id);
   };
 
   if (isLoading) {
