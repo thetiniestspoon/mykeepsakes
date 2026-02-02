@@ -76,7 +76,18 @@ export function AccommodationCard({
         </button>
       )}
       
-      <div className="flex-1 min-w-0">
+      <div 
+        className={cn(
+          "flex-1 min-w-0",
+          accommodation.url && "cursor-pointer hover:bg-accent/50 rounded-md -my-1 py-1 -mx-1 px-1 transition-colors"
+        )}
+        onClick={(e) => {
+          if (accommodation.url) {
+            e.stopPropagation();
+            window.open(accommodation.url, '_blank');
+          }
+        }}
+      >
         <p className={cn('font-medium truncate', isDeprioritized && 'text-muted-foreground')}>
           {accommodation.title}
         </p>
@@ -142,7 +153,18 @@ export function StaticAccommodationCard({
     <Card className="flex items-center gap-2 p-3 opacity-50 bg-muted">
       <div className="w-6" /> {/* Spacer for alignment */}
       
-      <div className="flex-1 min-w-0">
+      <div 
+        className={cn(
+          "flex-1 min-w-0",
+          accommodation.url && "cursor-pointer hover:bg-accent/50 rounded-md -my-1 py-1 -mx-1 px-1 transition-colors"
+        )}
+        onClick={(e) => {
+          if (accommodation.url) {
+            e.stopPropagation();
+            window.open(accommodation.url, '_blank');
+          }
+        }}
+      >
         <p className="font-medium truncate text-muted-foreground">
           {accommodation.title}
         </p>
