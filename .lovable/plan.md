@@ -1,236 +1,110 @@
 
-# Refined Plan: Multi-Location "Show on Map"
+# Fix: "Show on Map" Single Item Filtering Not Working
 
-## Overview
+## Problem Summary
 
-Extend the existing **`DashboardSelectionContext`** (not a new `MapHighlightContext`) to support highlighting multiple locations simultaneously, enabling "Show Day on Map" functionality with auto-zoom and a dismissible banner.
-
----
-
-## Current Architecture Summary
-
-The app uses `DashboardSelectionContext` for all cross-panel synchronization:
-- **`focusLocation()`** - sets category/day filters via `focusedLocation` state
-- **`highlightPin()`** - highlights a single pin via `highlightedMapPin` state
-- **`panMap()`** - triggers map panning via `panToLocation` state
-- **`navigateToPanel()`** - switches to Map panel (index 2) on mobile
-
-**Important:** There is no `MapHighlightContext.tsx` - the user's original plan referenced a non-existent file.
+When clicking "Show on Map" for a single item in the itinerary's Details panel, the user navigates to the map, but **no filtering is applied**. The map shows all locations instead of filtering to the selected item's category and day.
 
 ---
 
-## Phase 1: Extend DashboardSelectionContext
+## Root Cause
 
-**File:** `src/contexts/DashboardSelectionContext.tsx`
+In `CompactActivityCard.tsx` (lines 53-90), when an activity is selected, it builds an `activityData` object that gets passed to `ActivityDetail`. **Critical fields are not properly populated:**
 
-### Changes to State
 ```tsx
-// Before (line ~43-44)
-highlightedMapPin: string | null;
-
-// After - support array + label
-highlightedMapPins: string[];  // Array of location IDs (empty = no highlight)
-highlightLabel: string | null; // Label for the group, e.g., "Friday - Beach Day"
+const activityData = useMemo(() => ({
+  // ...
+  location_id: null,  // BUG: Always null - should be activity.location?.id
+  location: activity.location ? {
+    id: '',           // BUG: Empty string - should be activity.location.id
+    // ...
+  } : null,
+}), [activity, dayId]);
 ```
 
-### Changes to Actions
+In `ActivityDetail.handleShowOnMap()` (lines 47-62), the filtering logic depends on these fields:
+
 ```tsx
-// Keep single-pin function for backward compatibility
-highlightPin: (locationId: string | null) => void;
-
-// Add new multi-location function
-highlightPins: (locationIds: string[], label: string) => void;
-
-// Add clear function (already exists as clearSelection, but make explicit)
-clearHighlightedPins: () => void;
-```
-
-### Implementation
-```tsx
-// State
-const [highlightedMapPins, setHighlightedMapPins] = useState<string[]>([]);
-const [highlightLabel, setHighlightLabel] = useState<string | null>(null);
-
-// Single pin (backward compatible - wraps into array)
-const highlightPin = useCallback((locationId: string | null) => {
-  if (locationId) {
-    setHighlightedMapPins([locationId]);
-    setHighlightLabel(null);
-  } else {
-    setHighlightedMapPins([]);
-    setHighlightLabel(null);
+const handleShowOnMap = () => {
+  if (activity.location?.lat && activity.location?.lng) {
+    if (activity.location_id) {        // <-- This is null!
+      focusLocation({...});             // <-- Never called!
+      highlightPin(activity.location_id); // <-- Never called!
+    }
+    panMap(activity.location.lat, activity.location.lng);  // This still works
+    navigateToPanel(2);  // This still works
   }
-}, []);
-
-// Multiple pins
-const highlightPins = useCallback((locationIds: string[], label: string) => {
-  setHighlightedMapPins(locationIds);
-  setHighlightLabel(label);
-}, []);
-
-// Clear all
-const clearHighlightedPins = useCallback(() => {
-  setHighlightedMapPins([]);
-  setHighlightLabel(null);
-}, []);
+};
 ```
+
+Since `location_id` is always `null`, the `focusLocation()` and `highlightPin()` calls **never execute**. The map pans to the correct location, but no filters are applied.
 
 ---
 
-## Phase 2: Update RightColumn (Map Panel)
+## Solution
 
-**File:** `src/components/dashboard/RightColumn.tsx`
+### Fix 1: Update `CompactActivityCard.tsx` to pass correct location data
 
-### Changes
+The `LegacyActivity` interface already includes `location.id`, so we just need to use it:
 
-1. **Receive new state from context:**
 ```tsx
-const { 
-  highlightedMapPins,  // Changed from highlightedMapPin
-  highlightLabel,
-  clearHighlightedPins,
-  // ... other existing
-} = useDashboardSelection();
+const activityData = useMemo(() => ({
+  // ...
+  location_id: activity.location?.id || null,  // Use the actual location ID
+  location: activity.location ? {
+    id: activity.location.id,  // Use the actual location ID
+    name: activity.location.name,
+    lat: activity.location.lat,
+    lng: activity.location.lng,
+    category: activity.category, // Note: LegacyActivity doesn't have location.category
+    // ... rest unchanged
+  } : null,
+}), [activity, dayId]);
 ```
 
-2. **Add dismissible banner when pins are highlighted:**
+### Fix 2: Update `LegacyActivity` interface to include location category
+
+To fully fix the category mismatch issue, we need to preserve the location's category when converting from database items.
+
+**In `use-database-itinerary.ts`, update the interface:**
 ```tsx
-{highlightedMapPins.length > 0 && highlightLabel && (
-  <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/20">
-    <div className="flex items-center gap-2 text-sm">
-      <MapPin className="w-4 h-4 text-primary" />
-      <span className="font-medium text-primary">
-        {highlightLabel}
-        {highlightedMapPins.length > 1 && ` (${highlightedMapPins.length} locations)`}
-      </span>
-    </div>
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      onClick={clearHighlightedPins}
-      className="h-6 px-2 text-xs"
-    >
-      <X className="w-3 h-3 mr-1" />
-      Show All
-    </Button>
-  </div>
-)}
-```
-
-3. **Pass highlighted IDs to OverviewMap:**
-```tsx
-<OverviewMap
-  locations={filteredLocations || []}
-  onMarkerClick={handleMarkerClick}
-  highlightedPinIds={highlightedMapPins}  // Array instead of single ID
-  onMapReady={handleMapReady}
-  skipBoundsFit={hasPendingPan}
-  className="h-full"
-/>
-```
-
----
-
-## Phase 3: Update OverviewMap to Support Multiple Highlights
-
-**File:** `src/components/map/OverviewMap.tsx`
-
-### Changes to Props
-```tsx
-interface OverviewMapProps {
-  // Before
-  highlightedPinId?: string | null;
-  
-  // After
-  highlightedPinIds?: string[];
+export interface LegacyActivity {
+  // ...
+  location?: {
+    id: string;
+    lat: number;
+    lng: number;
+    name: string;
+    address?: string;
+    category?: string;  // ADD: Location's category from database
+  };
 }
 ```
 
-### Changes to Marker Logic (around line 218)
+**And update `toActivities()`:**
 ```tsx
-const isHighlighted = highlightedPinIds?.includes(location.id) ?? false;
+location: item.location ? {
+  id: item.location.id,
+  lat: item.location.lat!,
+  lng: item.location.lng!,
+  name: item.location.name,
+  address: item.location.address || undefined,
+  category: item.location.category || undefined,  // ADD: Preserve location category
+} : undefined,
 ```
 
-### Changes to Diff Logic (around line 203)
+### Fix 3: Update `CompactActivityCard.tsx` to use location's category
+
 ```tsx
-const newHighlightIds = (highlightedPinIds || []).sort().join(',');
-const highlightChanged = newHighlightIds !== prevHighlightedPinsRef.current;
-// ...
-prevHighlightedPinsRef.current = newHighlightIds;
+location: activity.location ? {
+  id: activity.location.id,
+  name: activity.location.name,
+  lat: activity.location.lat,
+  lng: activity.location.lng,
+  category: activity.location.category || activity.category, // Use location's category first
+  // ...
+} : null,
 ```
-
----
-
-## Phase 4: Add "Show Day on Map" Button to DatabaseDayCard
-
-**File:** `src/components/itinerary/DatabaseDayCard.tsx`
-
-### Add to Imports
-```tsx
-import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
-import { toast } from 'sonner';
-import { Map } from 'lucide-react';
-```
-
-### Add Hook and Handler
-```tsx
-const { highlightPins, navigateToPanel } = useDashboardSelection();
-
-const handleShowDayOnMap = useCallback(() => {
-  // Get activities with valid location coordinates
-  const locationsWithCoords = day.activities
-    .filter(a => a.location?.lat && a.location?.lng && a.location_id)
-    .map(a => a.location_id!);
-  
-  if (locationsWithCoords.length === 0) {
-    toast.info('No locations to show on map for this day');
-    return;
-  }
-  
-  // Highlight all pins for this day
-  highlightPins(locationsWithCoords, `${day.dayOfWeek} - ${day.title}`);
-  
-  // Navigate to Map panel
-  navigateToPanel(2);
-}, [day, highlightPins, navigateToPanel]);
-```
-
-### Add Button in Header (around line 202, next to progress indicator)
-```tsx
-<div className="flex items-center gap-3">
-  {/* Show on Map button */}
-  <button
-    onClick={(e) => {
-      e.stopPropagation(); // Prevent collapsible toggle
-      handleShowDayOnMap();
-    }}
-    className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-accent transition-colors"
-    title="Show day on map"
-  >
-    <Map className="w-4 h-4" />
-  </button>
-  
-  {/* Existing progress indicator */}
-  <div className="flex items-center gap-2">
-    {progressPercent === 100 && (
-      <CheckCircle2 className="w-4 h-4 text-green-600 animate-bounce-in" />
-    )}
-    {/* ... rest */}
-  </div>
-</div>
-```
-
----
-
-## Phase 5: Update Existing Single-Item Calls
-
-The following files already use `highlightPin()` for single items - they will continue to work because we're keeping backward compatibility:
-
-| File | Current Usage | Change Needed |
-|------|--------------|---------------|
-| `ActivityDetail.tsx` | `highlightPin(activity.location_id)` | None - works as-is |
-| `LocationDetail.tsx` | `highlightPin(location.id)` | None - works as-is |
-| `DatabaseActivityCard.tsx` | Uses `onOpenMap` prop | None - parent handles it |
 
 ---
 
@@ -238,54 +112,36 @@ The following files already use `highlightPin()` for single items - they will co
 
 | File | Changes |
 |------|---------|
-| `src/contexts/DashboardSelectionContext.tsx` | Add `highlightedMapPins[]`, `highlightLabel`, `highlightPins()`, `clearHighlightedPins()` |
-| `src/components/dashboard/RightColumn.tsx` | Add highlight banner, pass array to OverviewMap |
-| `src/components/map/OverviewMap.tsx` | Change `highlightedPinId` to `highlightedPinIds[]` |
-| `src/components/itinerary/DatabaseDayCard.tsx` | Add "Show Day on Map" button with handler |
+| `src/hooks/use-database-itinerary.ts` | Add `category` to `LegacyActivity.location` interface and preserve it in `toActivities()` |
+| `src/components/dashboard/CompactActivityCard.tsx` | Fix `location_id` and `location.id` to use actual values; use location's category |
 
 ---
 
 ## Technical Details
 
-### Why Extend Existing Context vs New Context?
+### Data Flow After Fix
 
-1. **Single source of truth** - All dashboard synchronization already flows through `DashboardSelectionContext`
-2. **Avoids prop drilling** - Components already consume this context
-3. **Simpler state management** - No need to coordinate between multiple contexts
-4. **Backward compatible** - Existing `highlightPin(id)` calls continue working
+1. **Database** → `itinerary_items.location_id` links to `locations.id`, which has `category: 'restaurant'`
+2. **useDatabaseItinerary** → Converts to `LegacyActivity` with `location: { id: 'uuid', category: 'restaurant' }`
+3. **CompactActivityCard** → Builds `activityData` with `location_id: 'uuid'` and `location.category: 'restaurant'`
+4. **ActivityDetail** → `handleShowOnMap()` calls `focusLocation({ id: 'uuid', category: 'restaurant', dayId: '...' })`
+5. **MapFilterHeader** → Receives focus, maps `restaurant` → `dining`, sets filters
+6. **Map** → Shows only locations matching `dining` category and the specified day
 
-### Auto-Zoom Behavior
+### Why Both `location_id` AND `location.id` Need Fixing
 
-When multiple pins are highlighted, `OverviewMap` already has bounds-fitting logic:
-- If `locations.length > 1`, it calls `fitBounds()` with padding
-- When filtering to highlighted pins, the map will auto-zoom to encompass all of them
-- The `skipBoundsFit` prop prevents this during manual panning
-
-### Banner UX
-
-The dismissible banner provides:
-- Visual feedback showing what's being filtered
-- Location count for context
-- "Show All" button to clear filters and return to normal view
-
----
-
-## Future Extensions (Not in This Scope)
-
-- **Show Favorites on Map** - Add button in FavoritesTab header
-- **Show Completed on Map** - Filter to visited/completed locations
-- **Show Category on Map** - Already exists via category filter buttons
+- `location_id` is the "flat" foreign key reference used by the context (`highlightPin(activity.location_id)`)
+- `location.id` is the nested object ID that other components might use
+- Both should match the actual database ID for consistency
 
 ---
 
 ## Testing Checklist
 
-- [ ] Single item "Show on Map" still works (backward compatibility)
-- [ ] Day "Show Day on Map" button shows all day's locations on map
-- [ ] Banner shows correct label and location count
-- [ ] Map auto-zooms to fit all highlighted pins
-- [ ] "Show All" button clears highlight and removes banner
-- [ ] Toast appears when day has no locations with coordinates
-- [ ] Button click doesn't collapse/expand day card
-- [ ] Mobile: Panel navigation works correctly
-
+- [ ] Click on an activity in the left column itinerary
+- [ ] Click "Show on Map" in the Details panel
+- [ ] Verify the map filters to show only that category and day
+- [ ] Verify the pin is highlighted (pulsing animation)
+- [ ] Verify the map pans to the correct location
+- [ ] Test with different categories (dining, beach, activity)
+- [ ] Verify category filter buttons show correct selection state
