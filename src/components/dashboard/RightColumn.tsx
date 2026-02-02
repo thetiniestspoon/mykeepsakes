@@ -10,6 +10,8 @@ import { useFavorites } from '@/hooks/use-trip-data';
 import { useLodgingOptions } from '@/hooks/use-lodging';
 import { cn } from '@/lib/utils';
 import type { MapLocation, PinState } from '@/types/map';
+import { Button } from '@/components/ui/button';
+import { MapPin, X } from 'lucide-react';
 import L from 'leaflet';
 
 interface RightColumnProps {
@@ -30,7 +32,9 @@ export function RightColumn({ className }: RightColumnProps) {
   const { data: lodgingOptions = [] } = useLodgingOptions();
   
   const { 
-    highlightedMapPin, 
+    highlightedMapPins,
+    highlightLabel,
+    clearHighlightedPins,
     panToLocation,
     clearPanTarget,
     selectItem,
@@ -165,12 +169,34 @@ export function RightColumn({ className }: RightColumnProps) {
         onFocusConsumed={clearLocationFocus}
       />
       
+      {/* Highlight banner - shown when pins are highlighted with a label */}
+      {highlightedMapPins.length > 0 && highlightLabel && (
+        <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/20">
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span className="font-medium text-primary">
+              {highlightLabel}
+              {highlightedMapPins.length > 1 && ` (${highlightedMapPins.length} locations)`}
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearHighlightedPins}
+            className="h-6 px-2 text-xs"
+          >
+            <X className="w-3 h-3 mr-1" />
+            Show All
+          </Button>
+        </div>
+      )}
+      
       {/* Map Container - takes remaining space */}
       <div className="flex-1 min-h-0">
         <OverviewMap
           locations={filteredLocations || []}
           onMarkerClick={handleMarkerClick}
-          highlightedPinId={highlightedMapPin}
+          highlightedPinIds={highlightedMapPins}
           onMapReady={handleMapReady}
           skipBoundsFit={hasPendingPan}
           className="h-full"
