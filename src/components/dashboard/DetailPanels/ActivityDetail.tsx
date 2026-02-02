@@ -54,7 +54,9 @@ export function ActivityDetail({ activity }: ActivityDetailProps) {
 
   const formatTime = (time: string | null) => {
     if (!time) return null;
-    const [hours, minutes] = time.split(':');
+    // Remove any existing AM/PM suffix from the time string
+    const cleanTime = time.replace(/\s*(AM|PM)\s*/gi, '').trim();
+    const [hours, minutes] = cleanTime.split(':');
     const h = parseInt(hours, 10);
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hour12 = h % 12 || 12;
