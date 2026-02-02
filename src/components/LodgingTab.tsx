@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Home, Archive, CheckCircle2, Loader2 } from 'lucide-react';
-import { useLodgingOptions, useSelectedLodging } from '@/hooks/use-lodging';
+import { useAccommodations, useSelectedAccommodation } from '@/hooks/use-accommodations';
 import { LodgingLinkTile } from '@/components/lodging/LodgingLinkTile';
 import { AddLodgingLinkDialog } from '@/components/lodging/AddLodgingLinkDialog';
 
@@ -12,11 +12,11 @@ export function LodgingTab() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: lodgingOptions, isLoading, error } = useLodgingOptions(showArchived);
-  const { data: selectedLodging } = useSelectedLodging();
+  const { data: accommodations, isLoading, error } = useAccommodations();
+  const { data: selectedAccommodation } = useSelectedAccommodation();
 
-  const activeOptions = lodgingOptions?.filter(l => !l.is_archived) || [];
-  const archivedOptions = lodgingOptions?.filter(l => l.is_archived) || [];
+  const activeOptions = accommodations?.filter(a => !a.is_deprioritized && !a.is_selected) || [];
+  const archivedOptions = accommodations?.filter(a => a.is_deprioritized) || [];
 
   if (isLoading) {
     return (
@@ -44,14 +44,14 @@ export function LodgingTab() {
       </div>
 
       {/* Selected Lodging Banner */}
-      {selectedLodging && (
+      {selectedAccommodation && (
         <Card className="mx-4 bg-primary/10 border-primary">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-primary font-medium">Booked Accommodation</p>
-                <p className="font-semibold truncate">{selectedLodging.name}</p>
+                <p className="font-semibold truncate">{selectedAccommodation.title}</p>
               </div>
             </div>
           </CardContent>
@@ -97,8 +97,8 @@ export function LodgingTab() {
               </CardContent>
             </Card>
           ) : (
-            activeOptions.map((lodging) => (
-              <LodgingLinkTile key={lodging.id} lodging={lodging} />
+            activeOptions.map((accommodation) => (
+              <LodgingLinkTile key={accommodation.id} accommodation={accommodation} />
             ))
           )}
         </TabsContent>
@@ -114,8 +114,8 @@ export function LodgingTab() {
               </CardContent>
             </Card>
           ) : (
-            archivedOptions.map((lodging) => (
-              <LodgingLinkTile key={lodging.id} lodging={lodging} />
+            archivedOptions.map((accommodation) => (
+              <LodgingLinkTile key={accommodation.id} accommodation={accommodation} />
             ))
           )}
         </TabsContent>
@@ -125,7 +125,7 @@ export function LodgingTab() {
       <Card className="shadow-warm mx-4 bg-beach-sand/30">
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground text-center">
-            💡 <strong>Tip:</strong> Use thumbs up/down to vote on listings. Tap a tile to preview the listing!
+            💡 <strong>Tip:</strong> Drag accommodations to the drop zone in the Stay tab to select them!
           </p>
         </CardContent>
       </Card>

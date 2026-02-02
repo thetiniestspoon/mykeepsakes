@@ -1,5 +1,5 @@
 import { ExternalLink, MapPin } from 'lucide-react';
-import type { LodgingOption } from '@/hooks/use-lodging';
+import type { Accommodation } from '@/types/accommodation';
 
 interface SelectedLocation {
   lat: number;
@@ -9,51 +9,28 @@ interface SelectedLocation {
 }
 
 interface StayCardProps {
-  lodging: LodgingOption;
+  accommodation: Accommodation;
   onOpenMap?: (location: SelectedLocation) => void;
 }
 
-export function StayCard({ lodging, onOpenMap }: StayCardProps) {
+export function StayCard({ accommodation, onOpenMap }: StayCardProps) {
   return (
     <div className="p-4 rounded-lg border border-border bg-card">
-      <h4 className="font-semibold text-foreground">{lodging.name}</h4>
-      {lodging.description && (
-        <p className="text-sm text-muted-foreground mt-1">{lodging.description}</p>
+      <h4 className="font-semibold text-foreground">{accommodation.title}</h4>
+      {accommodation.notes && (
+        <p className="text-sm text-muted-foreground mt-1">{accommodation.notes}</p>
       )}
       
       <div className="mt-3 space-y-2 text-sm">
-        {lodging.address && (
-          <p className="text-muted-foreground">{lodging.address}</p>
-        )}
-        
-        {(lodging.bedrooms || lodging.bathrooms || lodging.max_guests) && (
-          <p className="text-muted-foreground">
-            {lodging.bedrooms && `${lodging.bedrooms} bed`}
-            {lodging.bathrooms && ` · ${lodging.bathrooms} bath`}
-            {lodging.max_guests && ` · Sleeps ${lodging.max_guests}`}
-          </p>
-        )}
-        
-        {lodging.amenities && lodging.amenities.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {lodging.amenities.slice(0, 5).map((amenity, i) => (
-              <span key={i} className="text-xs bg-secondary px-2 py-0.5 rounded">
-                {amenity}
-              </span>
-            ))}
-            {lodging.amenities.length > 5 && (
-              <span className="text-xs text-muted-foreground">
-                +{lodging.amenities.length - 5} more
-              </span>
-            )}
-          </div>
+        {accommodation.address && (
+          <p className="text-muted-foreground">{accommodation.address}</p>
         )}
       </div>
       
       <div className="flex flex-wrap items-center gap-2 mt-3">
-        {lodging.url && (
+        {accommodation.url && (
           <a
-            href={lodging.url}
+            href={accommodation.url}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
@@ -62,13 +39,13 @@ export function StayCard({ lodging, onOpenMap }: StayCardProps) {
             View Listing
           </a>
         )}
-        {lodging.location_lat && lodging.location_lng && onOpenMap && (
+        {accommodation.location_lat && accommodation.location_lng && onOpenMap && (
           <button
             onClick={() => onOpenMap({
-              lat: lodging.location_lat!,
-              lng: lodging.location_lng!,
-              name: lodging.name,
-              address: lodging.address || undefined
+              lat: accommodation.location_lat!,
+              lng: accommodation.location_lng!,
+              name: accommodation.title,
+              address: accommodation.address || undefined
             })}
             className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
