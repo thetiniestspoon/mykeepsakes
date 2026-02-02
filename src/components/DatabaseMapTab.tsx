@@ -106,10 +106,22 @@ export function DatabaseMapTab() {
   const filteredLocations = useMemo(() => {
     // If there's a highlighted location from "Show on Map", only show that one
     if (highlightedLocation) {
-      const highlighted = allLocations.find(
-        loc => loc.id === highlightedLocation.id ||
-               (loc.lat === highlightedLocation.lat && loc.lng === highlightedLocation.lng)
-      );
+      console.log('[DatabaseMapTab] Filtering for highlighted location:', highlightedLocation);
+      console.log('[DatabaseMapTab] All locations:', allLocations.length, allLocations.map(l => ({ id: l.id, name: l.name, lat: l.lat, lng: l.lng })));
+
+      const highlighted = allLocations.find(loc => {
+        // Match by ID (may be location ID or item ID depending on source)
+        const idMatch = loc.id === highlightedLocation.id;
+        // Match by exact coordinates
+        const coordMatch = loc.lat === highlightedLocation.lat && loc.lng === highlightedLocation.lng;
+        // Match by name (fallback)
+        const nameMatch = loc.name === highlightedLocation.name;
+
+        return idMatch || coordMatch || nameMatch;
+      });
+
+      console.log('[DatabaseMapTab] Match result:', highlighted);
+
       return highlighted ? [highlighted] : [{
         id: highlightedLocation.id,
         lat: highlightedLocation.lat,
