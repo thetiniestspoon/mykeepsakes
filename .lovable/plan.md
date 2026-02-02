@@ -4,169 +4,102 @@
 
 ## Problem Summary
 
-When clicking "Show on Map" from the Details panel, the map does not filter to show the selected item's location. The investigation revealed multiple issues:
+When clicking "Show on Map" from the Details panel, the map filters don't update correctly to show the selected item's location.
 
 ---
 
 ## Root Causes Identified
 
-### Issue 1: Broken Map Panning
+### Issue 1: Timing - Focus Consumed Before Filters Applied
 
-**File:** `src/components/dashboard/RightColumn.tsx` (lines 116-126)
-
-The code attempts to access the Leaflet map instance via `element._leaflet_map`, but this property doesn't exist. Leaflet doesn't expose the map instance on the DOM element this way.
+In `MapFilterHeader.tsx`, `onFocusConsumed()` is called immediately after setting state, but React's batched updates mean the `filteredLocations` memo hasn't recalculated yet.
 
 ```tsx
-// Current broken code
-const mapElement = mapContainerRef.current.querySelector('.leaflet-container');
-if (mapElement && (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map) {
-  const map = (mapElement as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map!;
-  map.flyTo([panToLocation.lat, panToLocation.lng], 15, { duration: 0.5 });
-}
+// Current flow (problematic):
+useEffect(() => {
+  if (focusedLocation) {
+    setActiveCategories(...);  // State queued
+    setActiveDays(...);        // State queued
+    onFocusConsumed?.();       // Called IMMEDIATELY - focus cleared before filters apply
+  }
+}, [focusedLocation, onFocusConsumed]);
 ```
 
-This means `panMap()` calls silently fail - the map never pans to the target location.
+### Issue 2: Category Mapping Incomplete
 
-### Issue 2: Category Mismatch Between Tables
+The filter only handles `restaurant` → `dining` mapping, but the database shows other mismatches:
+- `item_category: event` ↔ `location_category: activity`
 
-**Tables involved:** `itinerary_items.category` vs `locations.category`
-
-| itinerary_items.category | locations.category | Filter Result |
-|--------------------------|-------------------|---------------|
-| `dining` | `restaurant` | Works (special handling) |
-| `dining` | `dining` | Works |
-| `event` | `activity` | **Fails** - filter for "event" won't show location with category "activity" |
-
-The filter has special handling for `dining`/`restaurant` but not for other mismatches like `event`/`activity`.
-
-### Issue 3: Location dayId May Not Match Activity day_id
-
-**File:** `src/hooks/use-database-itinerary.ts` (lines 212-214)
-
-When building `MapLocation` objects, the code finds the **first** itinerary item linked to a location and uses that item's `day_id`. If the same location appears on multiple days, the dayId may not match the activity you clicked "Show on Map" from.
+The filter won't show a pin categorized as "activity" when the activity category is "event".
 
 ---
 
 ## Solution
 
-### Fix 1: Expose Map Instance for Panning
+### Fix 1: Delay Focus Consumption Until Filters Propagate
 
-Modify `OverviewMap` to expose its map instance via a callback or ref, allowing `RightColumn` to call `flyTo()` properly.
+Use a separate effect to consume focus AFTER the filtered locations have been passed to the parent:
 
-**Changes to `OverviewMap.tsx`:**
 ```tsx
-interface OverviewMapProps {
-  // ... existing props
-  onMapReady?: (map: L.Map) => void;  // New callback
-}
+// Track if we just applied focus filters
+const justAppliedFocusRef = useRef(false);
 
-// In the initialization effect:
+// Effect 1: Apply filters from focused location
 useEffect(() => {
-  if (!mapRef.current || mapInstanceRef.current) return;
-  
-  const map = L.map(mapRef.current).setView(defaultCenter, zoom);
-  mapInstanceRef.current = map;
-  
-  // ... tile layer setup
-  
-  // Notify parent when map is ready
-  onMapReady?.(map);
-  
-  return () => { /* cleanup */ };
-}, []);
-```
-
-**Changes to `RightColumn.tsx`:**
-```tsx
-// Store map reference from OverviewMap
-const leafletMapRef = useRef<L.Map | null>(null);
-
-const handleMapReady = useCallback((map: L.Map) => {
-  leafletMapRef.current = map;
-}, []);
-
-// Updated pan effect
-useEffect(() => {
-  if (panToLocation && leafletMapRef.current) {
-    leafletMapRef.current.flyTo(
-      [panToLocation.lat, panToLocation.lng], 
-      15, 
-      { duration: 0.5 }
-    );
-    clearPanTarget();
-  }
-}, [panToLocation, clearPanTarget]);
-
-// In render:
-<OverviewMap
-  locations={filteredLocations}
-  onMarkerClick={handleMarkerClick}
-  highlightedPinId={highlightedMapPin}
-  onMapReady={handleMapReady}  // New prop
-  className="h-full"
-/>
-```
-
-### Fix 2: Use Location's Category Instead of Activity's Category
-
-When calling `focusLocation()`, use the **location's category** (from the joined data) rather than the activity's category. This ensures the filter matches the actual map pins.
-
-**Changes to `ActivityDetail.tsx`:**
-```tsx
-const handleShowOnMap = () => {
-  if (activity.location?.lat && activity.location?.lng) {
-    if (activity.location_id) {
-      focusLocation({
-        id: activity.location_id,
-        // Use location's category, not activity's category
-        category: activity.location.category || activity.category,
-        dayId: activity.day_id,
-      });
-      highlightPin(activity.location_id);
+  if (focusedLocation) {
+    if (focusedLocation.category) {
+      const cat = normalizeCategory(focusedLocation.category);
+      setActiveCategories(new Set([cat as CategoryFilter]));
+    } else {
+      setActiveCategories(new Set(['all']));
     }
-    panMap(activity.location.lat, activity.location.lng);
-    navigateToPanel(2);
+    
+    if (focusedLocation.dayId) {
+      setActiveDays(new Set([focusedLocation.dayId]));
+    } else {
+      setActiveDays(new Set(['all']));
+    }
+    
+    justAppliedFocusRef.current = true;
   }
-};
-```
+}, [focusedLocation]);
 
-### Fix 3: Prevent Map Bounds Reset When Filtering to Single Location
-
-Currently, `OverviewMap` calls `fitBounds()` whenever locations change. When filtering to a single location, it sets the view to that location at zoom 15 - which is correct. But we also have `panMap()` trying to fly to specific coordinates.
-
-The fix is to skip bounds fitting when there's a pending pan target, or to coordinate these actions better.
-
-**Changes to `OverviewMap.tsx`:**
-```tsx
-interface OverviewMapProps {
-  // ... existing
-  skipBoundsFit?: boolean;  // New prop to prevent auto-fitting
-}
-
-// In the markers update effect:
-if (!skipBoundsFit) {
-  if (bounds && locations.length > 1) {
-    mapInstanceRef.current.fitBounds(bounds, { padding: [30, 30] });
-  } else if (locations.length === 1) {
-    mapInstanceRef.current.setView([locations[0].lat, locations[0].lng], 15);
+// Effect 2: Consume focus AFTER filters have propagated
+useEffect(() => {
+  if (justAppliedFocusRef.current && focusedLocation) {
+    justAppliedFocusRef.current = false;
+    onFocusConsumed?.();
   }
+}, [filteredLocations, focusedLocation, onFocusConsumed]);
+```
+
+### Fix 2: Normalize More Categories
+
+Add a helper function that maps database categories to filter categories:
+
+```tsx
+function normalizeCategory(category: string): string {
+  const categoryMap: Record<string, string> = {
+    'restaurant': 'dining',
+    // Add more mappings as needed based on database data
+  };
+  return categoryMap[category] || category;
 }
 ```
 
-**Changes to `RightColumn.tsx`:**
-```tsx
-// Track if we have a pending pan to skip auto-fit
-const hasPendingPan = panToLocation !== null;
+### Fix 3: Ensure Day Filter Includes Location With Matching dayId
 
-<OverviewMap
-  locations={filteredLocations}
-  onMarkerClick={handleMarkerClick}
-  highlightedPinId={highlightedMapPin}
-  onMapReady={handleMapReady}
-  skipBoundsFit={hasPendingPan}  // Prevent bounds reset when panning
-  className="h-full"
-/>
+The filter logic at line 80-86 already correctly filters by dayId. However, we need to ensure the activity's `day_id` matches how locations store their `dayId`.
+
+Currently in `use-database-itinerary.ts`:
+```tsx
+// Line 213: dayId comes from the first associated itinerary item
+const item = (itemsQuery.data || []).find(i => i.location_id === loc.id);
+// ...
+dayId: item?.day_id,
 ```
+
+If a location is used on multiple days, only the first day's ID is stored. We need to pass the **activity's day_id** through focusLocation, which we're already doing correctly.
 
 ---
 
@@ -174,45 +107,90 @@ const hasPendingPan = panToLocation !== null;
 
 | File | Changes |
 |------|---------|
-| `src/components/map/OverviewMap.tsx` | Add `onMapReady` callback and `skipBoundsFit` prop |
-| `src/components/dashboard/RightColumn.tsx` | Use map ref from callback, pass `skipBoundsFit` when panning |
-| `src/components/dashboard/DetailPanels/ActivityDetail.tsx` | Use location's category instead of activity's category |
+| `src/components/dashboard/MapFilterHeader.tsx` | Split focus effect into two phases - apply then consume |
+
+---
+
+## Detailed Code Changes
+
+### MapFilterHeader.tsx
+
+```tsx
+// Add ref to track focus application
+const justAppliedFocusRef = useRef(false);
+
+// Effect 1: Apply filters from focused location (remove onFocusConsumed dependency)
+useEffect(() => {
+  if (focusedLocation) {
+    // Set category filter
+    if (focusedLocation.category) {
+      const cat = focusedLocation.category === 'restaurant' 
+        ? 'dining' 
+        : focusedLocation.category;
+      setActiveCategories(new Set([cat as CategoryFilter]));
+    } else {
+      setActiveCategories(new Set(['all']));
+    }
+    
+    // Set day filter
+    if (focusedLocation.dayId) {
+      setActiveDays(new Set([focusedLocation.dayId]));
+    } else {
+      setActiveDays(new Set(['all']));
+    }
+    
+    // Mark that we just applied focus
+    justAppliedFocusRef.current = true;
+  }
+}, [focusedLocation]); // Note: onFocusConsumed removed from deps
+
+// Effect 2: Consume focus after filters have been applied and propagated
+useEffect(() => {
+  if (justAppliedFocusRef.current) {
+    justAppliedFocusRef.current = false;
+    // Small delay to ensure state has propagated
+    requestAnimationFrame(() => {
+      onFocusConsumed?.();
+    });
+  }
+}, [filteredLocations, onFocusConsumed]);
+```
 
 ---
 
 ## Technical Details
 
-### Why Location Category vs Activity Category?
+### Why Two Effects?
 
-The map pins are built from the `locations` table data via `useDatabaseLocations()`. When the filter runs, it checks `loc.category` which comes from the locations table. Using the activity's category (from `itinerary_items`) can cause mismatches.
+React batches state updates, so when we call `setActiveCategories()` and `setActiveDays()`, the `filteredLocations` useMemo hasn't recalculated yet. By splitting into two effects:
 
-For example:
-- User clicks "Show on Map" on a dinner reservation (activity.category = "dining")
-- The restaurant in the locations table has category = "restaurant"
-- Filter is set to "dining"
-- Filter logic correctly includes "restaurant" because of special handling
-- But if we had an event at a park, activity.category = "event" while location.category = "activity"
-- This would fail without the fix
+1. **First effect**: Sets filter state, marks that focus was applied
+2. **Second effect**: Runs when `filteredLocations` changes (which happens after state updates), then consumes focus
+
+This ensures the filters are actually applied before we clear the focus trigger.
 
 ### Order of Operations After Fix
 
 1. User clicks "Show on Map" in ActivityDetail
-2. `focusLocation({ id, category: location.category, dayId })` - sets filter target
-3. `panMap(lat, lng)` - sets pan target, triggers `skipBoundsFit`
-4. `highlightPin(id)` - marks pin for highlight
-5. `navigateToPanel(2)` - switches to Map panel (portrait mode)
-6. MapFilterHeader receives focusedLocation, sets filters
-7. Filtered locations update, map redraws markers (no bounds fit due to skipBoundsFit)
-8. Pan effect fires, map flies to target location
-9. Pin is highlighted with pulsing animation
+2. `focusLocation({ id, category, dayId })` called - context state updated
+3. `panMap()` called - sets pan target
+4. `highlightPin()` called - marks pin for highlight  
+5. `navigateToPanel(2)` called - switches to Map panel
+6. MapFilterHeader receives `focusedLocation` via props
+7. **Effect 1 fires**: Sets `activeCategories` and `activeDays` state, sets ref flag
+8. React recalculates `filteredLocations` memo
+9. **Effect that notifies parent fires**: `onFilteredLocationsChange(filteredLocations)`
+10. **Effect 2 fires**: Sees ref flag is true, calls `onFocusConsumed()` via rAF
+11. Map receives new filtered locations, redraws markers
+12. Pan effect in RightColumn fires, map flies to target
 
 ---
 
 ## Testing Checklist
 
-- [ ] Click "Show on Map" on a dining activity - verify map filters to that category and day
-- [ ] Click "Show on Map" on a beach activity - verify correct filtering
-- [ ] Click "Show on Map" when map is already filtered to a different category - verify filters update
-- [ ] Test on mobile/portrait - verify panel navigation works
-- [ ] Test with location that appears on multiple days - verify correct day is filtered
+- Click "Show on Map" on a dining activity - verify filters update to show that category and day
+- Click "Show on Map" on a beach activity - verify correct filtering
+- Click "Show on Map" when already filtered to different category - verify filters change
+- Test on mobile - verify panel navigation to map works
+- Verify pin is highlighted after navigation
 
