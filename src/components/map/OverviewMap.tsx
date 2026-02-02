@@ -132,6 +132,10 @@ interface OverviewMapProps {
   className?: string;
   center?: [number, number];
   zoom?: number;
+  /** Callback when map instance is ready */
+  onMapReady?: (map: L.Map) => void;
+  /** Skip automatic bounds fitting (e.g., when manually panning) */
+  skipBoundsFit?: boolean;
 }
 
 export function OverviewMap({ 
@@ -140,7 +144,9 @@ export function OverviewMap({
   highlightedPinId,
   className = '',
   center,
-  zoom = 13
+  zoom = 13,
+  onMapReady,
+  skipBoundsFit = false,
 }: OverviewMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -173,6 +179,9 @@ export function OverviewMap({
     }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);
+
+    // Notify parent when map is ready
+    onMapReady?.(map);
 
     return () => {
       if (mapInstanceRef.current) {
@@ -227,16 +236,18 @@ export function OverviewMap({
       markersLayerRef.current!.addLayer(marker);
     });
 
-    // Fit bounds if we have locations
-    if (bounds && locations.length > 1) {
-      mapInstanceRef.current.fitBounds(bounds, { padding: [30, 30] });
-    } else if (locations.length === 1) {
-      mapInstanceRef.current.setView([locations[0].lat, locations[0].lng], 15);
+    // Fit bounds if we have locations (unless skipped for manual panning)
+    if (!skipBoundsFit) {
+      if (bounds && locations.length > 1) {
+        mapInstanceRef.current.fitBounds(bounds, { padding: [30, 30] });
+      } else if (locations.length === 1) {
+        mapInstanceRef.current.setView([locations[0].lat, locations[0].lng], 15);
+      }
     }
 
     // Invalidate size to handle container changes
     mapInstanceRef.current.invalidateSize();
-  }, [locations, bounds, onMarkerClick, highlightedPinId]);
+  }, [locations, bounds, onMarkerClick, highlightedPinId, skipBoundsFit]);
 
   return (
     <div 
