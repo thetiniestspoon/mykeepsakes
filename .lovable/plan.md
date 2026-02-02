@@ -1,105 +1,236 @@
 
+# Refined Plan: Multi-Location "Show on Map"
 
-# Fix "Show on Map" Filter Functionality
+## Overview
 
-## Problem Summary
-
-When clicking "Show on Map" from the Details panel, the map filters don't update correctly to show the selected item's location.
-
----
-
-## Root Causes Identified
-
-### Issue 1: Timing - Focus Consumed Before Filters Applied
-
-In `MapFilterHeader.tsx`, `onFocusConsumed()` is called immediately after setting state, but React's batched updates mean the `filteredLocations` memo hasn't recalculated yet.
-
-```tsx
-// Current flow (problematic):
-useEffect(() => {
-  if (focusedLocation) {
-    setActiveCategories(...);  // State queued
-    setActiveDays(...);        // State queued
-    onFocusConsumed?.();       // Called IMMEDIATELY - focus cleared before filters apply
-  }
-}, [focusedLocation, onFocusConsumed]);
-```
-
-### Issue 2: Category Mapping Incomplete
-
-The filter only handles `restaurant` → `dining` mapping, but the database shows other mismatches:
-- `item_category: event` ↔ `location_category: activity`
-
-The filter won't show a pin categorized as "activity" when the activity category is "event".
+Extend the existing **`DashboardSelectionContext`** (not a new `MapHighlightContext`) to support highlighting multiple locations simultaneously, enabling "Show Day on Map" functionality with auto-zoom and a dismissible banner.
 
 ---
 
-## Solution
+## Current Architecture Summary
 
-### Fix 1: Delay Focus Consumption Until Filters Propagate
+The app uses `DashboardSelectionContext` for all cross-panel synchronization:
+- **`focusLocation()`** - sets category/day filters via `focusedLocation` state
+- **`highlightPin()`** - highlights a single pin via `highlightedMapPin` state
+- **`panMap()`** - triggers map panning via `panToLocation` state
+- **`navigateToPanel()`** - switches to Map panel (index 2) on mobile
 
-Use a separate effect to consume focus AFTER the filtered locations have been passed to the parent:
+**Important:** There is no `MapHighlightContext.tsx` - the user's original plan referenced a non-existent file.
 
+---
+
+## Phase 1: Extend DashboardSelectionContext
+
+**File:** `src/contexts/DashboardSelectionContext.tsx`
+
+### Changes to State
 ```tsx
-// Track if we just applied focus filters
-const justAppliedFocusRef = useRef(false);
+// Before (line ~43-44)
+highlightedMapPin: string | null;
 
-// Effect 1: Apply filters from focused location
-useEffect(() => {
-  if (focusedLocation) {
-    if (focusedLocation.category) {
-      const cat = normalizeCategory(focusedLocation.category);
-      setActiveCategories(new Set([cat as CategoryFilter]));
-    } else {
-      setActiveCategories(new Set(['all']));
-    }
-    
-    if (focusedLocation.dayId) {
-      setActiveDays(new Set([focusedLocation.dayId]));
-    } else {
-      setActiveDays(new Set(['all']));
-    }
-    
-    justAppliedFocusRef.current = true;
-  }
-}, [focusedLocation]);
-
-// Effect 2: Consume focus AFTER filters have propagated
-useEffect(() => {
-  if (justAppliedFocusRef.current && focusedLocation) {
-    justAppliedFocusRef.current = false;
-    onFocusConsumed?.();
-  }
-}, [filteredLocations, focusedLocation, onFocusConsumed]);
+// After - support array + label
+highlightedMapPins: string[];  // Array of location IDs (empty = no highlight)
+highlightLabel: string | null; // Label for the group, e.g., "Friday - Beach Day"
 ```
 
-### Fix 2: Normalize More Categories
-
-Add a helper function that maps database categories to filter categories:
-
+### Changes to Actions
 ```tsx
-function normalizeCategory(category: string): string {
-  const categoryMap: Record<string, string> = {
-    'restaurant': 'dining',
-    // Add more mappings as needed based on database data
-  };
-  return categoryMap[category] || category;
+// Keep single-pin function for backward compatibility
+highlightPin: (locationId: string | null) => void;
+
+// Add new multi-location function
+highlightPins: (locationIds: string[], label: string) => void;
+
+// Add clear function (already exists as clearSelection, but make explicit)
+clearHighlightedPins: () => void;
+```
+
+### Implementation
+```tsx
+// State
+const [highlightedMapPins, setHighlightedMapPins] = useState<string[]>([]);
+const [highlightLabel, setHighlightLabel] = useState<string | null>(null);
+
+// Single pin (backward compatible - wraps into array)
+const highlightPin = useCallback((locationId: string | null) => {
+  if (locationId) {
+    setHighlightedMapPins([locationId]);
+    setHighlightLabel(null);
+  } else {
+    setHighlightedMapPins([]);
+    setHighlightLabel(null);
+  }
+}, []);
+
+// Multiple pins
+const highlightPins = useCallback((locationIds: string[], label: string) => {
+  setHighlightedMapPins(locationIds);
+  setHighlightLabel(label);
+}, []);
+
+// Clear all
+const clearHighlightedPins = useCallback(() => {
+  setHighlightedMapPins([]);
+  setHighlightLabel(null);
+}, []);
+```
+
+---
+
+## Phase 2: Update RightColumn (Map Panel)
+
+**File:** `src/components/dashboard/RightColumn.tsx`
+
+### Changes
+
+1. **Receive new state from context:**
+```tsx
+const { 
+  highlightedMapPins,  // Changed from highlightedMapPin
+  highlightLabel,
+  clearHighlightedPins,
+  // ... other existing
+} = useDashboardSelection();
+```
+
+2. **Add dismissible banner when pins are highlighted:**
+```tsx
+{highlightedMapPins.length > 0 && highlightLabel && (
+  <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/20">
+    <div className="flex items-center gap-2 text-sm">
+      <MapPin className="w-4 h-4 text-primary" />
+      <span className="font-medium text-primary">
+        {highlightLabel}
+        {highlightedMapPins.length > 1 && ` (${highlightedMapPins.length} locations)`}
+      </span>
+    </div>
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      onClick={clearHighlightedPins}
+      className="h-6 px-2 text-xs"
+    >
+      <X className="w-3 h-3 mr-1" />
+      Show All
+    </Button>
+  </div>
+)}
+```
+
+3. **Pass highlighted IDs to OverviewMap:**
+```tsx
+<OverviewMap
+  locations={filteredLocations || []}
+  onMarkerClick={handleMarkerClick}
+  highlightedPinIds={highlightedMapPins}  // Array instead of single ID
+  onMapReady={handleMapReady}
+  skipBoundsFit={hasPendingPan}
+  className="h-full"
+/>
+```
+
+---
+
+## Phase 3: Update OverviewMap to Support Multiple Highlights
+
+**File:** `src/components/map/OverviewMap.tsx`
+
+### Changes to Props
+```tsx
+interface OverviewMapProps {
+  // Before
+  highlightedPinId?: string | null;
+  
+  // After
+  highlightedPinIds?: string[];
 }
 ```
 
-### Fix 3: Ensure Day Filter Includes Location With Matching dayId
-
-The filter logic at line 80-86 already correctly filters by dayId. However, we need to ensure the activity's `day_id` matches how locations store their `dayId`.
-
-Currently in `use-database-itinerary.ts`:
+### Changes to Marker Logic (around line 218)
 ```tsx
-// Line 213: dayId comes from the first associated itinerary item
-const item = (itemsQuery.data || []).find(i => i.location_id === loc.id);
-// ...
-dayId: item?.day_id,
+const isHighlighted = highlightedPinIds?.includes(location.id) ?? false;
 ```
 
-If a location is used on multiple days, only the first day's ID is stored. We need to pass the **activity's day_id** through focusLocation, which we're already doing correctly.
+### Changes to Diff Logic (around line 203)
+```tsx
+const newHighlightIds = (highlightedPinIds || []).sort().join(',');
+const highlightChanged = newHighlightIds !== prevHighlightedPinsRef.current;
+// ...
+prevHighlightedPinsRef.current = newHighlightIds;
+```
+
+---
+
+## Phase 4: Add "Show Day on Map" Button to DatabaseDayCard
+
+**File:** `src/components/itinerary/DatabaseDayCard.tsx`
+
+### Add to Imports
+```tsx
+import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
+import { toast } from 'sonner';
+import { Map } from 'lucide-react';
+```
+
+### Add Hook and Handler
+```tsx
+const { highlightPins, navigateToPanel } = useDashboardSelection();
+
+const handleShowDayOnMap = useCallback(() => {
+  // Get activities with valid location coordinates
+  const locationsWithCoords = day.activities
+    .filter(a => a.location?.lat && a.location?.lng && a.location_id)
+    .map(a => a.location_id!);
+  
+  if (locationsWithCoords.length === 0) {
+    toast.info('No locations to show on map for this day');
+    return;
+  }
+  
+  // Highlight all pins for this day
+  highlightPins(locationsWithCoords, `${day.dayOfWeek} - ${day.title}`);
+  
+  // Navigate to Map panel
+  navigateToPanel(2);
+}, [day, highlightPins, navigateToPanel]);
+```
+
+### Add Button in Header (around line 202, next to progress indicator)
+```tsx
+<div className="flex items-center gap-3">
+  {/* Show on Map button */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation(); // Prevent collapsible toggle
+      handleShowDayOnMap();
+    }}
+    className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-accent transition-colors"
+    title="Show day on map"
+  >
+    <Map className="w-4 h-4" />
+  </button>
+  
+  {/* Existing progress indicator */}
+  <div className="flex items-center gap-2">
+    {progressPercent === 100 && (
+      <CheckCircle2 className="w-4 h-4 text-green-600 animate-bounce-in" />
+    )}
+    {/* ... rest */}
+  </div>
+</div>
+```
+
+---
+
+## Phase 5: Update Existing Single-Item Calls
+
+The following files already use `highlightPin()` for single items - they will continue to work because we're keeping backward compatibility:
+
+| File | Current Usage | Change Needed |
+|------|--------------|---------------|
+| `ActivityDetail.tsx` | `highlightPin(activity.location_id)` | None - works as-is |
+| `LocationDetail.tsx` | `highlightPin(location.id)` | None - works as-is |
+| `DatabaseActivityCard.tsx` | Uses `onOpenMap` prop | None - parent handles it |
 
 ---
 
@@ -107,90 +238,54 @@ If a location is used on multiple days, only the first day's ID is stored. We ne
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/MapFilterHeader.tsx` | Split focus effect into two phases - apply then consume |
-
----
-
-## Detailed Code Changes
-
-### MapFilterHeader.tsx
-
-```tsx
-// Add ref to track focus application
-const justAppliedFocusRef = useRef(false);
-
-// Effect 1: Apply filters from focused location (remove onFocusConsumed dependency)
-useEffect(() => {
-  if (focusedLocation) {
-    // Set category filter
-    if (focusedLocation.category) {
-      const cat = focusedLocation.category === 'restaurant' 
-        ? 'dining' 
-        : focusedLocation.category;
-      setActiveCategories(new Set([cat as CategoryFilter]));
-    } else {
-      setActiveCategories(new Set(['all']));
-    }
-    
-    // Set day filter
-    if (focusedLocation.dayId) {
-      setActiveDays(new Set([focusedLocation.dayId]));
-    } else {
-      setActiveDays(new Set(['all']));
-    }
-    
-    // Mark that we just applied focus
-    justAppliedFocusRef.current = true;
-  }
-}, [focusedLocation]); // Note: onFocusConsumed removed from deps
-
-// Effect 2: Consume focus after filters have been applied and propagated
-useEffect(() => {
-  if (justAppliedFocusRef.current) {
-    justAppliedFocusRef.current = false;
-    // Small delay to ensure state has propagated
-    requestAnimationFrame(() => {
-      onFocusConsumed?.();
-    });
-  }
-}, [filteredLocations, onFocusConsumed]);
-```
+| `src/contexts/DashboardSelectionContext.tsx` | Add `highlightedMapPins[]`, `highlightLabel`, `highlightPins()`, `clearHighlightedPins()` |
+| `src/components/dashboard/RightColumn.tsx` | Add highlight banner, pass array to OverviewMap |
+| `src/components/map/OverviewMap.tsx` | Change `highlightedPinId` to `highlightedPinIds[]` |
+| `src/components/itinerary/DatabaseDayCard.tsx` | Add "Show Day on Map" button with handler |
 
 ---
 
 ## Technical Details
 
-### Why Two Effects?
+### Why Extend Existing Context vs New Context?
 
-React batches state updates, so when we call `setActiveCategories()` and `setActiveDays()`, the `filteredLocations` useMemo hasn't recalculated yet. By splitting into two effects:
+1. **Single source of truth** - All dashboard synchronization already flows through `DashboardSelectionContext`
+2. **Avoids prop drilling** - Components already consume this context
+3. **Simpler state management** - No need to coordinate between multiple contexts
+4. **Backward compatible** - Existing `highlightPin(id)` calls continue working
 
-1. **First effect**: Sets filter state, marks that focus was applied
-2. **Second effect**: Runs when `filteredLocations` changes (which happens after state updates), then consumes focus
+### Auto-Zoom Behavior
 
-This ensures the filters are actually applied before we clear the focus trigger.
+When multiple pins are highlighted, `OverviewMap` already has bounds-fitting logic:
+- If `locations.length > 1`, it calls `fitBounds()` with padding
+- When filtering to highlighted pins, the map will auto-zoom to encompass all of them
+- The `skipBoundsFit` prop prevents this during manual panning
 
-### Order of Operations After Fix
+### Banner UX
 
-1. User clicks "Show on Map" in ActivityDetail
-2. `focusLocation({ id, category, dayId })` called - context state updated
-3. `panMap()` called - sets pan target
-4. `highlightPin()` called - marks pin for highlight  
-5. `navigateToPanel(2)` called - switches to Map panel
-6. MapFilterHeader receives `focusedLocation` via props
-7. **Effect 1 fires**: Sets `activeCategories` and `activeDays` state, sets ref flag
-8. React recalculates `filteredLocations` memo
-9. **Effect that notifies parent fires**: `onFilteredLocationsChange(filteredLocations)`
-10. **Effect 2 fires**: Sees ref flag is true, calls `onFocusConsumed()` via rAF
-11. Map receives new filtered locations, redraws markers
-12. Pan effect in RightColumn fires, map flies to target
+The dismissible banner provides:
+- Visual feedback showing what's being filtered
+- Location count for context
+- "Show All" button to clear filters and return to normal view
+
+---
+
+## Future Extensions (Not in This Scope)
+
+- **Show Favorites on Map** - Add button in FavoritesTab header
+- **Show Completed on Map** - Filter to visited/completed locations
+- **Show Category on Map** - Already exists via category filter buttons
 
 ---
 
 ## Testing Checklist
 
-- Click "Show on Map" on a dining activity - verify filters update to show that category and day
-- Click "Show on Map" on a beach activity - verify correct filtering
-- Click "Show on Map" when already filtered to different category - verify filters change
-- Test on mobile - verify panel navigation to map works
-- Verify pin is highlighted after navigation
+- [ ] Single item "Show on Map" still works (backward compatibility)
+- [ ] Day "Show Day on Map" button shows all day's locations on map
+- [ ] Banner shows correct label and location count
+- [ ] Map auto-zooms to fit all highlighted pins
+- [ ] "Show All" button clears highlight and removes banner
+- [ ] Toast appears when day has no locations with coordinates
+- [ ] Button click doesn't collapse/expand day card
+- [ ] Mobile: Panel navigation works correctly
 
