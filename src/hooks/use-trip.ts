@@ -133,23 +133,37 @@ export function useActiveTrip() {
 // Select a trip and persist to localStorage
 export function useSelectTrip() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (tripId: string) => {
       localStorage.setItem(SELECTED_TRIP_KEY, tripId);
-      
+
       const { data, error } = await supabase
         .from('trips')
         .select('*')
         .eq('id', tripId)
         .single();
-      
+
       if (error) throw error;
       return data as Trip;
     },
     onSuccess: (trip) => {
+      // Clear all trip-dependent queries to prevent stale data from previous trip
+      // This ensures clean state when switching between trips
+      queryClient.removeQueries({ queryKey: ['itinerary-days'] });
+      queryClient.removeQueries({ queryKey: ['all-itinerary-items'] });
+      queryClient.removeQueries({ queryKey: ['trip-locations'] });
+      queryClient.removeQueries({ queryKey: ['items-for-locations'] });
+      queryClient.removeQueries({ queryKey: ['locations'] });
+      queryClient.removeQueries({ queryKey: ['locations-with-days'] });
+      queryClient.removeQueries({ queryKey: ['day-locations'] });
+      queryClient.removeQueries({ queryKey: ['memories'] });
+      queryClient.removeQueries({ queryKey: ['day-memories'] });
+      queryClient.removeQueries({ queryKey: ['location-memories'] });
+      queryClient.removeQueries({ queryKey: ['accommodations'] });
+
+      // Set the new active trip
       queryClient.setQueryData(['active-trip'], trip);
-      queryClient.invalidateQueries({ queryKey: ['active-trip'] });
       toast.success(`Switched to ${trip.title}`);
     },
     onError: () => {

@@ -193,30 +193,37 @@ export function useDeleteMemory() {
 // Upload media to a memory
 export function useUploadMemoryMedia() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      memoryId, 
+    mutationFn: async ({
+      memoryId,
       tripId,
-      file, 
-      mediaType 
-    }: { 
-      memoryId: string; 
+      file,
+      mediaType
+    }: {
+      memoryId: string;
       tripId: string;
-      file: File; 
+      file: File;
       mediaType: MediaType;
     }) => {
       const mediaId = crypto.randomUUID();
       const ext = file.name.split('.').pop() || 'jpg';
       const storagePath = `trips/${tripId}/memories/${memoryId}/${mediaId}/original.${ext}`;
-      
+
       // Upload file
       const { error: uploadError } = await supabase.storage
         .from('trip-photos')
         .upload(storagePath, file);
-      
+
       if (uploadError) throw uploadError;
-      
+
+      // Get memory info for cache invalidation
+      const { data: memory } = await supabase
+        .from('memories')
+        .select('day_id, location_id')
+        .eq('id', memoryId)
+        .single();
+
       // Create media record
       const { data, error: dbError } = await supabase
         .from('memory_media')
@@ -229,14 +236,18 @@ export function useUploadMemoryMedia() {
         })
         .select()
         .single();
-      
+
       if (dbError) throw dbError;
-      return data as MemoryMedia;
+      return { media: data as MemoryMedia, tripId, dayId: memory?.day_id, locationId: memory?.location_id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['memories'] });
-      queryClient.invalidateQueries({ queryKey: ['day-memories'] });
-      queryClient.invalidateQueries({ queryKey: ['location-memories'] });
+    onSuccess: ({ tripId, dayId, locationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['memories', tripId] });
+      if (dayId) {
+        queryClient.invalidateQueries({ queryKey: ['day-memories', dayId] });
+      }
+      if (locationId) {
+        queryClient.invalidateQueries({ queryKey: ['location-memories', locationId] });
+      }
       toast.success('Photo uploaded!');
     },
     onError: (error) => {
@@ -249,29 +260,53 @@ export function useUploadMemoryMedia() {
 // Delete a single media item
 export function useDeleteMemoryMedia() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ mediaId, storagePath, thumbnailPath }: { 
-      mediaId: string; 
+    mutationFn: async ({ mediaId, storagePath, thumbnailPath }: {
+      mediaId: string;
       storagePath: string;
       thumbnailPath?: string | null;
     }) => {
+      // Get memory info for cache invalidation before deleting
+      const { data: mediaRecord } = await supabase
+        .from('memory_media')
+        .select('memory_id')
+        .eq('id', mediaId)
+        .single();
+
+      let memoryInfo = null;
+      if (mediaRecord?.memory_id) {
+        const { data } = await supabase
+          .from('memories')
+          .select('trip_id, day_id, location_id')
+          .eq('id', mediaRecord.memory_id)
+          .single();
+        memoryInfo = data;
+      }
+
       // Delete from storage
       const paths = [storagePath, thumbnailPath].filter(Boolean) as string[];
       await supabase.storage.from('trip-photos').remove(paths);
-      
+
       // Delete record
       const { error } = await supabase
         .from('memory_media')
         .delete()
         .eq('id', mediaId);
-      
+
       if (error) throw error;
+      return memoryInfo;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['memories'] });
-      queryClient.invalidateQueries({ queryKey: ['day-memories'] });
-      queryClient.invalidateQueries({ queryKey: ['location-memories'] });
+    onSuccess: (memoryInfo) => {
+      if (memoryInfo) {
+        queryClient.invalidateQueries({ queryKey: ['memories', memoryInfo.trip_id] });
+        if (memoryInfo.day_id) {
+          queryClient.invalidateQueries({ queryKey: ['day-memories', memoryInfo.day_id] });
+        }
+        if (memoryInfo.location_id) {
+          queryClient.invalidateQueries({ queryKey: ['location-memories', memoryInfo.location_id] });
+        }
+      }
       toast.success('Photo deleted');
     },
     onError: (error) => {

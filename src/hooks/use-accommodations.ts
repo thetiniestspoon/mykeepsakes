@@ -51,7 +51,7 @@ export function useSelectedAccommodation() {
 export function useAddAccommodation() {
   const queryClient = useQueryClient();
   const { data: trip } = useActiveTrip();
-  
+
   return useMutation({
     mutationFn: async (input: AccommodationInsert) => {
       // Get max sort_order for new item
@@ -62,9 +62,9 @@ export function useAddAccommodation() {
         .eq('is_deprioritized', false)
         .order('sort_order', { ascending: false })
         .limit(1);
-      
+
       const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
-      
+
       const { data, error } = await supabase
         .from('accommodations')
         .insert({
@@ -75,12 +75,12 @@ export function useAddAccommodation() {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -89,7 +89,7 @@ export function useAddAccommodation() {
 export function useSelectAccommodation() {
   const queryClient = useQueryClient();
   const { data: trip } = useActiveTrip();
-  
+
   return useMutation({
     mutationFn: async ({ id, details }: { id: string; details: AccommodationSelectDetails }) => {
       // First, unselect any currently selected accommodation
@@ -98,7 +98,7 @@ export function useSelectAccommodation() {
         .update({ is_selected: false })
         .eq('trip_id', trip!.id)
         .eq('is_selected', true);
-      
+
       // Then select the new one with details
       const { data, error } = await supabase
         .from('accommodations')
@@ -115,12 +115,12 @@ export function useSelectAccommodation() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -128,7 +128,8 @@ export function useSelectAccommodation() {
 // Unselect accommodation (move back to candidates)
 export function useUnselectAccommodation() {
   const queryClient = useQueryClient();
-  
+  const { data: trip } = useActiveTrip();
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -138,11 +139,11 @@ export function useUnselectAccommodation() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -150,7 +151,8 @@ export function useUnselectAccommodation() {
 // Update accommodation (for editing details)
 export function useUpdateAccommodation() {
   const queryClient = useQueryClient();
-  
+  const { data: trip } = useActiveTrip();
+
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Accommodation> }) => {
       const { data, error } = await supabase
@@ -162,12 +164,12 @@ export function useUpdateAccommodation() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -175,7 +177,8 @@ export function useUpdateAccommodation() {
 // Reorder candidates (batch update sort_order)
 export function useReorderAccommodations() {
   const queryClient = useQueryClient();
-  
+  const { data: trip } = useActiveTrip();
+
   return useMutation({
     mutationFn: async (updates: { id: string; sort_order: number }[]) => {
       // Batch update using Promise.all
@@ -189,7 +192,7 @@ export function useReorderAccommodations() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -197,7 +200,8 @@ export function useReorderAccommodations() {
 // Deprioritize (gray out, send to bottom)
 export function useDeprioritizeAccommodation() {
   const queryClient = useQueryClient();
-  
+  const { data: trip } = useActiveTrip();
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -208,11 +212,11 @@ export function useDeprioritizeAccommodation() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -221,7 +225,7 @@ export function useDeprioritizeAccommodation() {
 export function useUnhideAccommodation() {
   const queryClient = useQueryClient();
   const { data: trip } = useActiveTrip();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       // Get max sort_order of non-deprioritized items
@@ -232,9 +236,9 @@ export function useUnhideAccommodation() {
         .eq('is_deprioritized', false)
         .order('sort_order', { ascending: false })
         .limit(1);
-      
+
       const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
-      
+
       const { error } = await supabase
         .from('accommodations')
         .update({
@@ -243,11 +247,11 @@ export function useUnhideAccommodation() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }
@@ -255,18 +259,19 @@ export function useUnhideAccommodation() {
 // Delete accommodation
 export function useDeleteAccommodation() {
   const queryClient = useQueryClient();
-  
+  const { data: trip } = useActiveTrip();
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('accommodations')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, trip?.id] });
     },
   });
 }

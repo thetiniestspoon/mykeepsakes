@@ -184,21 +184,21 @@ export function useDeleteLocation() {
 // Link location to a day
 export function useLinkLocationToDay() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ locationId, dayId }: { locationId: string; dayId: string }) => {
+    mutationFn: async ({ locationId, dayId, tripId }: { locationId: string; dayId: string; tripId: string }) => {
       const { data, error } = await supabase
         .from('location_days')
         .insert({ location_id: locationId, day_id: dayId })
         .select()
         .single();
-      
+
       if (error) throw error;
-      return data as LocationDay;
+      return { data: data as LocationDay, tripId, dayId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations-with-days'] });
-      queryClient.invalidateQueries({ queryKey: ['day-locations'] });
+    onSuccess: ({ tripId, dayId }) => {
+      queryClient.invalidateQueries({ queryKey: ['locations-with-days', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['day-locations', dayId] });
     }
   });
 }
@@ -206,20 +206,21 @@ export function useLinkLocationToDay() {
 // Unlink location from a day
 export function useUnlinkLocationFromDay() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ locationId, dayId }: { locationId: string; dayId: string }) => {
+    mutationFn: async ({ locationId, dayId, tripId }: { locationId: string; dayId: string; tripId: string }) => {
       const { error } = await supabase
         .from('location_days')
         .delete()
         .eq('location_id', locationId)
         .eq('day_id', dayId);
-      
+
       if (error) throw error;
+      return { tripId, dayId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations-with-days'] });
-      queryClient.invalidateQueries({ queryKey: ['day-locations'] });
+    onSuccess: ({ tripId, dayId }) => {
+      queryClient.invalidateQueries({ queryKey: ['locations-with-days', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['day-locations', dayId] });
     }
   });
 }
