@@ -139,19 +139,69 @@ export function RightColumn({ className }: RightColumnProps) {
   // Track if we have a pending pan to skip auto-fit
   const hasPendingPan = panToLocation !== null;
 
-  // Handle map marker clicks - navigate to Details panel
+  // Handle map marker clicks - navigate to Details panel with full activity data
   const handleMarkerClick = (location: MapLocation) => {
-    selectItem('location', location.id, location);
+    // Find activity linked to this location
+    let foundActivity: typeof days[0]['activities'][0] | null = null;
+    let foundDayId: string | null = null;
     
-    // Find activities linked to this location and scroll to first one
     for (const day of days) {
       const linkedActivity = day.activities.find(a => 
-        a.location?.name === location.name
+        a.location?.id === location.id
       );
       if (linkedActivity) {
+        foundActivity = linkedActivity;
+        foundDayId = day.id;
         scrollToItem(linkedActivity.id);
         break;
       }
+    }
+    
+    if (foundActivity && foundDayId) {
+      // Build ItineraryItem-shaped data for ActivityDetail
+      const activityData = {
+        id: foundActivity.id,
+        title: foundActivity.title,
+        description: foundActivity.description,
+        start_time: foundActivity.rawStartTime || null,
+        end_time: foundActivity.rawEndTime || null,
+        category: foundActivity.category,
+        status: foundActivity.status,
+        location_id: foundActivity.location?.id || null,
+        location: foundActivity.location ? {
+          id: foundActivity.location.id,
+          name: foundActivity.location.name,
+          lat: foundActivity.location.lat,
+          lng: foundActivity.location.lng,
+          category: foundActivity.location.category || foundActivity.category,
+          trip_id: trip?.id || '',
+          address: foundActivity.location.address || null,
+          phone: null,
+          url: null,
+          notes: null,
+          visited_at: null,
+          created_at: '',
+          updated_at: '',
+        } : null,
+        link: foundActivity.link,
+        link_label: foundActivity.linkLabel,
+        phone: foundActivity.phone,
+        notes: foundActivity.notes,
+        day_id: foundDayId,
+        trip_id: trip?.id || '',
+        item_type: foundActivity.itemType,
+        source: 'manual' as const,
+        external_ref: null,
+        sort_index: 0,
+        completed_at: foundActivity.completedAt || null,
+        created_at: '',
+        updated_at: '',
+      };
+      
+      selectItem('activity', foundActivity.id, activityData);
+    } else {
+      // Fallback for locations without activities (e.g., lodging)
+      selectItem('location', location.id, location);
     }
     
     // Navigate to Details panel (index 1)
