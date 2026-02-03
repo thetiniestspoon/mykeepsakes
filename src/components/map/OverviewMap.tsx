@@ -103,6 +103,12 @@ const createColoredIcon = (color: string, pinState?: string, index?: number) => 
           0%, 100% { box-shadow: 0 0 8px 3px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0,0,0,0.3); }
           50% { box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.6), 0 2px 6px rgba(0,0,0,0.3); }
         }
+        .marker-dragging .marker-pin {
+          transform: scale(1.2) rotate(-45deg) translateY(-8px) !important;
+          box-shadow: 0 12px 24px rgba(0,0,0,0.4) !important;
+          filter: brightness(1.1);
+          transition: all 0.15s ease-out;
+        }
       </style>
     `,
     iconSize: [28, 28],
@@ -137,6 +143,8 @@ interface OverviewMapProps {
   onMapReady?: (map: L.Map) => void;
   /** Skip automatic bounds fitting (e.g., when manually panning) */
   skipBoundsFit?: boolean;
+  /** Callback when a location is dragged to a new position */
+  onLocationDrag?: (locationId: string, newLat: number, newLng: number) => void;
 }
 
 export function OverviewMap({ 
@@ -148,6 +156,7 @@ export function OverviewMap({
   zoom = 13,
   onMapReady,
   skipBoundsFit = false,
+  onLocationDrag,
 }: OverviewMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -222,14 +231,83 @@ export function OverviewMap({
       const pinState = isHighlighted ? 'highlighted' : location.pinState;
       const icon = createColoredIcon(color, pinState, index);
       
-      const marker = L.marker([location.lat, location.lng], { icon })
-        .bindPopup(`
+      // Create marker (starts as non-draggable)
+      const marker = L.marker([location.lat, location.lng], { 
+        icon,
+        draggable: false 
+      }).bindPopup(`
           <div style="min-width: 150px;">
             <strong>${location.name}</strong>
             ${location.dayLabel ? `<br/><span style="color: #666; font-size: 0.85em;">${location.dayLabel}</span>` : ''}
             ${location.address ? `<br/><span style="color: #888; font-size: 0.85em;">${location.address}</span>` : ''}
           </div>
         `);
+
+      // Long-press detection for drag-to-move
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+      let isDragging = false;
+
+      const startLongPress = () => {
+        longPressTimer = setTimeout(() => {
+          // Enable dragging after 500ms hold
+          marker.dragging?.enable();
+          isDragging = true;
+          
+          // Visual feedback - add "dragging" class
+          const el = marker.getElement();
+          el?.classList.add('marker-dragging');
+          
+          // Disable map dragging while moving pin
+          mapInstanceRef.current?.dragging.disable();
+          mapInstanceRef.current?.touchZoom.disable();
+        }, 500);
+      };
+
+      const cancelLongPress = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+
+      // Mouse/touch events for long-press detection
+      marker.on('mousedown', startLongPress);
+      marker.on('touchstart', startLongPress);
+      marker.on('mouseup', cancelLongPress);
+      marker.on('mouseleave', cancelLongPress);
+      marker.on('touchend', () => {
+        cancelLongPress();
+        // If we were dragging, re-enable map after a short delay
+        if (isDragging) {
+          setTimeout(() => {
+            mapInstanceRef.current?.dragging.enable();
+            mapInstanceRef.current?.touchZoom.enable();
+          }, 100);
+        }
+      });
+      marker.on('touchcancel', cancelLongPress);
+
+      // Handle drag end - save new position
+      marker.on('dragend', () => {
+        if (!isDragging) return;
+        
+        const newLatLng = marker.getLatLng();
+        
+        // Disable dragging again
+        marker.dragging?.disable();
+        isDragging = false;
+        
+        // Re-enable map dragging
+        mapInstanceRef.current?.dragging.enable();
+        mapInstanceRef.current?.touchZoom.enable();
+        
+        // Remove visual feedback
+        const el = marker.getElement();
+        el?.classList.remove('marker-dragging');
+        
+        // Call callback with new position
+        onLocationDrag?.(location.id, newLatLng.lat, newLatLng.lng);
+      });
 
       if (onMarkerClick) {
         marker.on('click', () => onMarkerClick(location));
@@ -249,7 +327,7 @@ export function OverviewMap({
 
     // Invalidate size to handle container changes
     mapInstanceRef.current.invalidateSize();
-  }, [locations, bounds, onMarkerClick, highlightedPinIds, skipBoundsFit]);
+  }, [locations, bounds, onMarkerClick, highlightedPinIds, skipBoundsFit, onLocationDrag]);
 
   return (
     <div 
