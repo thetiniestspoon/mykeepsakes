@@ -1,353 +1,146 @@
 
-# Time-Based Itinerary Drag Implementation Plan
 
-## Executive Summary
+# Integrate Time-Based Drag Into Dashboard
 
-Transform the position-based drag-and-drop reordering into a time-based drag system where vertical movement adjusts start times with velocity-sensitive increments, enabling cross-day movement.
+## Problem Identified
 
----
+The **Time-Based Itinerary Drag** system was implemented in `DatabaseItineraryTab.tsx`, but this component is **not currently used anywhere in the app**. 
 
-## Current Architecture
+The main dashboard (`Index.tsx`) renders:
+- `LeftColumn` → `DashboardItinerary` → `CompactDayCard` → `CompactActivityCard`
 
-The existing implementation has:
-- **Isolated DndContext per day**: Each `DatabaseDayCard` wraps its activities in its own `DndContext`, limiting drag to within a single day
-- **Sort-index based reordering**: `useReorderDayItems` updates `sort_index` values after drag
-- **Time stored separately**: `start_time` and `end_time` in database, formatted via `formatTime()` for display
-- **LegacyActivity interface**: Includes `rawStartTime` and `rawEndTime` for access to raw database values
+This is a separate, compact view designed for the dashboard's left column. It displays activities but has no drag-and-drop functionality.
 
 ---
 
-## Implementation Phases
+## Two Integration Options
 
-### Phase 1: Tap Interactions (Quick Win)
-Make time/title clickable to open activity details in the center panel.
+### Option A: Replace Compact View with Full Itinerary Tab
 
-**File: `src/components/itinerary/DatabaseActivityCard.tsx`**
+Replace `DashboardItinerary` with `DatabaseItineraryTab` in the left column.
 
-Add clickable region for time and title:
-```tsx
-// Add prop for selecting activity
-interface DatabaseActivityCardProps {
-  activity: LegacyActivity;
-  onSelect?: () => void;  // NEW
-  onOpenMap?: ...
-}
+**Pros:**
+- All the new drag functionality immediately available
+- Single source of truth for itinerary UI
 
-// Wrap time/title in clickable div
-<div 
-  onClick={onSelect}
-  className={cn(
-    "flex-1 min-w-0",
-    onSelect && "cursor-pointer hover:bg-muted/30 rounded-md -mx-1 px-1 py-0.5 transition-colors"
-  )}
->
-  {/* category badge, time, title */}
-</div>
-```
-
-**File: `src/components/itinerary/DatabaseDayCard.tsx`**
-
-Wire up selection via `useDashboardSelection`:
-```tsx
-const { setSelectedActivity } = useDashboardSelection();
-
-<DatabaseActivityCard 
-  activity={activity}
-  onSelect={() => setSelectedActivity(activity)}
-  ...
-/>
-```
+**Cons:**
+- `DatabaseItineraryTab` was designed as a full-page view, not a compact column
+- May have layout/scrolling issues in the narrow left column
+- Progress header, view mode toggles, etc. may be too large
 
 ---
 
-### Phase 2: Drag Handle Redesign
-Make the drag handle always visible for better affordance.
+### Option B: Add Drag Functionality to Compact View (Recommended)
 
-**File: `src/components/itinerary/DraggableActivity.tsx`**
+Keep the compact dashboard design but wire in the time-based drag system.
 
-Current: Handle hidden, appears on hover  
-New: Always visible on left edge with subtle styling
+**Changes Required:**
 
-```tsx
-<button
-  className={cn(
-    "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 p-1",
-    "text-muted-foreground/50 hover:text-muted-foreground",
-    "cursor-grab active:cursor-grabbing touch-none",
-    "transition-colors"  // Remove opacity transition, keep color
-  )}
-  {...attributes}
-  {...listeners}
-  aria-label="Drag to reorder"
->
-  <GripVertical className="w-4 h-4" />
-</button>
-```
+#### 1. Lift DndContext to DashboardItinerary
 
----
+**File: `src/components/dashboard/DashboardItinerary.tsx`**
 
-### Phase 3: Lift DndContext to Parent Level
-Enable cross-day dragging by unifying the drag context.
-
-**File: `src/components/DatabaseItineraryTab.tsx`**
-
-Add unified DndContext wrapping all days:
+Add unified `DndContext` wrapping all `CompactDayCard` components:
 
 ```tsx
-import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, DragStartEvent, DragMoveEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { useFlattenedItinerary } from '@/hooks/use-flattened-itinerary';
+import { useTimeBasedReorder } from '@/hooks/use-time-based-reorder';
+import { createDragState, updateDragState, formatTimeForDisplay } from '@/lib/time-drag-modifier';
 
+// Add state for drag tracking
 const [activeId, setActiveId] = useState<string | null>(null);
 const [activeItem, setActiveItem] = useState<LegacyActivity | null>(null);
 const [overDayId, setOverDayId] = useState<string | null>(null);
+const [previewTimes, setPreviewTimes] = useState<Map<string, string>>(new Map());
+const dragStateRef = useRef<TimeDragState | null>(null);
 
-const allItems = useMemo(() => 
-  days.flatMap(day => day.activities.map(a => ({
-    ...a,
-    dayId: day.id,
-    dayDate: day.date
-  }))),
-  [days]
-);
+// Use flattened items and reorder mutation
+const flattenedItems = useFlattenedItinerary(days);
+const timeReorder = useTimeBasedReorder();
 
-function handleDragStart(event: DragStartEvent) {
-  const item = allItems.find(a => a.id === event.active.id);
-  setActiveId(String(event.active.id));
-  setActiveItem(item || null);
-}
-
-function handleDragOver(event: DragOverEvent) {
-  // Detect which day we're over
-  const overId = event.over?.id;
-  // ... determine target day
-}
-
-function handleDragEnd(event: DragEndEvent) {
-  // Calculate new time and day based on drop position
-  // Call timeReorder mutation
-}
-
-return (
-  <DndContext
-    sensors={sensors}
-    onDragStart={handleDragStart}
-    onDragOver={handleDragOver}
-    onDragEnd={handleDragEnd}
-  >
-    {daysToRender.map(day => (
-      <DatabaseDayCard 
-        key={day.id} 
-        day={day}
-        isReceivingDrag={overDayId === day.id && activeItem?.dayId !== day.id}
-      />
-    ))}
-    
-    <DragOverlay>
-      {activeItem && <DraggedActivityPreview activity={activeItem} />}
-    </DragOverlay>
-  </DndContext>
-);
+// Wrap existing content with DndContext
+<DndContext
+  sensors={sensors}
+  onDragStart={handleDragStart}
+  onDragMove={handleDragMove}
+  onDragOver={handleDragOver}
+  onDragEnd={handleDragEnd}
+>
+  {/* existing day cards */}
+  <DragOverlay>...</DragOverlay>
+</DndContext>
 ```
 
-**File: `src/components/itinerary/DatabaseDayCard.tsx`**
+#### 2. Add Sortable Wrapper to CompactActivityCard
 
-Remove internal DndContext, keep SortableContext:
+**File: `src/components/dashboard/CompactDayCard.tsx`**
+
+Add `SortableContext` for activities within each day:
 
 ```tsx
-// Remove: <DndContext> wrapper
-// Keep: <SortableContext items={day.activities.map(a => a.id)}>
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 
-// Add receiving state prop
-interface DatabaseDayCardProps {
+<CollapsibleContent>
+  <SortableContext items={day.activities.map(a => a.id)} strategy={verticalListSortingStrategy}>
+    <div className="p-2 space-y-1">
+      {day.activities.map((activity) => (
+        <DraggableActivity key={activity.id} id={activity.id} originalTime={activity.rawStartTime}>
+          <CompactActivityCard
+            activity={activity}
+            dayId={day.id}
+            isNextActivity={activity.id === nextActivityId}
+            previewTime={previewTimes?.get(activity.id)}
+          />
+        </DraggableActivity>
+      ))}
+    </div>
+  </SortableContext>
+</CollapsibleContent>
+```
+
+#### 3. Add Props to CompactDayCard
+
+**File: `src/components/dashboard/CompactDayCard.tsx`**
+
+Add receiving state and preview times:
+
+```tsx
+interface CompactDayCardProps {
   day: LegacyDay;
-  isReceivingDrag?: boolean;  // NEW
+  nextActivityId?: string | null;
+  isToday?: boolean;
+  isReceivingDrag?: boolean;         // NEW
+  previewTimes?: Map<string, string>; // NEW
 }
 
-// Add visual indication when receiving
-<Card className={cn(
-  "shadow-warm overflow-hidden",
-  isReceivingDrag && "ring-2 ring-dashed ring-primary/50 bg-primary/5"
+// Visual feedback when receiving drag
+<div className={cn(
+  "rounded-lg border bg-card overflow-hidden",
+  isToday && "ring-2 ring-primary",
+  isReceivingDrag && "ring-2 ring-dashed ring-primary/50 animate-day-expand"
 )}>
 ```
 
----
+#### 4. Update CompactActivityCard for Preview Time
 
-### Phase 4: Flattened Item List Hook
-Create utility for unified item management across days.
+**File: `src/components/dashboard/CompactActivityCard.tsx`**
 
-**File: `src/hooks/use-flattened-itinerary.ts` (NEW)**
-
-```tsx
-export interface FlattenedItem {
-  id: string;
-  dayId: string;
-  dayDate: string;      // ISO date "2026-07-15"
-  dayIndex: number;     // Day position (0-based)
-  startTime: string | null;  // "HH:mm:ss" or null
-  endTime: string | null;
-  sortIndex: number;
-  globalIndex: number;  // Position across ALL items
-  title: string;
-  category: string;
-}
-
-export function useFlattenedItinerary(days: LegacyDay[]): FlattenedItem[] {
-  return useMemo(() => {
-    let globalIdx = 0;
-    return days.flatMap((day, dayIndex) => 
-      day.activities.map(activity => ({
-        id: activity.id,
-        dayId: day.id,
-        dayDate: extractISODate(day.date),  // Parse formatted date back to ISO
-        dayIndex,
-        startTime: activity.rawStartTime || null,
-        endTime: activity.rawEndTime || null,
-        sortIndex: globalIdx,
-        globalIndex: globalIdx++,
-        title: activity.title,
-        category: activity.category,
-      }))
-    );
-  }, [days]);
-}
-```
-
----
-
-### Phase 5: Velocity-Sensitive Time Drag
-Track drag velocity to determine time increment granularity.
-
-**File: `src/lib/time-drag-modifier.ts` (NEW)**
+Accept and display preview time during drag:
 
 ```tsx
-export interface TimeDragState {
-  startY: number;
-  lastY: number;
-  lastTimestamp: number;
-  velocity: number;       // px/ms
-  accumulatedDelta: number;
-  currentTime: string;    // Preview time during drag
-  originalTime: string;
-}
-
-const PIXELS_PER_MINUTE_SLOW = 8;   // Slow drag: 8px = 1 min
-const PIXELS_PER_MINUTE_FAST = 24;  // Fast drag: 24px = 1 min
-
-export function calculateTimeIncrement(velocity: number): number {
-  const absVelocity = Math.abs(velocity);
-  if (absVelocity < 0.3) return 5;   // Slow: 5-min increments
-  if (absVelocity < 0.8) return 15;  // Medium: 15-min increments
-  return 30;                          // Fast: 30-min increments
-}
-
-export function calculateNewTime(
-  originalTime: string,
-  deltaY: number,
-  velocity: number
-): string {
-  const increment = calculateTimeIncrement(velocity);
-  const pixelsPerIncrement = velocity < 0.3 ? PIXELS_PER_MINUTE_SLOW * increment : PIXELS_PER_MINUTE_FAST;
-  
-  const steps = Math.floor(Math.abs(deltaY) / pixelsPerIncrement);
-  const direction = deltaY < 0 ? -1 : 1;  // Up = earlier, Down = later
-  const minutesDelta = steps * increment * direction;
-  
-  return addMinutesToTime(originalTime, minutesDelta);
-}
-
-export function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m, s] = time.split(':').map(Number);
-  let totalMinutes = h * 60 + m + minutes;
-  
-  // Clamp to 00:00 - 23:59
-  totalMinutes = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
-  
-  const newH = Math.floor(totalMinutes / 60);
-  const newM = totalMinutes % 60;
-  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}:${String(s || 0).padStart(2, '0')}`;
-}
-```
-
----
-
-### Phase 6: Live Time Preview During Drag
-Update the activity's displayed time in real-time during drag.
-
-**File: `src/components/itinerary/DraggableActivity.tsx`**
-
-Extend to track velocity and expose preview time:
-
-```tsx
-interface DraggableActivityProps {
-  id: string;
-  children: React.ReactNode;
-  disabled?: boolean;
-  originalTime?: string;
-  onTimePreview?: (previewTime: string | null) => void;
-}
-
-export function DraggableActivity({ 
-  id, 
-  children, 
-  disabled, 
-  originalTime,
-  onTimePreview 
-}: DraggableActivityProps) {
-  const dragState = useRef<TimeDragState | null>(null);
-  
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ 
-    id, 
-    disabled,
-    // Custom data for time tracking
-    data: { originalTime }
-  });
-  
-  // Track velocity during drag
-  useEffect(() => {
-    if (isDragging && transform) {
-      // Update preview time based on Y delta
-      const newTime = calculateNewTime(originalTime, transform.y, dragState.current?.velocity || 0);
-      onTimePreview?.(newTime);
-    } else {
-      onTimePreview?.(null);
-    }
-  }, [isDragging, transform?.y]);
-  
-  // Render children with cloned time prop
-  const childrenWithPreview = React.cloneElement(children as React.ReactElement, {
-    previewTime: isDragging ? previewTime : undefined
-  });
-  
-  return (
-    <div ref={setNodeRef} style={style} className={cn(...)}>
-      {/* drag handle */}
-      {childrenWithPreview}
-    </div>
-  );
-}
-```
-
-**File: `src/components/itinerary/DatabaseActivityCard.tsx`**
-
-Accept and display preview time:
-
-```tsx
-interface DatabaseActivityCardProps {
+interface CompactActivityCardProps {
   activity: LegacyActivity;
-  previewTime?: string;  // NEW: formatted time during drag
-  ...
+  dayId: string;
+  isNextActivity?: boolean;
+  previewTime?: string;  // NEW
 }
 
-// In render:
+// Display preview time with highlight
 {(previewTime || activity.time) && (
   <span className={cn(
-    "text-sm",
+    "text-xs",
     previewTime ? "text-primary font-medium" : "text-muted-foreground"
   )}>
     {previewTime || activity.time}
@@ -357,207 +150,44 @@ interface DatabaseActivityCardProps {
 
 ---
 
-### Phase 7: Time-Based Persistence
-Update the mutation to save new day and time after drag.
+## Files to Modify
 
-**File: `src/hooks/use-time-based-reorder.ts` (NEW)**
-
-```tsx
-export interface TimeReorderPayload {
-  itemId: string;
-  newDayId: string;
-  newStartTime: string;  // "HH:mm:ss"
-  newSortIndex: number;
-}
-
-export function useTimeBasedReorder() {
-  const queryClient = useQueryClient();
-  const { data: trip } = useActiveTrip();
-  
-  return useMutation({
-    mutationFn: async (payload: TimeReorderPayload) => {
-      // Calculate end time (preserve duration if known)
-      const { data: item } = await supabase
-        .from('itinerary_items')
-        .select('start_time, end_time')
-        .eq('id', payload.itemId)
-        .single();
-      
-      let newEndTime: string | null = null;
-      if (item?.start_time && item?.end_time) {
-        const duration = timeDifferenceInMinutes(item.start_time, item.end_time);
-        newEndTime = addMinutesToTime(payload.newStartTime, duration);
-      }
-      
-      const { error } = await supabase
-        .from('itinerary_items')
-        .update({
-          day_id: payload.newDayId,
-          start_time: payload.newStartTime,
-          end_time: newEndTime,
-          sort_index: payload.newSortIndex,
-        })
-        .eq('id', payload.itemId);
-      
-      if (error) throw error;
-    },
-    onMutate: async (payload) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['all-itinerary-items', trip?.id] });
-      const previous = queryClient.getQueryData(['all-itinerary-items', trip?.id]);
-      
-      queryClient.setQueryData(['all-itinerary-items', trip?.id], (old: ItineraryItem[]) => 
-        old.map(item => item.id === payload.itemId ? {
-          ...item,
-          day_id: payload.newDayId,
-          start_time: payload.newStartTime,
-          sort_index: payload.newSortIndex
-        } : item)
-      );
-      
-      return { previous };
-    },
-    onError: (err, payload, context) => {
-      queryClient.setQueryData(['all-itinerary-items', trip?.id], context?.previous);
-      toast.error('Failed to move activity');
-    },
-    onSuccess: () => {
-      // Show undo toast
-      toast.success('Activity moved', {
-        action: {
-          label: 'Undo',
-          onClick: () => {/* revert mutation */}
-        }
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-itinerary-items', trip?.id] });
-    }
-  });
-}
-```
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/DashboardItinerary.tsx` | Add unified DndContext, drag handlers, velocity tracking |
+| `src/components/dashboard/CompactDayCard.tsx` | Add SortableContext, DraggableActivity wrapper, receiving state |
+| `src/components/dashboard/CompactActivityCard.tsx` | Accept previewTime prop, display with highlight |
 
 ---
 
-### Phase 8: Cross-Day Visual Feedback
-Add "drawer opening" animation when dragging to a different day.
+## Implementation Notes
 
-**File: `src/index.css`**
+1. **Reuse existing hooks** - The `useFlattenedItinerary`, `useTimeBasedReorder`, and `time-drag-modifier` utilities created for `DatabaseItineraryTab` work perfectly here
 
-Add new animations:
-```css
-@keyframes day-expand {
-  from { 
-    transform: scaleY(1);
-    border-style: solid;
-  }
-  to { 
-    transform: scaleY(1.02);
-    border-style: dashed;
-  }
-}
+2. **Compact drag handle** - The existing `DraggableActivity` component already has the always-visible handle design; it just needs to wrap `CompactActivityCard` instead of `DatabaseActivityCard`
 
-.day-receiving-drag {
-  animation: day-expand 200ms ease-out forwards;
-  border-color: hsl(var(--primary) / 0.5);
-  background-color: hsl(var(--primary) / 0.03);
-}
-```
+3. **Smaller visual scale** - The compact cards are already smaller, so the drag interactions will feel proportionally the same
 
-**File: `tailwind.config.ts`**
-
-Add animation definition:
-```ts
-keyframes: {
-  // ... existing
-  "day-expand": {
-    "0%": { transform: "scaleY(1)" },
-    "100%": { transform: "scaleY(1.02)" },
-  },
-},
-animation: {
-  // ... existing
-  "day-expand": "day-expand 0.2s ease-out forwards",
-}
-```
+4. **Cross-day movement** - Works identically since the logic is in the parent `DndContext`
 
 ---
 
-### Phase 9: Map Button Redesign
-Make the map button more prominent.
+## Alternative: Keep Both Views
 
-**File: `src/components/itinerary/DatabaseActivityCard.tsx`**
+If you want BOTH the compact dashboard view AND a full itinerary view:
 
-Update map button to be a filled, circular button:
+1. Add a "View Full Itinerary" button/link in the dashboard
+2. Create a route or modal that shows `DatabaseItineraryTab`
+3. Keep drag-and-drop only in the full view
 
-```tsx
-{activity.location && onOpenMap && (
-  <button
-    onClick={() => onOpenMap({...})}
-    className={cn(
-      "w-8 h-8 rounded-full flex items-center justify-center",
-      "bg-accent/10 text-accent hover:bg-accent/20",
-      "transition-colors shadow-sm"
-    )}
-    aria-label="Show on map"
-  >
-    <MapPin className="w-4 h-4" />
-  </button>
-)}
-```
+This would require less immediate work but means users have two places to manage their itinerary.
 
 ---
 
-## Files Summary
+## Recommendation
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/DatabaseItineraryTab.tsx` | MODIFY | Add unified DndContext, drag overlay |
-| `src/components/itinerary/DatabaseDayCard.tsx` | MODIFY | Remove internal DndContext, add receiving state |
-| `src/components/itinerary/DraggableActivity.tsx` | MODIFY | Always-visible handle, velocity tracking, time preview |
-| `src/components/itinerary/DatabaseActivityCard.tsx` | MODIFY | Clickable time/title, map button redesign, preview time display |
-| `src/hooks/use-flattened-itinerary.ts` | CREATE | Unified item list across days |
-| `src/hooks/use-time-based-reorder.ts` | CREATE | Time-aware mutation with optimistic updates |
-| `src/lib/time-drag-modifier.ts` | CREATE | Velocity calculation and time math |
-| `src/index.css` | MODIFY | Add day-expand animation |
-| `tailwind.config.ts` | MODIFY | Add animation keyframe |
+**Option B** - Add drag to the compact dashboard view. This:
+- Uses the existing dashboard layout users are familiar with
+- Leverages all the hooks and utilities already created
+- Provides a consistent experience without navigation
 
----
-
-## Implementation Order
-
-| Priority | Phase | Effort | Risk |
-|----------|-------|--------|------|
-| 1 | Tap Interactions (Phase 1) | 1hr | Low |
-| 2 | Drag Handle (Phase 2) | 30min | Low |
-| 3 | Unified DndContext (Phase 3) | 2hr | Medium |
-| 4 | Flattened Hook (Phase 4) | 1hr | Low |
-| 5 | Velocity Drag (Phase 5-6) | 3hr | Medium |
-| 6 | Persistence (Phase 7) | 2hr | Medium |
-| 7 | Cross-Day Visuals (Phase 8) | 1hr | Low |
-| 8 | Map Button (Phase 9) | 30min | Low |
-
----
-
-## Open Design Decisions (Pre-Resolved)
-
-| Question | Decision |
-|----------|----------|
-| Time preview position | Update time in the item itself as it drags |
-| Velocity thresholds | Start with 0.3/0.8 px/ms, tune based on testing |
-| Stack limit for overlaps | None - keep all visible with offset |
-| Undo support | Yes - show "Undo" action in success toast |
-
----
-
-## Testing Checklist
-
-After implementation:
-- [ ] Tap activity title opens details in center panel
-- [ ] Drag handle is visible without hovering
-- [ ] Dragging up/down changes the displayed time in real-time
-- [ ] Slow drag = 5-min increments, fast = 30-min increments
-- [ ] Dragging to another day shows visual feedback
-- [ ] Drop updates both day_id and start_time in database
-- [ ] Undo toast appears and works after move
-- [ ] Cross-day drag works on mobile (touch)
