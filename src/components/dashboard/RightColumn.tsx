@@ -3,11 +3,12 @@ import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
 import { OverviewMap } from '@/components/map/OverviewMap';
 import { MapFilterHeader } from './MapFilterHeader';
 import { useDatabaseLocations, useDatabaseItinerary } from '@/hooks/use-database-itinerary';
-import { useLocations } from '@/hooks/use-locations';
+import { useLocations, useUpdateLocation } from '@/hooks/use-locations';
 import { useMemories } from '@/hooks/use-memories';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useFavorites } from '@/hooks/use-trip-data';
-import { useAccommodations } from '@/hooks/use-accommodations';
+import { useAccommodations, useUpdateAccommodation } from '@/hooks/use-accommodations';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { MapLocation, PinState } from '@/types/map';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,10 @@ export function RightColumn({ className }: RightColumnProps) {
   const { data: memories = [] } = useMemories(trip?.id);
   const { data: favorites = {} } = useFavorites();
   const { data: accommodations = [] } = useAccommodations();
+  
+  // Mutations for updating location coordinates
+  const updateLocation = useUpdateLocation();
+  const updateAccommodation = useUpdateAccommodation();
   
   const { 
     highlightedMapPins,
@@ -147,6 +152,34 @@ export function RightColumn({ className }: RightColumnProps) {
   const handleMapReady = useCallback((map: L.Map) => {
     leafletMapRef.current = map;
   }, []);
+
+  // Handle location drag - update coordinates in database
+  const handleLocationDrag = useCallback((locationId: string, newLat: number, newLng: number) => {
+    // Check if it's an accommodation
+    const isAccommodation = accommodations.some(a => a.id === locationId);
+    
+    if (isAccommodation) {
+      updateAccommodation.mutate({
+        id: locationId,
+        updates: {
+          location_lat: newLat,
+          location_lng: newLng,
+        },
+      }, {
+        onSuccess: () => toast.success('Location updated'),
+        onError: () => toast.error('Failed to update location'),
+      });
+    } else {
+      updateLocation.mutate({
+        id: locationId,
+        lat: newLat,
+        lng: newLng,
+      }, {
+        onSuccess: () => toast.success('Location updated'),
+        onError: () => toast.error('Failed to update location'),
+      });
+    }
+  }, [accommodations, updateLocation, updateAccommodation]);
 
   // Handle map panning when panToLocation changes
   useEffect(() => {
@@ -297,6 +330,7 @@ export function RightColumn({ className }: RightColumnProps) {
         <OverviewMap
           locations={filteredLocations || []}
           onMarkerClick={handleMarkerClick}
+          onLocationDrag={handleLocationDrag}
           highlightedPinIds={highlightedMapPins}
           onMapReady={handleMapReady}
           skipBoundsFit={hasPendingPan}
