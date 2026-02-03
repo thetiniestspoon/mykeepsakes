@@ -1,88 +1,121 @@
 
-# Fix Pin Drag Persistence - Query Cache Invalidation
+# Convert Map Icon to Interactive Button
 
-## Problem Identified
+## Overview
 
-The database update **IS working** (verified via network logs showing successful PATCH with status 200), but the UI doesn't reflect the change because of a query cache mismatch.
-
-### Root Cause
-
-Two different query keys are used for locations:
-
-| Hook | Query Key | Used By |
-|------|-----------|---------|
-| `useLocations()` | `['locations', tripId]` | Various detail components |
-| `useDatabaseLocations()` | `['trip-locations', tripId]` | Map (RightColumn) |
-
-When `useUpdateLocation` runs, it only invalidates `['locations', tripId]`, not `['trip-locations', tripId]`. The map's data source is never refreshed.
+Transform the static map pin icon in itinerary activity cards into a circular button that, when pressed, opens and focuses on that item in the map section.
 
 ---
 
-## Solution
+## Current Behavior
 
-Update `useUpdateLocation` in `use-locations.ts` to **also invalidate the `trip-locations` query** used by the map.
+- The `MapPin` icon is purely decorative - it just indicates an activity has a location
+- Located at the right end of each `CompactActivityCard`
+- Currently inside the main clickable button (clicking it selects the activity in the center panel)
 
 ---
 
-## Changes Required
+## New Behavior
 
-### File: `src/hooks/use-locations.ts`
+1. User taps the circular map button
+2. Map panel opens (on mobile, swipes to panel 2)
+3. Map pans to the activity's location
+4. Pin is highlighted with the activity's category filter applied
 
-In the `useUpdateLocation` hook's `onSuccess` callback, add invalidation for the `trip-locations` query:
+---
 
-```typescript
-// Update a location
-export function useUpdateLocation() {
-  const queryClient = useQueryClient();
+## Technical Changes
+
+### File: `src/components/dashboard/CompactActivityCard.tsx`
+
+**1. Separate the map button from the main clickable area**
+
+Move the map button outside the main `<button>` so it has its own click handler that doesn't trigger activity selection.
+
+**2. Create a styled circular button**
+
+```tsx
+{/* Show on Map button */}
+{activity.location && (
+  <button
+    onClick={handleShowOnMap}
+    className={cn(
+      "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+      "bg-primary/10 hover:bg-primary/20 active:bg-primary/30",
+      "text-primary transition-colors mr-1.5"
+    )}
+    aria-label="Show on map"
+  >
+    <MapPin className="w-3.5 h-3.5" />
+  </button>
+)}
+```
+
+**3. Add the map navigation handler**
+
+```tsx
+const handleShowOnMap = (e: React.MouseEvent) => {
+  e.stopPropagation(); // Don't trigger card selection
+  if (!dashboard || !activity.location) return;
   
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Location> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('locations')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data as Location;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['locations', data.trip_id] });
-      queryClient.invalidateQueries({ queryKey: ['locations-with-days', data.trip_id] });
-      // Also invalidate the map's location query
-      queryClient.invalidateQueries({ queryKey: ['trip-locations', data.trip_id] });
-    },
-    onError: (error) => {
-      console.error('Failed to update location:', error);
-      toast.error('Failed to update location');
-    }
+  // Navigate to map panel (index 2)
+  dashboard.navigateToPanel(2);
+  
+  // Focus the location (sets filters to match this item)
+  dashboard.focusLocation({
+    id: activity.location.id,
+    category: activity.category,
+    dayId: dayId,
   });
-}
+  
+  // Pan to the location
+  dashboard.panMap(activity.location.lat, activity.location.lng);
+  
+  // Highlight the pin
+  dashboard.highlightPin(activity.location.id);
+};
 ```
 
 ---
 
-## Why This Fixes the Issue
+## Updated Component Structure
 
-1. User drags pin → `onLocationDrag` called
-2. `updateLocation.mutate()` sends PATCH to Supabase (already works)
-3. Database updates → mutation succeeds
-4. `onSuccess` now invalidates `['trip-locations', trip_id]`
-5. `useDatabaseLocations()` refetches fresh data
-6. Map re-renders with new coordinates
-7. Pin stays in new position
+```text
+┌─────────────────────────────────────────────────────────┐
+│ [⋮] │ [🍽] │ 9:00a  Breakfast at Café    │ [🗺️] │
+│grip │icon │ title + time               │ map  │
+│     │     │ (clickable - selects item) │ btn  │
+└─────────────────────────────────────────────────────────┘
+         ↑                                    ↑
+    Main button area                    Separate map
+    (selects activity)                  button (opens
+                                        map panel)
+```
+
+---
+
+## Visual Design
+
+The circular map button will have:
+- **Size**: 28px (w-7 h-7)
+- **Shape**: Fully rounded (rounded-full)
+- **Color**: Primary color with 10% opacity background
+- **Hover**: 20% opacity
+- **Active/pressed**: 30% opacity
+- **Icon**: MapPin in primary color, 14px
+
+---
+
+## Edge Cases
+
+1. **Activities without location**: Button doesn't appear (same as current behavior)
+2. **Wide layout (desktop)**: `navigateToPanel()` is a no-op, but map still pans and highlights
+3. **Completed activities**: Button still works (users may want to see where they went)
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/hooks/use-locations.ts` | Add `queryClient.invalidateQueries({ queryKey: ['trip-locations', data.trip_id] })` to `useUpdateLocation`'s `onSuccess` |
-
----
-
-## Technical Note
-
-The accommodations update should already work correctly because `useAccommodations` uses query key `['accommodations', trip?.id]` and `useUpdateAccommodation` invalidates `['accommodations']` broadly - the map rebuilds its accommodation pins from that same query.
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/CompactActivityCard.tsx` | Add `handleShowOnMap` handler, convert MapPin to circular button, restructure layout to separate map button from main click area |
