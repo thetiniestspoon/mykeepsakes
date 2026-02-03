@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { TimelineItem } from './TimelineItem';
 import { NowIndicator } from './NowIndicator';
-import type { LegacyDay } from '@/hooks/use-database-itinerary';
+import type { LegacyDay, LegacyActivity } from '@/hooks/use-database-itinerary';
 import { getTripMode, useActiveTrip } from '@/hooks/use-trip';
 
 interface TimelineViewProps {
   day: LegacyDay;
   nextActivityId?: string | null;
-  onActivityClick?: (activity: any) => void;
+  onActivityClick?: (activity: LegacyActivity) => void;
 }
 
 // Parse time string like "10:00 AM" to minutes from midnight

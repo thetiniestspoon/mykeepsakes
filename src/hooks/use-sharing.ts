@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { TripShareLink } from '@/types/trip';
+import type { TripShareLink, Trip } from '@/types/trip';
 
 // Fetch share links for a trip
 export function useTripShareLinks(tripId: string | undefined) {
@@ -108,7 +108,7 @@ export function useValidateShareToken(token: string | undefined) {
         throw new Error('Share link has expired');
       }
       
-      return data as TripShareLink & { trip: any };
+      return data as TripShareLink & { trip: Trip };
     },
     enabled: !!token,
     retry: false

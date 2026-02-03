@@ -1,5 +1,5 @@
-import { MapPin, ImageOff } from 'lucide-react';
-import { getMemoryMediaUrl } from '@/hooks/use-memories';
+import { MapPin, ImageOff, Trash2 } from 'lucide-react';
+import { getMemoryMediaUrl, useDeleteMemory } from '@/hooks/use-memories';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Memory, Location } from '@/types/trip';
 
@@ -17,6 +17,7 @@ interface PlacePhotoGridProps {
 }
 
 export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: PlacePhotoGridProps) {
+  const deleteMemory = useDeleteMemory();
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -40,7 +41,8 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
     const allMedia = locationMemories.flatMap(m => 
       (m.media || []).map(media => ({
         ...media,
-        memoryNote: m.note
+        memoryNote: m.note,
+        memoryId: m.id
       }))
     );
     return { location, memories: locationMemories, media: allMedia };
@@ -51,7 +53,8 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
   const unassignedMedia = unassignedMemories.flatMap(m => 
     (m.media || []).map(media => ({
       ...media,
-      memoryNote: m.note
+      memoryNote: m.note,
+      memoryId: m.id
     }))
   );
 
@@ -87,18 +90,31 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
               }));
               
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onOpenPhoto(photos, index)}
-                  className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <img
-                    src={getMemoryMediaUrl(item.storage_path)}
-                    alt=""
-                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-                    loading="lazy"
-                  />
-                </button>
+                <div key={item.id} className="relative group flex-shrink-0">
+                  <button
+                    onClick={() => onOpenPhoto(photos, index)}
+                    className="w-24 h-24 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <img
+                      src={getMemoryMediaUrl(item.storage_path)}
+                      alt=""
+                      className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                      loading="lazy"
+                    />
+                  </button>
+                  {/* Delete button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this photo?')) {
+                        deleteMemory.mutate(item.memoryId);
+                      }
+                    }}
+                    className="absolute top-1 right-1 p-1 bg-destructive/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -123,18 +139,31 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
               }));
               
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onOpenPhoto(photos, index)}
-                  className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <img
-                    src={getMemoryMediaUrl(item.storage_path)}
-                    alt=""
-                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-                    loading="lazy"
-                  />
-                </button>
+                <div key={item.id} className="relative group flex-shrink-0">
+                  <button
+                    onClick={() => onOpenPhoto(photos, index)}
+                    className="w-24 h-24 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <img
+                      src={getMemoryMediaUrl(item.storage_path)}
+                      alt=""
+                      className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                      loading="lazy"
+                    />
+                  </button>
+                  {/* Delete button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this photo?')) {
+                        deleteMemory.mutate(item.memoryId);
+                      }
+                    }}
+                    className="absolute top-1 right-1 p-1 bg-destructive/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               );
             })}
           </div>

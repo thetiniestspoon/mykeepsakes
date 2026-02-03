@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, Route, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, Route, ChevronDown, Image as ImageIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -8,8 +8,9 @@ import { FavoriteHeart } from '@/components/ui/favorite-heart';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import type { ItineraryItem } from '@/types/trip';
 import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
-import { useUpdateItemStatus } from '@/hooks/use-database-itinerary';
+import { useUpdateItemStatus, type LegacyActivity } from '@/hooks/use-database-itinerary';
 import { MemoryCaptureDialog } from '@/components/album/MemoryCaptureDialog';
+import { DatabaseActivityEditor } from '@/components/itinerary/DatabaseActivityEditor';
 import { useTripDays } from '@/hooks/use-trip';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useLocations } from '@/hooks/use-locations';
@@ -50,6 +51,7 @@ export function ActivityDetail({
     data: locationMemories = []
   } = useLocationMemories(activity?.location_id || undefined);
   const [memoryDialogOpen, setMemoryDialogOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(true);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
@@ -116,6 +118,37 @@ export function ActivityDetail({
     setPhotoViewerIndex(index);
     setPhotoViewerOpen(true);
   };
+  
+  const handleEdit = () => {
+    setEditorOpen(true);
+  };
+  
+  // Convert ItineraryItem to LegacyActivity format for editor
+  const legacyActivity: LegacyActivity | null = activity ? {
+    id: activity.id,
+    time: activity.start_time ? undefined : undefined,
+    rawStartTime: activity.start_time || undefined,
+    rawEndTime: activity.end_time || undefined,
+    title: activity.title,
+    description: activity.description || '',
+    category: activity.category as LegacyActivity['category'],
+    location: activity.location ? {
+      id: activity.location.id,
+      lat: activity.location.lat!,
+      lng: activity.location.lng!,
+      name: activity.location.name,
+      address: activity.location.address || undefined,
+      category: activity.location.category || undefined,
+    } : undefined,
+    link: activity.link || undefined,
+    linkLabel: activity.link_label || undefined,
+    phone: activity.phone || undefined,
+    notes: activity.notes || undefined,
+    status: activity.status as LegacyActivity['status'],
+    completedAt: activity.completed_at || undefined,
+    dayId: activity.day_id,
+    itemType: activity.item_type as 'activity' | 'marker',
+  } : null;
 
   // Safe URL parsing for link display
   const getLinkHostname = (url: string) => {
@@ -196,6 +229,16 @@ export function ActivityDetail({
             <TooltipContent>Add memory</TooltipContent>
           </Tooltip>
 
+          {/* Edit Activity */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleEdit}>
+                <Pencil className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit activity</TooltipContent>
+          </Tooltip>
+
           {/* Get Directions */}
           {activity.location?.lat && activity.location?.lng && <Tooltip>
               <TooltipTrigger asChild>
@@ -271,5 +314,16 @@ export function ActivityDetail({
 
       {/* Photo Viewer */}
       {photoViewerData.length > 0 && <PhotoViewer photos={photoViewerData} initialIndex={photoViewerIndex} open={photoViewerOpen} onOpenChange={setPhotoViewerOpen} />}
+      
+      {/* Activity Editor */}
+      {trip && legacyActivity && (
+        <DatabaseActivityEditor
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          dayId={activity.day_id}
+          tripId={trip.id}
+          activity={legacyActivity}
+        />
+      )}
     </div>;
 }

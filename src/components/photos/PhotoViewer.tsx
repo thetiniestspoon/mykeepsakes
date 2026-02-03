@@ -83,9 +83,8 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
         title: currentPhoto.caption || 'Trip Photo',
         url: photoUrl,
       });
-    } catch (error) {
-      // User cancelled or share failed
-      console.log('Share cancelled or failed');
+    } catch {
+      // User cancelled share - this is expected behavior, no action needed
     }
   };
 

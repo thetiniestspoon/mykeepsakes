@@ -35,11 +35,16 @@ import { AnimatedCounter } from '@/components/ui/animated-counter';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { MemoryPromptDialog } from '@/components/itinerary/MemoryPromptDialog';
+import { MemoryCaptureDialog } from '@/components/album/MemoryCaptureDialog';
+import { DatabaseActivityEditor } from '@/components/itinerary/DatabaseActivityEditor';
 import { 
   useCollapsedSections,
   useToggleSection,
 } from '@/hooks/use-trip-data';
 import { useUpdateItemStatus, type LegacyDay, type LegacyActivity } from '@/hooks/use-database-itinerary';
+import { useDeleteItem } from '@/hooks/use-itinerary';
+import { useActiveTrip, useTripDays } from '@/hooks/use-trip';
+import { useLocations } from '@/hooks/use-locations';
 import { useReorderDayItems, calculateNewSortIndices } from '@/hooks/use-reorder-items';
 import { useWeatherForDate } from '@/hooks/use-weather';
 import type { ItemStatus } from '@/types/trip';
@@ -67,6 +72,14 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   const [memoryPromptOpen, setMemoryPromptOpen] = useState(false);
   const [completedActivity, setCompletedActivity] = useState<LegacyActivity | null>(null);
   
+  // Memory capture dialog state (for adding photos directly)
+  const [memoryCaptureOpen, setMemoryCaptureOpen] = useState(false);
+  const [memoryTargetActivity, setMemoryTargetActivity] = useState<LegacyActivity | null>(null);
+  
+  // Activity editor state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<LegacyActivity | null>(null);
+  
   // Confetti celebration state
   const [showConfetti, setShowConfetti] = useState(false);
   const [prevCompletedCount, setPrevCompletedCount] = useState(0);
@@ -74,8 +87,23 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   const { data: collapsedSections } = useCollapsedSections();
   const toggleSection = useToggleSection();
   const updateStatus = useUpdateItemStatus();
+  const deleteItem = useDeleteItem();
   const reorderItems = useReorderDayItems();
   const { highlightPins, navigateToPanel } = useDashboardSelection();
+  
+  // Get trip data for memory capture dialog
+  const { data: trip } = useActiveTrip();
+  const { data: daysData } = useTripDays(trip?.id);
+  const { data: locations } = useLocations(trip?.id);
+  
+  // Convert days for MemoryCaptureDialog
+  const legacyDays = daysData?.map((d, index) => ({
+    id: d.id,
+    date: d.date,
+    dayOfWeek: new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
+    title: d.title || `Day ${index + 1}`,
+    activities: []
+  })) || [];
   
   // Get weather for this day's date
   const dayDateStr = useMemo(() => {
@@ -285,12 +313,15 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
                         activityId={activity.id}
                         isCompleted={activity.status === 'done'}
                         onComplete={() => handleToggleComplete(activity)}
-                        onEdit={() => {/* TODO: Open editor */}}
+                        onEdit={() => {
+                          setEditingActivity(activity);
+                          setEditorOpen(true);
+                        }}
                         onSkip={() => handleSkip(activity)}
-                        onDelete={() => {/* TODO: Implement delete */}}
+                        onDelete={() => deleteItem.mutate(activity.id)}
                         onAddMemory={() => {
-                          setCompletedActivity(activity);
-                          setMemoryPromptOpen(true);
+                          setMemoryTargetActivity(activity);
+                          setMemoryCaptureOpen(true);
                         }}
                       >
                         <DatabaseActivityCard 
@@ -342,9 +373,31 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
           activityId={completedActivity.id}
           dayId={day.id}
           onAddPhoto={() => {
-            // TODO: Open memory capture dialog
-            // For now, just close the prompt
+            setMemoryTargetActivity(completedActivity);
+            setMemoryCaptureOpen(true);
           }}
+        />
+      )}
+      
+      {/* Memory Capture Dialog */}
+      <MemoryCaptureDialog
+        open={memoryCaptureOpen}
+        onOpenChange={setMemoryCaptureOpen}
+        tripId={trip?.id}
+        days={legacyDays}
+        locations={locations || []}
+        preselectedDayId={day.id}
+        preselectedLocationId={memoryTargetActivity?.location?.id}
+      />
+      
+      {/* Activity Editor */}
+      {trip && (
+        <DatabaseActivityEditor
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          dayId={day.id}
+          tripId={trip.id}
+          activity={editingActivity}
         />
       )}
     </>
