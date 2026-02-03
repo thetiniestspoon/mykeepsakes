@@ -105,6 +105,8 @@ export function formatTimeForDisplay(time: string | null): string | undefined {
 
 /**
  * Create initial drag state
+ * @param originalTime - The activity's original start time in "HH:mm:ss" format
+ * @param startY - Initial Y position (use 0 when using cumulative deltas like dnd-kit's event.delta.y)
  */
 export function createDragState(originalTime: string, startY: number): TimeDragState {
   return {
@@ -120,6 +122,8 @@ export function createDragState(originalTime: string, startY: number): TimeDragS
 
 /**
  * Update drag state with new position
+ * @param state - Current drag state
+ * @param currentY - Current cumulative Y delta from drag start (e.g., event.delta.y)
  */
 export function updateDragState(
   state: TimeDragState,

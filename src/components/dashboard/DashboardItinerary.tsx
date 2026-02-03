@@ -16,8 +16,7 @@ import {
 import { useDatabaseItinerary, type LegacyActivity } from '@/hooks/use-database-itinerary';
 import { useTodayMode } from '@/hooks/use-today-mode';
 import { useDashboardSelectionOptional } from '@/contexts/DashboardSelectionContext';
-import { useFlattenedItinerary } from '@/hooks/use-flattened-itinerary';
-import { useTimeBasedReorder } from '@/hooks/use-time-based-reorder';
+import { useTimeBasedReorder, calculateSortIndexForPosition } from '@/hooks/use-time-based-reorder';
 import { 
   createDragState, 
   updateDragState, 
@@ -45,16 +44,15 @@ export function DashboardItinerary() {
   const dragStateRef = useRef<TimeDragState | null>(null);
   
   // Hooks for drag functionality
-  const flattenedItems = useFlattenedItinerary(days);
   const timeReorder = useTimeBasedReorder();
   
-  // Sensors for drag detection
+  // Sensors for drag detection - 150ms delay for better mobile responsiveness
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
+      activationConstraint: { delay: 150, tolerance: 5 },
     })
   );
   
@@ -142,7 +140,7 @@ export function DashboardItinerary() {
       return;
     }
     
-    const activeId = String(active.id);
+    const activeIdStr = String(active.id);
     const overId = String(over.id);
     
     // Determine target day
@@ -157,19 +155,38 @@ export function DashboardItinerary() {
     // Get the new time from drag state
     const newTime = dragStateRef.current.currentTime;
     
-    // Find sort index based on position
+    // Calculate sort index using helper function
     const targetDay = days.find(d => d.id === targetDayId);
     let newSortIndex = 0;
     
     if (targetDay) {
-      // Find where to insert based on time
-      const targetActivities = targetDay.activities.filter(a => a.id !== activeId);
-      for (let i = 0; i < targetActivities.length; i++) {
-        const actTime = targetActivities[i].rawStartTime;
-        if (actTime && newTime > actTime) {
-          newSortIndex = i + 1;
+      // Filter out the moving item and build sortable list
+      const otherActivities = targetDay.activities
+        .filter(a => a.id !== activeIdStr)
+        .map((a, idx) => ({
+          id: a.id,
+          sortIndex: idx,
+          rawStartTime: a.rawStartTime,
+        }));
+      
+      // Find insertion position based on new time
+      let insertionIndex = 0;
+      for (let i = 0; i < otherActivities.length; i++) {
+        const actTime = otherActivities[i].rawStartTime;
+        // Handle null times - items without time go at end
+        if (!newTime && actTime) {
+          insertionIndex = i + 1;
+        } else if (newTime && actTime && newTime > actTime) {
+          insertionIndex = i + 1;
+        } else if (newTime && !actTime) {
+          break;
         }
       }
+      
+      newSortIndex = calculateSortIndexForPosition(
+        otherActivities.map(a => ({ id: a.id, sortIndex: a.sortIndex })),
+        insertionIndex
+      );
     }
     
     // Only update if something changed
@@ -178,10 +195,12 @@ export function DashboardItinerary() {
     
     if (timeChanged || dayChanged) {
       timeReorder.mutate({
-        itemId: activeId,
+        itemId: activeIdStr,
         newDayId: targetDayId,
         newStartTime: newTime,
         newSortIndex,
+        originalDayId: activeItem.dayId,
+        originalStartTime: activeItem.rawStartTime || undefined,
       });
     }
     
@@ -239,7 +258,8 @@ export function DashboardItinerary() {
           // Check if this day is today
           const dayDate = new Date(day.date).toISOString().split('T')[0];
           const isToday = dayDate === todayStr;
-          const isReceivingDrag = overDayId === day.id && activeItem?.dayId !== day.id;
+          // Show feedback when any item is being dragged over this day
+          const isReceivingDrag = activeItem !== null && overDayId === day.id;
           
           return (
             <CompactDayCard
@@ -262,6 +282,7 @@ export function DashboardItinerary() {
               activity={activeItem}
               dayId={activeItem.dayId}
               previewTime={previewTimes.get(activeItem.id)}
+              isDragging={true}
             />
           </div>
         )}
