@@ -17,7 +17,8 @@ import {
   Activity,
   X,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -69,6 +70,7 @@ interface DatabaseActivityCardProps {
   onSelect?: () => void;  // For tap to open details
   previewTime?: string | null;  // Live time during drag
   isDragging?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 export function DatabaseActivityCard({ 
@@ -78,7 +80,8 @@ export function DatabaseActivityCard({
   isNextActivity,
   onSelect,
   previewTime,
-  isDragging
+  isDragging,
+  dragHandleProps
 }: DatabaseActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
@@ -127,12 +130,30 @@ export function DatabaseActivityCard({
       className={cn(
         "relative p-4 rounded-lg border border-border bg-card transition-all",
         isCompleted && "opacity-60 bg-muted/30",
-        isNextActivity && "ring-2 ring-primary ring-offset-2"
+        isNextActivity && "ring-2 ring-primary ring-offset-2",
+        isDragging && "shadow-lg"
       )}
       data-activity-id={activity.id}
     >
       {/* Header row */}
       <div className="flex items-start gap-3">
+        {/* Drag handle - before checkbox */}
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps}
+            className={cn(
+              "flex-shrink-0 w-8 self-stretch flex items-center justify-center -ml-2",
+              "text-muted-foreground/40 hover:text-muted-foreground",
+              "cursor-grab active:cursor-grabbing touch-none",
+              "transition-colors rounded-l hover:bg-muted/30",
+              isDragging && "cursor-grabbing text-primary"
+            )}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
+        )}
+
         <AnimatedCheckbox
           checked={isCompleted}
           onCheckedChange={handleToggleComplete}

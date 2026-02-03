@@ -1,6 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import React from 'react';
 
@@ -37,11 +36,16 @@ export function DraggableActivity({
     transition,
   };
 
-  // Clone children to pass preview time during drag
+  // Clone children to pass drag handle props
   const childrenWithProps = React.isValidElement(children)
-    ? React.cloneElement(children as React.ReactElement<{ previewTime?: string | null; isDragging?: boolean }>, {
+    ? React.cloneElement(children as React.ReactElement<{ 
+        previewTime?: string | null; 
+        isDragging?: boolean;
+        dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+      }>, {
         previewTime: isDragging ? previewTime : undefined,
         isDragging,
+        dragHandleProps: disabled ? undefined : { ...attributes, ...listeners },
       })
     : children;
 
@@ -50,27 +54,10 @@ export function DraggableActivity({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative group",
+        "relative",
         isDragging && "z-50 opacity-90 shadow-lg rounded-lg"
       )}
     >
-      {/* Drag handle - always visible with subtle styling */}
-      {!disabled && (
-        <button
-          className={cn(
-            "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 p-1",
-            "text-muted-foreground/50 hover:text-muted-foreground",
-            "cursor-grab active:cursor-grabbing touch-none",
-            "transition-colors",
-            isDragging && "cursor-grabbing text-primary"
-          )}
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
-      )}
       {childrenWithProps}
     </div>
   );
