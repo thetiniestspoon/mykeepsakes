@@ -143,12 +143,12 @@ export function CompactDayCard({
                   key={activity.id} 
                   id={activity.id} 
                   originalTime={activity.rawStartTime || undefined}
+                  previewTime={previewTimes?.get(activity.id)}
                 >
                   <CompactActivityCard
                     activity={activity}
                     dayId={day.id}
                     isNextActivity={activity.id === nextActivityId}
-                    previewTime={previewTimes?.get(activity.id)}
                   />
                 </DraggableActivity>
               ))}
