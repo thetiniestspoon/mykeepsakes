@@ -47,7 +47,7 @@ export function useLeafletMap(
   optionsRef.current = options;
 
   const logDebug = useCallback((message: string, data?: unknown) => {
-    if (optionsRef.current.debug) {
+    if (import.meta.env.DEV && optionsRef.current.debug) {
       console.log(`[LeafletMap] ${message}`, data ?? '');
     }
   }, []);

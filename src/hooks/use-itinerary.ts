@@ -107,7 +107,8 @@ export function useUpdateItem() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ItineraryItem> & { id: string }) => {
       // Remove location from updates as it's a joined field
-      const { location, ...dbUpdates } = updates as any;
+      type JoinedFields = 'location';
+      const { location, ...dbUpdates } = updates as Omit<Partial<ItineraryItem>, JoinedFields> & { location?: unknown };
       
       const { data, error } = await supabase
         .from('itinerary_items')

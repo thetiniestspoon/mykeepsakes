@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, ImageOff } from 'lucide-react';
-import { getMemoryMediaUrl } from '@/hooks/use-memories';
+import { Calendar, ImageOff, Trash2 } from 'lucide-react';
+import { getMemoryMediaUrl, useDeleteMemory } from '@/hooks/use-memories';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaggeredList } from '@/components/ui/staggered-list';
 import { KenBurnsImage } from '@/components/photos/KenBurnsImage';
+import { MemoryEditDialog } from './MemoryEditDialog';
 import type { Memory } from '@/types/trip';
 
 interface Day {
@@ -26,6 +28,8 @@ interface DayPhotoGridProps {
 }
 
 export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhotoGridProps) {
+  const deleteMemory = useDeleteMemory();
+  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -49,7 +53,9 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
     const allMedia = dayMemories.flatMap(m => 
       (m.media || []).map(media => ({
         ...media,
-        memoryNote: m.note
+        memoryNote: m.note,
+        memoryId: m.id,
+        memory: m
       }))
     );
     return { day, memories: dayMemories, media: allMedia };
@@ -89,22 +95,42 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
               }));
               
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onOpenPhoto(photos, index)}
-                  className="aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <KenBurnsImage
-                    src={getMemoryMediaUrl(item.storage_path)}
-                    alt=""
-                    className="w-full h-full"
-                  />
-                </button>
+                <div key={item.id} className="relative group">
+                  <button
+                    onClick={() => onOpenPhoto(photos, index)}
+                    className="aspect-square w-full rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <KenBurnsImage
+                      src={getMemoryMediaUrl(item.storage_path)}
+                      alt=""
+                      className="w-full h-full"
+                    />
+                  </button>
+                  {/* Delete button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this photo?')) {
+                        deleteMemory.mutate(item.memoryId);
+                      }
+                    }}
+                    className="absolute top-1 right-1 p-1.5 bg-destructive/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       ))}
+      
+      {/* Memory Edit Dialog */}
+      <MemoryEditDialog
+        open={!!editingMemory}
+        onOpenChange={(open) => !open && setEditingMemory(null)}
+        memory={editingMemory}
+      />
     </StaggeredList>
   );
 }

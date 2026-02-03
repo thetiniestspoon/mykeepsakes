@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
-import { Clock, ImageOff } from 'lucide-react';
-import { getMemoryMediaUrl } from '@/hooks/use-memories';
+import { Clock, ImageOff, Trash2 } from 'lucide-react';
+import { getMemoryMediaUrl, useDeleteMemory } from '@/hooks/use-memories';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaggeredList } from '@/components/ui/staggered-list';
 import { KenBurnsImage } from '@/components/photos/KenBurnsImage';
@@ -21,9 +21,11 @@ interface RecentPhotoGridProps {
 interface MediaWithMeta extends MemoryMedia {
   memoryNote?: string | null;
   memoryCreatedAt: string;
+  memoryId: string;
 }
 
 export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhotoGridProps) {
+  const deleteMemory = useDeleteMemory();
   if (isLoading) {
     return (
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -40,7 +42,8 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
       (m.media || []).map(media => ({
         ...media,
         memoryNote: m.note,
-        memoryCreatedAt: m.created_at
+        memoryCreatedAt: m.created_at,
+        memoryId: m.id
       }))
     )
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -122,17 +125,30 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
               const globalIndex = allMedia.findIndex(m => m.id === item.id);
               
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onOpenPhoto(allPhotos, globalIndex)}
-                  className="aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary relative group"
-                >
-                  <KenBurnsImage
-                    src={getMemoryMediaUrl(item.storage_path)}
-                    alt=""
-                    className="w-full h-full"
-                  />
-                </button>
+                <div key={item.id} className="relative group">
+                  <button
+                    onClick={() => onOpenPhoto(allPhotos, globalIndex)}
+                    className="aspect-square w-full rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <KenBurnsImage
+                      src={getMemoryMediaUrl(item.storage_path)}
+                      alt=""
+                      className="w-full h-full"
+                    />
+                  </button>
+                  {/* Delete button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this photo?')) {
+                        deleteMemory.mutate(item.memoryId);
+                      }
+                    }}
+                    className="absolute top-1 right-1 p-1.5 bg-destructive/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               );
             })}
           </div>

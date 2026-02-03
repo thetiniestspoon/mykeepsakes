@@ -114,7 +114,8 @@ export function useUpdateMemory() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Memory> & { id: string }) => {
       // Remove joined fields
-      const { media, day, itinerary_item, location, ...dbUpdates } = updates as any;
+      type MemoryJoinedFields = 'media' | 'day' | 'itinerary_item' | 'location';
+      const { media, day, itinerary_item, location, ...dbUpdates } = updates as Omit<Partial<Memory>, MemoryJoinedFields> & { media?: unknown; day?: unknown; itinerary_item?: unknown; location?: unknown };
       
       const { data, error } = await supabase
         .from('memories')
