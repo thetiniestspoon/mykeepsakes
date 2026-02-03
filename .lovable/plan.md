@@ -1,151 +1,268 @@
 
+# Add Visible Drag Handle to Activity Cards
 
-# Integrate Time-Based Drag Into Dashboard
+## Problem
 
-## Problem Identified
+The current drag handle is positioned **outside** the card boundaries (`-translate-x-6`) in the left margin. This causes:
 
-The **Time-Based Itinerary Drag** system was implemented in `DatabaseItineraryTab.tsx`, but this component is **not currently used anywhere in the app**. 
+1. **Hidden on mobile**: The handle can be clipped by parent containers or invisible
+2. **Poor discoverability**: Users don't know where to touch to drag
+3. **Conflict with scrolling**: Without a clear handle zone, the entire card might capture touch events, competing with scroll gestures
 
-The main dashboard (`Index.tsx`) renders:
-- `LeftColumn` → `DashboardItinerary` → `CompactDayCard` → `CompactActivityCard`
+## Solution
 
-This is a separate, compact view designed for the dashboard's left column. It displays activities but has no drag-and-drop functionality.
-
----
-
-## Two Integration Options
-
-### Option A: Replace Compact View with Full Itinerary Tab
-
-Replace `DashboardItinerary` with `DatabaseItineraryTab` in the left column.
-
-**Pros:**
-- All the new drag functionality immediately available
-- Single source of truth for itinerary UI
-
-**Cons:**
-- `DatabaseItineraryTab` was designed as a full-page view, not a compact column
-- May have layout/scrolling issues in the narrow left column
-- Progress header, view mode toggles, etc. may be too large
+Move the drag handle **inside** the card layout, to the left of the category icon, making it:
+- Always visible
+- Touch-friendly (minimum 44px touch target)
+- Clearly separated from the clickable content area
 
 ---
 
-### Option B: Add Drag Functionality to Compact View (Recommended)
+## Design
 
-Keep the compact dashboard design but wire in the time-based drag system.
+### Compact Activity Card (Dashboard)
 
-**Changes Required:**
-
-#### 1. Lift DndContext to DashboardItinerary
-
-**File: `src/components/dashboard/DashboardItinerary.tsx`**
-
-Add unified `DndContext` wrapping all `CompactDayCard` components:
-
-```tsx
-import { DndContext, DragOverlay, DragStartEvent, DragMoveEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
-import { useFlattenedItinerary } from '@/hooks/use-flattened-itinerary';
-import { useTimeBasedReorder } from '@/hooks/use-time-based-reorder';
-import { createDragState, updateDragState, formatTimeForDisplay } from '@/lib/time-drag-modifier';
-
-// Add state for drag tracking
-const [activeId, setActiveId] = useState<string | null>(null);
-const [activeItem, setActiveItem] = useState<LegacyActivity | null>(null);
-const [overDayId, setOverDayId] = useState<string | null>(null);
-const [previewTimes, setPreviewTimes] = useState<Map<string, string>>(new Map());
-const dragStateRef = useRef<TimeDragState | null>(null);
-
-// Use flattened items and reorder mutation
-const flattenedItems = useFlattenedItinerary(days);
-const timeReorder = useTimeBasedReorder();
-
-// Wrap existing content with DndContext
-<DndContext
-  sensors={sensors}
-  onDragStart={handleDragStart}
-  onDragMove={handleDragMove}
-  onDragOver={handleDragOver}
-  onDragEnd={handleDragEnd}
->
-  {/* existing day cards */}
-  <DragOverlay>...</DragOverlay>
-</DndContext>
+```
+┌─────────────────────────────────────────────────┐
+│ ⋮⋮  🍽️  9:30 AM  Breakfast at hotel      📍    │
+└─────────────────────────────────────────────────┘
+ ↑     ↑           ↑                         ↑
+ Drag  Icon        Time + Title              Location
+ Handle
 ```
 
-#### 2. Add Sortable Wrapper to CompactActivityCard
+The grip icon (`⋮⋮`) becomes the leftmost element, always visible with subtle styling.
 
-**File: `src/components/dashboard/CompactDayCard.tsx`**
+### Full Activity Card (DatabaseActivityCard)
 
-Add `SortableContext` for activities within each day:
-
-```tsx
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
-
-<CollapsibleContent>
-  <SortableContext items={day.activities.map(a => a.id)} strategy={verticalListSortingStrategy}>
-    <div className="p-2 space-y-1">
-      {day.activities.map((activity) => (
-        <DraggableActivity key={activity.id} id={activity.id} originalTime={activity.rawStartTime}>
-          <CompactActivityCard
-            activity={activity}
-            dayId={day.id}
-            isNextActivity={activity.id === nextActivityId}
-            previewTime={previewTimes?.get(activity.id)}
-          />
-        </DraggableActivity>
-      ))}
-    </div>
-  </SortableContext>
-</CollapsibleContent>
+```
+┌─────────────────────────────────────────────────────┐
+│ ⋮⋮  ☐  🏖️ beach  9:00 AM                      ♡ 📝 │
+│      Beach Day at Waikiki                           │
+│      Relax and enjoy the sun...                     │
+└─────────────────────────────────────────────────────┘
+ ↑     ↑   ↑
+ Drag  ✓   Category badge
+ Handle
 ```
 
-#### 3. Add Props to CompactDayCard
+---
 
-**File: `src/components/dashboard/CompactDayCard.tsx`**
+## Implementation
 
-Add receiving state and preview times:
+### File 1: `src/components/itinerary/DraggableActivity.tsx`
+
+**Changes:**
+- Remove the external absolute-positioned handle
+- Instead, pass drag listeners/attributes to children via props
+- Let the child component render the handle in the right position
 
 ```tsx
-interface CompactDayCardProps {
-  day: LegacyDay;
-  nextActivityId?: string | null;
-  isToday?: boolean;
-  isReceivingDrag?: boolean;         // NEW
-  previewTimes?: Map<string, string>; // NEW
+interface DraggableActivityProps {
+  id: string;
+  children: React.ReactNode;
+  disabled?: boolean;
+  originalTime?: string;
+  previewTime?: string | null;
 }
 
-// Visual feedback when receiving drag
-<div className={cn(
-  "rounded-lg border bg-card overflow-hidden",
-  isToday && "ring-2 ring-primary",
-  isReceivingDrag && "ring-2 ring-dashed ring-primary/50 animate-day-expand"
-)}>
+export function DraggableActivity({ id, children, disabled, originalTime, previewTime }: DraggableActivityProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled, data: { originalTime } });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  // Clone children to pass drag handle props
+  const childrenWithProps = React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement, {
+        previewTime: isDragging ? previewTime : undefined,
+        isDragging,
+        dragHandleProps: disabled ? undefined : { ...attributes, ...listeners },
+      })
+    : children;
+
+  return (
+    <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "z-50 opacity-90 shadow-lg rounded-lg")}>
+      {childrenWithProps}
+    </div>
+  );
+}
 ```
 
-#### 4. Update CompactActivityCard for Preview Time
+---
 
-**File: `src/components/dashboard/CompactActivityCard.tsx`**
+### File 2: `src/components/dashboard/CompactActivityCard.tsx`
 
-Accept and display preview time during drag:
+**Changes:**
+- Accept `dragHandleProps` from parent
+- Add grip icon as leftmost element inside the button
+- Keep the rest of the card clickable for selection
 
 ```tsx
 interface CompactActivityCardProps {
   activity: LegacyActivity;
-  dayId: string;
   isNextActivity?: boolean;
-  previewTime?: string;  // NEW
+  dayId: string;
+  previewTime?: string;
+  isDragging?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;  // NEW
 }
 
-// Display preview time with highlight
-{(previewTime || activity.time) && (
-  <span className={cn(
-    "text-xs",
-    previewTime ? "text-primary font-medium" : "text-muted-foreground"
-  )}>
-    {previewTime || activity.time}
-  </span>
-)}
+export function CompactActivityCard({ 
+  activity, 
+  isNextActivity, 
+  dayId,
+  previewTime,
+  isDragging,
+  dragHandleProps
+}: CompactActivityCardProps) {
+  // ...existing code...
+
+  return (
+    <div
+      className={cn(
+        "w-full flex items-center gap-1.5 rounded-md text-left transition-all",
+        "border",
+        categoryColors[activity.category],
+        // ...other classes
+      )}
+    >
+      {/* Drag handle - leftmost element */}
+      {dragHandleProps && (
+        <div
+          {...dragHandleProps}
+          className={cn(
+            "flex-shrink-0 w-6 h-full flex items-center justify-center",
+            "text-muted-foreground/40 hover:text-muted-foreground",
+            "cursor-grab active:cursor-grabbing touch-none",
+            "transition-colors rounded-l-md hover:bg-muted/50",
+            isDragging && "cursor-grabbing text-primary"
+          )}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+      )}
+
+      {/* Rest of card content - clickable */}
+      <button
+        onClick={handleClick}
+        className="flex-1 flex items-center gap-2 px-2 py-1.5"
+      >
+        {/* Category icon */}
+        <div className={cn(...)}>
+          {isCompleted ? <CheckCircle2 /> : <Icon />}
+        </div>
+        
+        {/* Time + Title */}
+        <div className="flex-1 min-w-0">
+          {displayTime && <span className="text-xs font-mono">{displayTime}</span>}
+          <span className="text-sm truncate">{activity.title}</span>
+        </div>
+        
+        {/* Location indicator */}
+        {activity.location && <MapPin className="w-3 h-3" />}
+      </button>
+    </div>
+  );
+}
+```
+
+---
+
+### File 3: `src/components/itinerary/DatabaseActivityCard.tsx`
+
+**Changes:**
+- Accept `dragHandleProps` from parent
+- Add grip icon to the left of the checkbox
+- Ensure touch target is at least 44px wide
+
+```tsx
+interface DatabaseActivityCardProps {
+  activity: LegacyActivity;
+  onOpenMap?: (location: SelectedLocation) => void;
+  onOpenPhoto?: (...) => void;
+  isNextActivity?: boolean;
+  onSelect?: () => void;
+  previewTime?: string | null;
+  isDragging?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;  // NEW
+}
+
+export function DatabaseActivityCard({ 
+  activity, 
+  onOpenMap, 
+  onOpenPhoto, 
+  isNextActivity,
+  onSelect,
+  previewTime,
+  isDragging,
+  dragHandleProps
+}: DatabaseActivityCardProps) {
+  // ...existing code...
+
+  return (
+    <div className={cn("relative p-4 rounded-lg border...", isDragging && "shadow-lg")}>
+      <div className="flex items-start gap-3">
+        {/* Drag handle - before checkbox */}
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps}
+            className={cn(
+              "flex-shrink-0 w-6 flex items-center justify-center self-stretch",
+              "text-muted-foreground/40 hover:text-muted-foreground",
+              "cursor-grab active:cursor-grabbing touch-none",
+              "transition-colors -ml-2 rounded-l hover:bg-muted/30",
+              isDragging && "cursor-grabbing text-primary"
+            )}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
+        )}
+
+        <AnimatedCheckbox checked={isCompleted} onCheckedChange={handleToggleComplete} />
+        
+        {/* Rest of card content */}
+        <div onClick={onSelect} className="flex-1 min-w-0">
+          {/* ...existing content... */}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-1">...</div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## Visual Styling
+
+### Handle Appearance
+- **Color**: `text-muted-foreground/40` (subtle, not distracting)
+- **Hover**: `text-muted-foreground` + light background
+- **Active/Dragging**: `text-primary` (feedback during drag)
+
+### Touch Target
+- Minimum 24px width (compact), 32px (full card)
+- Full height of the card for easy targeting
+- `touch-none` CSS to prevent scroll interference
+
+### Separator Visual (Optional)
+Add a subtle border or gradient on the right edge of the handle area:
+```css
+border-right: 1px solid hsl(var(--border) / 0.3);
 ```
 
 ---
@@ -154,40 +271,28 @@ interface CompactActivityCardProps {
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/DashboardItinerary.tsx` | Add unified DndContext, drag handlers, velocity tracking |
-| `src/components/dashboard/CompactDayCard.tsx` | Add SortableContext, DraggableActivity wrapper, receiving state |
-| `src/components/dashboard/CompactActivityCard.tsx` | Accept previewTime prop, display with highlight |
+| `src/components/itinerary/DraggableActivity.tsx` | Remove external handle, pass dragHandleProps to children |
+| `src/components/dashboard/CompactActivityCard.tsx` | Add drag handle as leftmost element, accept dragHandleProps |
+| `src/components/itinerary/DatabaseActivityCard.tsx` | Add drag handle before checkbox, accept dragHandleProps |
 
 ---
 
-## Implementation Notes
+## Mobile Touch Behavior
 
-1. **Reuse existing hooks** - The `useFlattenedItinerary`, `useTimeBasedReorder`, and `time-drag-modifier` utilities created for `DatabaseItineraryTab` work perfectly here
+With the handle properly separated:
 
-2. **Compact drag handle** - The existing `DraggableActivity` component already has the always-visible handle design; it just needs to wrap `CompactActivityCard` instead of `DatabaseActivityCard`
+1. **Swiping anywhere else**: Scrolls the list
+2. **Touching the handle**: Initiates drag (after activation constraint)
+3. **Tapping the card content**: Opens activity details
 
-3. **Smaller visual scale** - The compact cards are already smaller, so the drag interactions will feel proportionally the same
-
-4. **Cross-day movement** - Works identically since the logic is in the parent `DndContext`
-
----
-
-## Alternative: Keep Both Views
-
-If you want BOTH the compact dashboard view AND a full itinerary view:
-
-1. Add a "View Full Itinerary" button/link in the dashboard
-2. Create a route or modal that shows `DatabaseItineraryTab`
-3. Keep drag-and-drop only in the full view
-
-This would require less immediate work but means users have two places to manage their itinerary.
+This follows the pattern used by iOS Reminders, Google Keep, and other drag-reorderable list UIs.
 
 ---
 
-## Recommendation
+## Alternative: Handle on Right Side
 
-**Option B** - Add drag to the compact dashboard view. This:
-- Uses the existing dashboard layout users are familiar with
-- Leverages all the hooks and utilities already created
-- Provides a consistent experience without navigation
+Some apps (like Notion) put the handle on the right. This could work but:
+- Conflicts with action buttons (heart, note, camera)
+- Less discoverable in LTR reading order
 
+**Recommendation**: Keep handle on left, it's the standard pattern.
