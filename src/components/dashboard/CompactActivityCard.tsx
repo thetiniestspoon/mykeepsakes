@@ -113,6 +113,27 @@ export function CompactActivityCard({
     }
   };
   
+  const handleShowOnMap = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger card selection
+    if (!dashboard || !activity.location) return;
+    
+    // Navigate to map panel (index 2)
+    dashboard.navigateToPanel(2);
+    
+    // Focus the location (sets filters to match this item)
+    dashboard.focusLocation({
+      id: activity.location.id,
+      category: activity.category,
+      dayId: dayId,
+    });
+    
+    // Pan to the location
+    dashboard.panMap(activity.location.lat, activity.location.lng);
+    
+    // Highlight the pin
+    dashboard.highlightPin(activity.location.id);
+  };
+  
   // Display time - use preview time during drag, otherwise use activity time
   const displayTime = previewTime || activity.time;
   
@@ -148,7 +169,10 @@ export function CompactActivityCard({
       {/* Rest of card content - clickable */}
       <button
         onClick={handleClick}
-        className="flex-1 flex items-center gap-2 px-2 py-1.5 hover:bg-accent/50 rounded-r-md transition-colors"
+        className={cn(
+          "flex-1 flex items-center gap-2 px-2 py-1.5 hover:bg-accent/50 transition-colors",
+          activity.location ? "" : "rounded-r-md"
+        )}
       >
         {/* Category icon */}
         <div className={cn(
@@ -181,12 +205,22 @@ export function CompactActivityCard({
             </span>
           </div>
         </div>
-        
-        {/* Location indicator */}
-        {activity.location && (
-          <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-        )}
       </button>
+
+      {/* Show on Map button - separate from main click area */}
+      {activity.location && (
+        <button
+          onClick={handleShowOnMap}
+          className={cn(
+            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mr-1.5",
+            "bg-primary/10 hover:bg-primary/20 active:bg-primary/30",
+            "text-primary transition-colors"
+          )}
+          aria-label="Show on map"
+        >
+          <MapPin className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
