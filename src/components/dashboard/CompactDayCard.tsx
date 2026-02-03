@@ -4,9 +4,12 @@ import {
   CollapsibleContent, 
   CollapsibleTrigger 
 } from '@/components/ui/collapsible';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { ChevronDown, CheckCircle2, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompactActivityCard } from './CompactActivityCard';
+import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { WeatherBadge } from '@/components/itinerary/WeatherBadge';
 import { useCollapsedSections, useToggleSection } from '@/hooks/use-trip-data';
 import { useWeatherForDate } from '@/hooks/use-weather';
@@ -16,15 +19,29 @@ interface CompactDayCardProps {
   day: LegacyDay;
   nextActivityId?: string | null;
   isToday?: boolean;
+  isReceivingDrag?: boolean;
+  previewTimes?: Map<string, string>;
 }
 
 /**
  * Compact day card for the dashboard left column.
  * Shows day header with weather and collapsible list of compact activity cards.
+ * Now with SortableContext for drag-and-drop reordering.
  */
-export function CompactDayCard({ day, nextActivityId, isToday }: CompactDayCardProps) {
+export function CompactDayCard({ 
+  day, 
+  nextActivityId, 
+  isToday,
+  isReceivingDrag,
+  previewTimes 
+}: CompactDayCardProps) {
   const { data: collapsedSections } = useCollapsedSections();
   const toggleSection = useToggleSection();
+  
+  // Make the day card a droppable target
+  const { setNodeRef: setDroppableRef } = useDroppable({
+    id: day.id,
+  });
   
   // Get weather for this day's date
   const dayDateStr = useMemo(() => {
@@ -42,15 +59,22 @@ export function CompactDayCard({ day, nextActivityId, isToday }: CompactDayCardP
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const isDayComplete = totalCount > 0 && completedCount === totalCount;
   
+  // Activity IDs for sortable context
+  const activityIds = useMemo(() => day.activities.map(a => a.id), [day.activities]);
+  
   return (
     <Collapsible
       open={!isCollapsed}
       onOpenChange={(open) => toggleSection.mutate({ sectionId: day.id, isCollapsed: !open })}
     >
-      <div className={cn(
-        "rounded-lg border bg-card overflow-hidden",
-        isToday && "ring-2 ring-primary"
-      )}>
+      <div 
+        ref={setDroppableRef}
+        className={cn(
+          "rounded-lg border bg-card overflow-hidden transition-all",
+          isToday && "ring-2 ring-primary",
+          isReceivingDrag && "ring-2 ring-dashed ring-primary/50 animate-day-expand bg-primary/5"
+        )}
+      >
         <CollapsibleTrigger asChild>
           <button className="w-full px-3 py-2 flex items-center justify-between hover:bg-accent/30 transition-colors">
             <div className="flex items-center gap-2 min-w-0">
@@ -112,16 +136,24 @@ export function CompactDayCard({ day, nextActivityId, isToday }: CompactDayCardP
         )}
         
         <CollapsibleContent>
-          <div className="p-2 space-y-1">
-            {day.activities.map((activity) => (
-              <CompactActivityCard
-                key={activity.id}
-                activity={activity}
-                dayId={day.id}
-                isNextActivity={activity.id === nextActivityId}
-              />
-            ))}
-          </div>
+          <SortableContext items={activityIds} strategy={verticalListSortingStrategy}>
+            <div className="p-2 space-y-1">
+              {day.activities.map((activity) => (
+                <DraggableActivity 
+                  key={activity.id} 
+                  id={activity.id} 
+                  originalTime={activity.rawStartTime || undefined}
+                >
+                  <CompactActivityCard
+                    activity={activity}
+                    dayId={day.id}
+                    isNextActivity={activity.id === nextActivityId}
+                    previewTime={previewTimes?.get(activity.id)}
+                  />
+                </DraggableActivity>
+              ))}
+            </div>
+          </SortableContext>
         </CollapsibleContent>
       </div>
     </Collapsible>
