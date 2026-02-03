@@ -5,24 +5,13 @@ import {
   CollapsibleContent, 
   CollapsibleTrigger 
 } from '@/components/ui/collapsible';
-import { 
-  DndContext, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
-  useSensors,
-  DragEndEvent 
-} from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { ChevronDown, CheckCircle2, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
+import { useDashboardSelection, type SelectedItem } from '@/contexts/DashboardSelectionContext';
 import { toast } from 'sonner';
 import { DraggableActivity } from '@/components/itinerary/DraggableActivity';
 import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCard';
@@ -45,7 +34,6 @@ import { useUpdateItemStatus, type LegacyDay, type LegacyActivity } from '@/hook
 import { useDeleteItem } from '@/hooks/use-itinerary';
 import { useActiveTrip, useTripDays } from '@/hooks/use-trip';
 import { useLocations } from '@/hooks/use-locations';
-import { useReorderDayItems, calculateNewSortIndices } from '@/hooks/use-reorder-items';
 import { useWeatherForDate } from '@/hooks/use-weather';
 import type { ItemStatus } from '@/types/trip';
 
@@ -59,9 +47,11 @@ interface SelectedLocation {
 interface DatabaseDayCardProps {
   day: LegacyDay;
   nextActivityId?: string | null;
+  isReceivingDrag?: boolean;  // True when item from another day is hovering
+  previewTimes?: Map<string, string>;  // Activity ID -> preview time during drag
 }
 
-export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
+export function DatabaseDayCard({ day, nextActivityId, isReceivingDrag, previewTimes }: DatabaseDayCardProps) {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
@@ -88,8 +78,7 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
   const toggleSection = useToggleSection();
   const updateStatus = useUpdateItemStatus();
   const deleteItem = useDeleteItem();
-  const reorderItems = useReorderDayItems();
-  const { highlightPins, navigateToPanel } = useDashboardSelection();
+  const { highlightPins, navigateToPanel, selectItem } = useDashboardSelection();
   
   // Get trip data for memory capture dialog
   const { data: trip } = useActiveTrip();
@@ -133,34 +122,6 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
       setPrevCompletedCount(completedCount);
     }
   }, [completedCount, isDayComplete, prevCompletedCount]);
-
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    
-    // Calculate new sort indices
-    const newIndices = calculateNewSortIndices(
-      day.activities.map(a => ({ id: a.id })),
-      String(active.id),
-      String(over.id)
-    );
-    
-    if (newIndices.length > 0) {
-      reorderItems.mutate(newIndices);
-    }
-  }, [day.activities, reorderItems]);
 
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
@@ -228,7 +189,10 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
         open={!isCollapsed}
         onOpenChange={(open) => toggleSection.mutate({ sectionId: day.id, isCollapsed: !open })}
       >
-        <Card className="shadow-warm overflow-hidden">
+        <Card className={cn(
+          "shadow-warm overflow-hidden transition-all duration-200",
+          isReceivingDrag && "ring-2 ring-dashed ring-primary/50 bg-primary/5 animate-day-expand"
+        )}>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-secondary/30 transition-colors">
               <div className="flex items-center justify-between">
@@ -298,43 +262,43 @@ export function DatabaseDayCard({ day, nextActivityId }: DatabaseDayCardProps) {
           
           <CollapsibleContent>
             <CardContent className="space-y-3 pt-0">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
+              <SortableContext
+                items={day.activities.map(a => a.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <SortableContext
-                  items={day.activities.map(a => a.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {day.activities.map((activity) => (
-                    <DraggableActivity key={activity.id} id={activity.id}>
-                      <SwipeableActivityCard
-                        activityId={activity.id}
-                        isCompleted={activity.status === 'done'}
-                        onComplete={() => handleToggleComplete(activity)}
-                        onEdit={() => {
-                          setEditingActivity(activity);
-                          setEditorOpen(true);
-                        }}
-                        onSkip={() => handleSkip(activity)}
-                        onDelete={() => deleteItem.mutate(activity.id)}
-                        onAddMemory={() => {
-                          setMemoryTargetActivity(activity);
-                          setMemoryCaptureOpen(true);
-                        }}
-                      >
-                        <DatabaseActivityCard 
-                          activity={activity}
-                          onOpenMap={openMapModal}
-                          onOpenPhoto={openPhotoViewer}
-                          isNextActivity={activity.id === nextActivityId}
-                        />
-                      </SwipeableActivityCard>
-                    </DraggableActivity>
-                  ))}
-                </SortableContext>
-              </DndContext>
+                {day.activities.map((activity) => (
+                  <DraggableActivity 
+                    key={activity.id} 
+                    id={activity.id}
+                    originalTime={activity.rawStartTime}
+                    previewTime={previewTimes?.get(activity.id)}
+                  >
+                    <SwipeableActivityCard
+                      activityId={activity.id}
+                      isCompleted={activity.status === 'done'}
+                      onComplete={() => handleToggleComplete(activity)}
+                      onEdit={() => {
+                        setEditingActivity(activity);
+                        setEditorOpen(true);
+                      }}
+                      onSkip={() => handleSkip(activity)}
+                      onDelete={() => deleteItem.mutate(activity.id)}
+                      onAddMemory={() => {
+                        setMemoryTargetActivity(activity);
+                        setMemoryCaptureOpen(true);
+                      }}
+                    >
+                      <DatabaseActivityCard 
+                        activity={activity}
+                        onOpenMap={openMapModal}
+                        onOpenPhoto={openPhotoViewer}
+                        isNextActivity={activity.id === nextActivityId}
+                        onSelect={() => selectItem('activity', activity.id, activity as unknown as SelectedItem['data'])}
+                      />
+                    </SwipeableActivityCard>
+                  </DraggableActivity>
+                ))}
+              </SortableContext>
               
               {/* Quick Add Row */}
               <QuickAddRow dayId={day.id} />
