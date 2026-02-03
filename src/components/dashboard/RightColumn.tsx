@@ -181,6 +181,15 @@ export function RightColumn({ className }: RightColumnProps) {
     }
   }, [accommodations, updateLocation, updateAccommodation]);
 
+  // Auto-expand filters when a location focus is requested
+  // This ensures the MapFilterHeader can process the focusedLocation
+  useEffect(() => {
+    if (focusedLocation && isFilterCollapsed) {
+      setIsFilterCollapsed(false);
+      // Don't persist to localStorage - this is temporary for viewing the focused item
+    }
+  }, [focusedLocation, isFilterCollapsed]);
+
   // Handle map panning when panToLocation changes
   useEffect(() => {
     if (panToLocation && leafletMapRef.current) {
