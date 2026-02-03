@@ -113,6 +113,8 @@ export function useUpdateLocation() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['locations', data.trip_id] });
       queryClient.invalidateQueries({ queryKey: ['locations-with-days', data.trip_id] });
+      // Also invalidate the map's location query
+      queryClient.invalidateQueries({ queryKey: ['trip-locations', data.trip_id] });
     },
     onError: (error) => {
       console.error('Failed to update location:', error);
