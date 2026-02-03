@@ -240,7 +240,7 @@ export function RightColumn({ className }: RightColumnProps) {
     <div ref={mapContainerRef} className={cn("flex flex-col h-full relative", className)}>
       {/* Collapsed filter button - floats over map */}
       {isFilterCollapsed && (
-        <div className="absolute top-3 left-3 z-20">
+        <div className="absolute top-3 right-3 z-20">
           <Button
             variant="secondary"
             size="sm"
