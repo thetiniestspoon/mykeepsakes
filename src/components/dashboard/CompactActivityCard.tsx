@@ -35,14 +35,21 @@ interface CompactActivityCardProps {
   activity: LegacyActivity;
   isNextActivity?: boolean;
   dayId: string;
+  previewTime?: string;
 }
 
 /**
  * Compact activity card for the dashboard left column.
  * Single line display with time + title + status indicator.
  * Clicking selects the activity and syncs with center + map.
+ * Now supports preview time display during drag operations.
  */
-export function CompactActivityCard({ activity, isNextActivity, dayId }: CompactActivityCardProps) {
+export function CompactActivityCard({ 
+  activity, 
+  isNextActivity, 
+  dayId,
+  previewTime 
+}: CompactActivityCardProps) {
   const dashboard = useDashboardSelectionOptional();
   
   const Icon = categoryIcons[activity.category] || Activity;
@@ -101,6 +108,9 @@ export function CompactActivityCard({ activity, isNextActivity, dayId }: Compact
     }
   };
   
+  // Display time - use preview time during drag, otherwise use activity time
+  const displayTime = previewTime || activity.time;
+  
   return (
     <button
       onClick={handleClick}
@@ -129,9 +139,12 @@ export function CompactActivityCard({ activity, isNextActivity, dayId }: Compact
       {/* Time + Title */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          {activity.time && (
-            <span className="text-xs text-muted-foreground font-mono flex-shrink-0">
-              {activity.time}
+          {displayTime && (
+            <span className={cn(
+              "text-xs font-mono flex-shrink-0",
+              previewTime ? "text-primary font-medium" : "text-muted-foreground"
+            )}>
+              {displayTime}
             </span>
           )}
           <span className={cn(
