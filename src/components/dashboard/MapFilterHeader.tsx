@@ -37,14 +37,13 @@ interface MapFilterHeaderProps {
   onFilteredLocationsChange: (locations: MapLocation[]) => void;
   focusedLocation?: FocusedLocation | null;
   onFocusConsumed?: () => void;
-  isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   className?: string;
 }
 
 /**
  * Scrollable filter header for the map with category and day filters
- * Supports collapsed state with a floating filter button
+ * Renders only when expanded - collapsed state handled by parent
  */
 export function MapFilterHeader({ 
   locations, 
@@ -52,7 +51,6 @@ export function MapFilterHeader({
   onFilteredLocationsChange,
   focusedLocation,
   onFocusConsumed,
-  isCollapsed = false,
   onToggleCollapse,
   className 
 }: MapFilterHeaderProps) {
@@ -197,27 +195,6 @@ export function MapFilterHeader({
       return next;
     });
   }, []);
-
-  // Collapsed state - show floating filter button
-  if (isCollapsed) {
-    return (
-      <div className="absolute top-3 left-3 z-10">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onToggleCollapse}
-          className="shadow-md gap-1.5"
-        >
-          <Filter className="w-4 h-4" />
-          {hasActiveFilters && (
-            <Badge variant="default" className="h-5 px-1.5 text-xs ml-1">
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className={cn("border-b border-border bg-card/95 backdrop-blur-sm", className)}>

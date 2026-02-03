@@ -11,7 +11,8 @@ import { useAccommodations } from '@/hooks/use-accommodations';
 import { cn } from '@/lib/utils';
 import type { MapLocation, PinState } from '@/types/map';
 import { Button } from '@/components/ui/button';
-import { MapPin, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, X, Filter } from 'lucide-react';
 import L from 'leaflet';
 
 const FILTER_COLLAPSED_KEY = 'map-filter-collapsed';
@@ -231,18 +232,43 @@ export function RightColumn({ className }: RightColumnProps) {
     navigateToPanel(1);
   };
 
+  // Calculate active filter count for the collapsed button badge
+  const activeFilterCount = filteredLocations ? allLocations.length - filteredLocations.length : 0;
+  const hasActiveFilters = activeFilterCount > 0;
+
   return (
     <div ref={mapContainerRef} className={cn("flex flex-col h-full relative", className)}>
-      {/* Filter Header */}
-      <MapFilterHeader
-        locations={allLocations}
-        days={filterDays}
-        onFilteredLocationsChange={handleFilteredLocationsChange}
-        focusedLocation={focusedLocation}
-        onFocusConsumed={clearLocationFocus}
-        isCollapsed={isFilterCollapsed}
-        onToggleCollapse={toggleFilterCollapsed}
-      />
+      {/* Collapsed filter button - floats over map */}
+      {isFilterCollapsed && (
+        <div className="absolute top-3 left-3 z-20">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleFilterCollapsed}
+            className="shadow-md gap-1.5"
+          >
+            <Filter className="w-4 h-4" />
+            <span className="text-xs font-medium">Filters</span>
+            {hasActiveFilters && (
+              <Badge variant="default" className="h-5 px-1.5 text-xs ml-1">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      )}
+      
+      {/* Filter Header - only renders when expanded */}
+      {!isFilterCollapsed && (
+        <MapFilterHeader
+          locations={allLocations}
+          days={filterDays}
+          onFilteredLocationsChange={handleFilteredLocationsChange}
+          focusedLocation={focusedLocation}
+          onFocusConsumed={clearLocationFocus}
+          onToggleCollapse={toggleFilterCollapsed}
+        />
+      )}
       
       {/* Highlight banner - shown when pins are highlighted with a label (and not collapsed) */}
       {highlightedMapPins.length > 0 && highlightLabel && !isFilterCollapsed && (
