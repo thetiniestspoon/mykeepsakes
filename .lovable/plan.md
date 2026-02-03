@@ -1,36 +1,32 @@
 
-# Fix Map Filter Button Visibility
+
+# Fix Map Filter Button Z-Index
 
 ## Problem
 
-The "Filters" button that should appear when the filter header is collapsed is not visible on the map panel. Looking at the screenshot:
+The "Filters" button is rendering **behind** the map. This happens because:
 
-- The Leaflet zoom controls (+/-) are at the **top-left** of the map
-- Our filter button is positioned at `top-3 left-3` (12px from top-left)
-- These positions overlap, and Leaflet's control container creates a stacking context with high z-index values (800-1000) that can visually override our button
-
-## Root Cause
-
-Leaflet's `.leaflet-container` and its control elements create their own stacking context with high z-index values. Our button has `z-20` (z-index: 20) but is positioned as a sibling to the map container, not accounting for Leaflet's internal stacking.
+1. Leaflet's `.leaflet-container` creates its own **stacking context**
+2. Leaflet's internal controls and layers use z-index values from 100-1000
+3. Our button has `z-20` which is lower than Leaflet's pane z-indices
+4. Even though our button is a sibling to the map container, the map's stacking context can visually overlap
 
 ## Solution
 
-Move the collapsed filter button to the **top-right corner** to avoid overlapping with Leaflet's default zoom controls. This is a cleaner UX approach than fighting z-index battles.
-
-**Alternative considered**: Increasing z-index to `z-[1001]` would also work but creates fragile CSS coupling with Leaflet internals.
+Use a z-index value **above** Leaflet's highest z-index (which is ~1000 for controls). Using `z-[1001]` will ensure the button floats above all Leaflet elements.
 
 ---
 
-## Changes
+## Change
 
 ### File: `src/components/dashboard/RightColumn.tsx`
 
-Update the button position from `left-3` to `right-3`:
+Update the collapsed filter button's z-index from `z-20` to `z-[1001]`:
 
 ```tsx
 {/* Collapsed filter button - floats over map */}
 {isFilterCollapsed && (
-  <div className="absolute top-3 right-3 z-20">  {/* Changed from left-3 to right-3 */}
+  <div className="absolute top-3 right-3 z-[1001]">  {/* Changed from z-20 to z-[1001] */}
     <Button
       variant="secondary"
       size="sm"
@@ -51,30 +47,14 @@ Update the button position from `left-3` to `right-3`:
 
 ---
 
-## Visual Layout After Fix
+## Why z-[1001]?
 
-```text
-┌────────────────────────────────────────────────┐
-│ [+]                              [🔍 Filters]  │
-│ [-]                                            │
-│                                                │
-│                    MAP                         │
-│                                                │
-│                                                │
-└────────────────────────────────────────────────┘
-  ↑                                    ↑
-  Leaflet zoom                         Our filter
-  controls (top-left)                  button (top-right)
-```
+Leaflet uses the following z-index hierarchy:
+- Map tiles: 100-200
+- Markers/overlays: 400-600  
+- Controls (zoom buttons): 800-1000
 
----
-
-## Why This Works
-
-1. **No z-index conflicts**: Button is in a different corner than Leaflet controls
-2. **Standard pattern**: Many map apps put filter/layer controls on the right side
-3. **Touch-friendly**: Right side is easier to reach with right thumb on mobile
-4. **Simple fix**: Single class change, no complex CSS overrides needed
+Using `z-[1001]` puts our button above all Leaflet layers while staying minimal.
 
 ---
 
@@ -82,4 +62,5 @@ Update the button position from `left-3` to `right-3`:
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/RightColumn.tsx` | Change `left-3` to `right-3` on the collapsed filter button container |
+| `src/components/dashboard/RightColumn.tsx` | Change `z-20` to `z-[1001]` on collapsed filter button container |
+
