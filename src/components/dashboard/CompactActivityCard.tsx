@@ -7,7 +7,8 @@ import {
   PartyPopper,
   Activity,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardSelectionOptional } from '@/contexts/DashboardSelectionContext';
@@ -36,6 +37,8 @@ interface CompactActivityCardProps {
   isNextActivity?: boolean;
   dayId: string;
   previewTime?: string;
+  isDragging?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 /**
@@ -48,7 +51,9 @@ export function CompactActivityCard({
   activity, 
   isNextActivity, 
   dayId,
-  previewTime 
+  previewTime,
+  isDragging,
+  dragHandleProps
 }: CompactActivityCardProps) {
   const dashboard = useDashboardSelectionOptional();
   
@@ -112,54 +117,76 @@ export function CompactActivityCard({
   const displayTime = previewTime || activity.time;
   
   return (
-    <button
-      onClick={handleClick}
+    <div
       data-activity-id={activity.id}
       className={cn(
-        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-all",
-        "border hover:bg-accent/50",
+        "w-full flex items-center rounded-md text-left transition-all",
+        "border",
         categoryColors[activity.category],
         isCompleted && "opacity-50",
         isSelected && "ring-2 ring-primary ring-offset-1 bg-accent",
         isNextActivity && !isSelected && "ring-1 ring-primary/50 bg-primary/5"
       )}
     >
-      {/* Category icon */}
-      <div className={cn(
-        "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center",
-        isCompleted ? "bg-green-100" : "bg-background/80"
-      )}>
-        {isCompleted ? (
-          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-        ) : (
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        )}
-      </div>
-      
-      {/* Time + Title */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          {displayTime && (
-            <span className={cn(
-              "text-xs font-mono flex-shrink-0",
-              previewTime ? "text-primary font-medium" : "text-muted-foreground"
-            )}>
-              {displayTime}
-            </span>
+      {/* Drag handle - leftmost element */}
+      {dragHandleProps && (
+        <div
+          {...dragHandleProps}
+          className={cn(
+            "flex-shrink-0 w-6 self-stretch flex items-center justify-center",
+            "text-muted-foreground/40 hover:text-muted-foreground",
+            "cursor-grab active:cursor-grabbing touch-none",
+            "transition-colors rounded-l-md hover:bg-muted/50",
+            isDragging && "cursor-grabbing text-primary"
           )}
-          <span className={cn(
-            "text-sm truncate",
-            isCompleted && "line-through text-muted-foreground"
-          )}>
-            {activity.title}
-          </span>
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
         </div>
-      </div>
-      
-      {/* Location indicator */}
-      {activity.location && (
-        <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
       )}
-    </button>
+
+      {/* Rest of card content - clickable */}
+      <button
+        onClick={handleClick}
+        className="flex-1 flex items-center gap-2 px-2 py-1.5 hover:bg-accent/50 rounded-r-md transition-colors"
+      >
+        {/* Category icon */}
+        <div className={cn(
+          "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center",
+          isCompleted ? "bg-green-100" : "bg-background/80"
+        )}>
+          {isCompleted ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+          ) : (
+            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+          )}
+        </div>
+        
+        {/* Time + Title */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            {displayTime && (
+              <span className={cn(
+                "text-xs font-mono flex-shrink-0",
+                previewTime ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                {displayTime}
+              </span>
+            )}
+            <span className={cn(
+              "text-sm truncate",
+              isCompleted && "line-through text-muted-foreground"
+            )}>
+              {activity.title}
+            </span>
+          </div>
+        </div>
+        
+        {/* Location indicator */}
+        {activity.location && (
+          <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+        )}
+      </button>
+    </div>
   );
 }
