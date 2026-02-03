@@ -206,6 +206,10 @@ export default {
           "70%": { transform: "scale(0.9)" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
+        "day-expand": {
+          "0%": { transform: "scaleY(1)" },
+          "100%": { transform: "scaleY(1.01)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -233,6 +237,7 @@ export default {
         "breathing": "breathing 3s ease-in-out infinite",
         "progress-fill": "progress-fill 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "bounce-in": "bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "day-expand": "day-expand 0.2s ease-out forwards",
       },
     },
   },

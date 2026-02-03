@@ -66,9 +66,20 @@ interface DatabaseActivityCardProps {
   onOpenMap?: (location: SelectedLocation) => void;
   onOpenPhoto?: (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => void;
   isNextActivity?: boolean;
+  onSelect?: () => void;  // For tap to open details
+  previewTime?: string | null;  // Live time during drag
+  isDragging?: boolean;
 }
 
-export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextActivity }: DatabaseActivityCardProps) {
+export function DatabaseActivityCard({ 
+  activity, 
+  onOpenMap, 
+  onOpenPhoto, 
+  isNextActivity,
+  onSelect,
+  previewTime,
+  isDragging
+}: DatabaseActivityCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,7 +139,14 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
           className="mt-1"
         />
         
-        <div className="flex-1 min-w-0">
+        {/* Clickable time/title region for opening details */}
+        <div 
+          onClick={onSelect}
+          className={cn(
+            "flex-1 min-w-0",
+            onSelect && "cursor-pointer hover:bg-muted/30 rounded-md -mx-1 px-1 py-0.5 transition-colors"
+          )}
+        >
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
@@ -137,8 +155,15 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
               <Icon className="w-3 h-3" />
               {activity.category}
             </span>
-            {activity.time && (
-              <span className="text-sm text-muted-foreground">{activity.time}</span>
+            {/* Time display - shows preview time during drag */}
+            {(previewTime || activity.time) && (
+              <span className={cn(
+                "text-sm",
+                previewTime ? "text-primary font-medium" : "text-muted-foreground",
+                isDragging && previewTime && "animate-pulse"
+              )}>
+                {previewTime || activity.time}
+              </span>
             )}
             {isCompleted && (
               <span className="inline-flex items-center gap-1 text-xs text-green-600">
@@ -185,15 +210,22 @@ export function DatabaseActivityCard({ activity, onOpenMap, onOpenPhoto, isNextA
             
             {activity.location && onOpenMap && (
               <button
-                onClick={() => onOpenMap({ 
-                  lat: activity.location!.lat, 
-                  lng: activity.location!.lng, 
-                  name: activity.location!.name 
-                })}
-                className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenMap({ 
+                    lat: activity.location!.lat, 
+                    lng: activity.location!.lng, 
+                    name: activity.location!.name 
+                  });
+                }}
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center",
+                  "bg-accent/10 text-accent hover:bg-accent/20",
+                  "transition-colors shadow-sm"
+                )}
+                aria-label="Show on map"
               >
-                <MapPin className="w-3 h-3" />
-                Map
+                <MapPin className="w-4 h-4" />
               </button>
             )}
           </div>
