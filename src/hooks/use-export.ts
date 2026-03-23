@@ -5,21 +5,31 @@ import { toast } from 'sonner';
 interface ExportOptions {
   tripId: string;
   includePhotos?: boolean;
+  filterByTag?: string;
 }
 
 export function useExportTrip() {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<string>('');
 
-  const exportTrip = async ({ tripId, includePhotos = true }: ExportOptions) => {
+  const exportTrip = async ({ tripId, includePhotos = true, filterByTag }: ExportOptions) => {
     setIsExporting(true);
     setProgress('Preparing export...');
 
     try {
       setProgress('Generating ZIP file...');
-      
+
+      // Build the request body, filtering memories by tag before export if specified
+      const requestBody: { tripId: string; includePhotos: boolean; filterByTag?: string } = {
+        tripId,
+        includePhotos,
+      };
+      if (filterByTag) {
+        requestBody.filterByTag = filterByTag;
+      }
+
       const { data, error } = await supabase.functions.invoke('export-trip', {
-        body: { tripId, includePhotos },
+        body: requestBody,
       });
 
       if (error) {
