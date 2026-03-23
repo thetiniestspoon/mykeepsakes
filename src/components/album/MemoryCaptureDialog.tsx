@@ -9,6 +9,8 @@ import { format } from 'date-fns';
 import { useCreateMemory, useUploadMemoryMedia } from '@/hooks/use-memories';
 import { toast } from 'sonner';
 import type { Location } from '@/types/trip';
+import { TagChips } from '@/components/reflection/TagChips';
+import type { InsightTag } from '@/types/conference';
 
 interface Day {
   id: string;
@@ -41,11 +43,15 @@ export function MemoryCaptureDialog({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [tags, setTags] = useState<InsightTag[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const createMemory = useCreateMemory();
   const uploadMedia = useUploadMemoryMedia();
+
+  const handleToggleTag = (tag: InsightTag) =>
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -72,6 +78,7 @@ export function MemoryCaptureDialog({
     previewUrls.forEach(url => URL.revokeObjectURL(url));
     setSelectedFiles([]);
     setPreviewUrls([]);
+    setTags([]);
   };
 
   const handleClose = () => {
@@ -100,7 +107,9 @@ export function MemoryCaptureDialog({
         title: null,
         day_id: selectedDayId || null,
         location_id: selectedLocationId || null,
-        itinerary_item_id: null
+        itinerary_item_id: null,
+        memory_type: 'photo',
+        tags: tags.length > 0 ? tags : undefined
       });
 
       // Upload all selected files
@@ -183,6 +192,12 @@ export function MemoryCaptureDialog({
               rows={3}
               className="mt-1.5"
             />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Tags (optional)</Label>
+            <TagChips selected={tags} onToggle={handleToggleTag} />
           </div>
 
           {/* Day Selection */}
