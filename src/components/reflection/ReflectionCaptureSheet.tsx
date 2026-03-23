@@ -154,7 +154,7 @@ export function ReflectionCaptureSheet({
               ) : (
                 <ChevronDown className="h-4 w-4" />
               )}
-              Speaker &amp; session
+              Speaker & session
             </button>
 
             {showSpeakerFields && (

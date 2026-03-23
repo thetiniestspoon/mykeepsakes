@@ -89,7 +89,7 @@ function useSharedDispatch(token: string | undefined, dispatchId: string | undef
           .filter((m) => photoSet.has(m.id))
           .sort(
             (a, b) =>
-              (items as DispatchItem[]).find((i) => i.item_id === a.id)?.sort_order ?? 0 -
+              ((items as DispatchItem[]).find((i) => i.item_id === a.id)?.sort_order ?? 0) -
               ((items as DispatchItem[]).find((i) => i.item_id === b.id)?.sort_order ?? 0),
           );
 
@@ -97,7 +97,7 @@ function useSharedDispatch(token: string | undefined, dispatchId: string | undef
           .filter((m) => reflectionSet.has(m.id))
           .sort(
             (a, b) =>
-              (items as DispatchItem[]).find((i) => i.item_id === a.id)?.sort_order ?? 0 -
+              ((items as DispatchItem[]).find((i) => i.item_id === a.id)?.sort_order ?? 0) -
               ((items as DispatchItem[]).find((i) => i.item_id === b.id)?.sort_order ?? 0),
           );
       }

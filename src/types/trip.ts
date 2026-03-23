@@ -123,6 +123,7 @@ export interface TripShareLink {
   permission: SharePermission;
   expires_at: string | null;
   created_at: string;
+  dispatch_id?: string | null;
 }
 
 // Utility type for polymorphic favorites

@@ -67,17 +67,23 @@ export default function DispatchEditor({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [autoSelectDone, setAutoSelectDone] = useState(false);
 
   // Auto-select reflections tagged insight / quote / training-seed on load
   useEffect(() => {
-    if (isLoading || dayReflections.length === 0) return;
-    const autoIds = dayReflections
-      .filter((m) => (m.tags ?? []).some((t) => AUTO_SELECT_TAGS.includes(t)))
-      .map((m) => m.id);
-    if (autoIds.length > 0) {
-      setSelectedReflectionIds(new Set(autoIds));
+    if (dayReflections.length > 0 && !autoSelectDone) {
+      const auto = new Set<string>();
+      dayReflections.forEach((r) => {
+        const tags = r.tags || [];
+        if (tags.some((t) => ['insight', 'quote', 'training-seed'].includes(t)) &&
+            !tags.includes('personal')) {
+          auto.add(r.id);
+        }
+      });
+      setSelectedReflectionIds(auto);
+      setAutoSelectDone(true);
     }
-  }, [isLoading, dayReflections]);
+  }, [dayReflections, autoSelectDone]);
 
   const togglePhoto = (id: string) => {
     setSelectedPhotoIds((prev) => {
