@@ -42,17 +42,14 @@
 |------|---------|
 | `package.json` | Remove `lovable-tagger` |
 | `vite.config.ts` | Remove lovable-tagger plugin reference |
-| `src/types/trip.ts` | Extend Memory, FamilyContact interfaces; add MemoryType |
+| `src/types/trip.ts` | Extend Memory interface with optional conference fields |
 | `src/integrations/supabase/types.ts` | Regenerate after migration |
 | `src/App.tsx` | Add `/shared/:token/dispatch/:id` route |
 | `src/pages/Index.tsx` | Add PeopleTab, FilterBar, ReflectionFAB |
 | `src/components/dashboard/DashboardLayout.tsx` | Add People tab to navigation |
-| `src/hooks/use-memories.ts` | Filter by memory_type in queries |
-| `src/hooks/use-trip-data.ts` | Extend family contacts hooks for trip_id scoping |
-| `src/hooks/use-sharing.ts` | Add dispatch share link creation |
 | `src/hooks/use-export.ts` | Add tag-based filtering to export |
-| `src/components/album/MemoryCaptureDialog.tsx` | Add tag chips to existing dialog |
-| `src/components/sharing/ShareDialog.tsx` | Add dispatch sharing option |
+| `src/components/album/MemoryCaptureDialog.tsx` | Add tag chips + memory_type: 'photo' to save |
+| `src/components/itinerary/ActivityEditor.tsx` | Add TagChips to activity notes editing |
 
 ---
 
@@ -238,20 +235,20 @@ export interface Connection {
 
 - [ ] **Step 2: Extend Memory interface in trip.ts**
 
-Add to the existing `Memory` interface in `src/types/trip.ts`:
+Add to the existing `Memory` interface in `src/types/trip.ts`. All new fields are **optional** to avoid breaking existing code — the DB default handles `memory_type`:
 
 ```typescript
-// Add these fields to the Memory interface:
-  memory_type: 'photo' | 'reflection' | 'dispatch';
-  tags: string[] | null;
-  speaker: string | null;
-  session_title: string | null;
+// Add these fields to the Memory interface (all optional):
+  memory_type?: 'photo' | 'reflection' | 'dispatch';
+  tags?: string[] | null;
+  speaker?: string | null;
+  session_title?: string | null;
 ```
 
 - [ ] **Step 3: Run type check**
 
 Run: `npx tsc --noEmit`
-Expected: Type errors in components that construct Memory objects (will be fixed in subsequent tasks)
+Expected: No new type errors — all fields are optional so existing code is unaffected
 
 - [ ] **Step 4: Commit**
 
@@ -839,7 +836,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Loader2 } from 'lucide-react';
 import { useCreateConnection } from '@/hooks/use-connections';
-import type { ItineraryDay } from '@/types/trip';
 
 interface ConnectionCaptureSheetProps {
   open: boolean;
@@ -1263,12 +1259,14 @@ This is the largest single component. It shows the day's content with checkboxes
 
 ```typescript
 // src/components/dispatch/DispatchEditor.tsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Eye, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useReflections } from '@/hooks/use-reflections';
 import { useCreateDispatch } from '@/hooks/use-dispatches';
 import { useMemories } from '@/hooks/use-memories';
@@ -1309,18 +1307,23 @@ export function DispatchEditor({
   );
 
   // Auto-select items tagged insight/quote/training-seed, exclude personal
-  const [selectedReflections, setSelectedReflections] = useState<Set<string>>(() => {
-    const auto = new Set<string>();
-    dayReflections.forEach((r) => {
-      const tags = r.tags || [];
-      if (tags.some((t) => ['insight', 'quote', 'training-seed'].includes(t)) &&
-          !tags.includes('personal')) {
-        auto.add(r.id);
-      }
-    });
-    return auto;
-  });
+  const [selectedReflections, setSelectedReflections] = useState<Set<string>>(new Set());
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+
+  // Re-compute auto-selection when data loads (useState initializer runs once, before data is available)
+  useEffect(() => {
+    if (dayReflections.length > 0) {
+      const auto = new Set<string>();
+      dayReflections.forEach((r) => {
+        const tags = r.tags || [];
+        if (tags.some((t) => ['insight', 'quote', 'training-seed'].includes(t)) &&
+            !tags.includes('personal')) {
+          auto.add(r.id);
+        }
+      });
+      setSelectedReflections(auto);
+    }
+  }, [dayReflections]);
   const [closingNote, setClosingNote] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -1498,8 +1501,6 @@ export function DispatchEditor({
   );
 }
 ```
-
-Note: The `import { toast } from 'sonner'` and `import { supabase } from '@/integrations/supabase/client'` imports need to be added at the top of the DispatchEditor. The implementer should add these.
 
 - [ ] **Step 2: Implement DispatchPreview**
 
@@ -1719,7 +1720,7 @@ export default function SharedDispatch() {
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Dispatch</p>
           <h1 className="text-xl font-bold">{dayTitle}</h1>
           <p className="text-sm text-muted-foreground">
-            Sankofa 2026 — Healing, Justice & Sacred Care
+            {/* Trip title fetched from dispatch's trip record */}
           </p>
         </header>
 
@@ -1815,29 +1816,37 @@ git commit -m "feat: add shared dispatch page and route"
 ## Task 13: Wire features into main app
 
 **Files:**
-- Modify: `src/pages/Index.tsx`
-- Modify: `src/components/dashboard/DashboardLayout.tsx`
+- Modify: `src/pages/Index.tsx` — main app page, renders the dashboard
+- Modify: `src/components/dashboard/DashboardLayout.tsx` — tab navigation and panel layout
+- Possibly modify: `src/components/ItineraryTab.tsx` or `src/components/dashboard/DashboardItinerary.tsx` — for dispatch button on day view
 
-This task integrates all new components into the existing app. Read both files carefully first — the exact integration points depend on the current structure.
+This task integrates all new components into the existing app. **Read each file before modifying.**
 
-- [ ] **Step 1: Read Index.tsx and DashboardLayout.tsx**
+- [ ] **Step 1: Read all integration target files**
 
-Run: Read both files to understand current tab structure and layout.
+Read these files to understand the current structure:
+- `src/pages/Index.tsx`
+- `src/components/dashboard/DashboardLayout.tsx`
+- `src/components/ItineraryTab.tsx`
+- `src/components/dashboard/DashboardItinerary.tsx`
+- `src/components/BottomNav.tsx` (if it exists — may control mobile navigation)
+
+Identify: Where tabs are defined, where the active tab content renders, where day cards render.
 
 - [ ] **Step 2: Add PeopleTab to dashboard navigation**
 
-In `DashboardLayout.tsx`, add a "People" tab alongside existing tabs (Itinerary, Album, Map, Contacts, etc.). Use the `Users` icon from lucide-react.
+In `DashboardLayout.tsx` (or whichever file defines the tab list), add a "People" tab alongside existing tabs (Itinerary, Album, Map, Contacts, etc.). Use the `Users` icon from lucide-react. Render `PeopleTab` when this tab is active, passing `tripId`.
 
 - [ ] **Step 3: Add ReflectionFAB to Index.tsx**
 
-Import and render `ReflectionFAB` at the bottom of the trip view. Wire the `onReflection` and `onConnection` callbacks to open `ReflectionCaptureSheet` and `ConnectionCaptureSheet` respectively.
+Import and render `ReflectionFAB` at the bottom of the trip view (after the dashboard layout, inside the trip-active conditional). Wire the `onReflection` and `onConnection` callbacks to open sheets.
 
 ```typescript
-// State
+// Add state:
 const [reflectionOpen, setReflectionOpen] = useState(false);
 const [connectionOpen, setConnectionOpen] = useState(false);
 
-// In render:
+// Add to JSX (after DashboardLayout, before closing fragment):
 <ReflectionFAB
   onReflection={() => setReflectionOpen(true)}
   onConnection={() => setConnectionOpen(true)}
@@ -1859,11 +1868,11 @@ const [connectionOpen, setConnectionOpen] = useState(false);
 
 - [ ] **Step 4: Add "Create Dispatch" button to day view**
 
-In the day card or day detail component, add a button that opens the `DispatchEditor` for that day.
+In the component that renders individual day cards (likely `src/components/dashboard/DashboardItinerary.tsx` or `src/components/itinerary/DayCard.tsx`), add a "Create Dispatch" button at the bottom of each day section. Wire it to open a `DispatchEditor` dialog for that day, passing the day's activities.
 
-- [ ] **Step 5: Add FilterBar**
+- [ ] **Step 5: Add FilterBar to album/reflections view**
 
-Add `FilterBar` above the content area when viewing reflections/memories. Wire the filter state to filter displayed content by tag.
+In the album or memory view component, add `FilterBar` above the content area. Add state for `activeFilter: InsightTag | null`. Filter displayed memories by tag when a filter is active.
 
 - [ ] **Step 6: Verify app runs**
 
@@ -1873,7 +1882,7 @@ Open in browser. Verify: FAB visible, tapping opens reflection sheet, People tab
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/pages/Index.tsx src/components/dashboard/DashboardLayout.tsx
+git add src/pages/Index.tsx src/components/dashboard/ src/components/ItineraryTab.tsx src/components/AlbumTab.tsx
 git commit -m "feat: wire conference companion features into main app"
 ```
 
@@ -1902,6 +1911,34 @@ Expected: Build succeeds
 ```bash
 git add src/components/album/MemoryCaptureDialog.tsx
 git commit -m "feat: add insight tags to existing memory capture dialog"
+```
+
+---
+
+## Task 14b: Add tags to itinerary item editing
+
+**Files:**
+- Modify: `src/components/itinerary/ActivityEditor.tsx` (or whichever component handles itinerary item notes editing — read the file first)
+
+- [ ] **Step 1: Find the activity editing component**
+
+Run: `grep -rn "notes" src/components/itinerary/ | grep -i edit`
+Also check: `src/components/dashboard/DetailPanels/` for activity detail editing.
+
+- [ ] **Step 2: Add TagChips to the activity editor**
+
+Import `TagChips` and `InsightTag`. Add `tags` state. Render `TagChips` below the notes field. Include `tags` in the save/update mutation payload.
+
+- [ ] **Step 3: Verify build**
+
+Run: `npm run build`
+Expected: Build succeeds
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/components/itinerary/
+git commit -m "feat: add insight tags to itinerary item editing"
 ```
 
 ---
