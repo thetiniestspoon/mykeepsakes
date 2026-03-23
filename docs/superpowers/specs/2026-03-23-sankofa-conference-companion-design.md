@@ -36,30 +36,30 @@ The conference features serve three purposes:
 - React 18 + TypeScript + Vite
 - Supabase backend (PostgreSQL, Auth, Storage, Edge Functions)
 - PIN-protected access (no user auth)
-- PWA with offline support (vite-plugin-pwa)
+- No PWA/offline support (despite `vite-plugin-pwa` being referenced in earlier docs, it is NOT in the current codebase — no service worker, no manifest)
 - Hosted on Lovable
+- `lovable-tagger` in devDependencies (build-time only, Lovable-specific)
 
 ### Target State
 
 - Same frontend stack, deployed on Vercel
 - New Supabase project (free tier, self-managed)
 - Existing data migrated
-- Updated PWA manifest URLs
+- `lovable-tagger` removed from devDependencies
 
 ### Migration Steps
 
-1. **Frontend**: Pull repo as-is. No Lovable-proprietary runtime to remove. Standard Vite/React.
+1. **Frontend**: Pull repo as-is. Standard Vite/React. Remove `lovable-tagger` from devDependencies.
 2. **Vercel**: Add `vercel.json` config. Set environment variables (Supabase URL, anon key, project ID).
-3. **Database**: Create new Supabase project. Run existing migrations from `supabase/migrations/` to recreate schema. Export/import existing trip data.
-4. **Storage**: New Supabase storage bucket (`trip-photos`). Start fresh or manually migrate existing photos.
-5. **PWA**: Update service worker config and manifest URLs for new domain.
-6. **Domain**: Deploy to `.vercel.app` initially. Custom domain optional.
+3. **Database**: Create new Supabase project. Run existing migrations from `supabase/migrations/` to recreate schema. For existing trip data: use `pg_dump --data-only` from old Supabase → `psql` import to new instance. Decision: **start fresh on photos** — the Sankofa trip is the first real use on the new instance.
+4. **Storage**: New Supabase storage bucket (`trip-photos`). Fresh start.
+5. **Domain**: Deploy to `.vercel.app` initially. Custom domain optional.
 
 ### What Changes
 
 - Environment variables (Supabase URL, anon key, project ID)
 - Deployment config (Lovable → `vercel.json`)
-- PWA manifest URLs
+- Remove `lovable-tagger` devDependency
 
 ### What Stays the Same
 
@@ -102,6 +102,8 @@ Zero taps to start typing. Whole interaction under 60 seconds.
 - Export system already handles memories
 - Album view already renders them
 - Fewer migrations, fewer joins
+
+**Backfill strategy:** Existing memory rows have no `memory_type` value. The column default of `'photo'` handles this — no backfill migration needed. Existing memories are implicitly type `photo`.
 
 ### UI Components
 
@@ -149,12 +151,14 @@ The existing trip share shows everything — raw notes, logistics, half-formed t
 | `id` | uuid (PK) | |
 | `dispatch_id` | uuid (FK → memories) | The dispatch memory record |
 | `item_type` | text | `reflection` \| `activity` \| `photo` |
-| `item_id` | uuid | FK to source record |
+| `item_id` | uuid | Polymorphic reference to source record (no DB-level FK) |
 | `sort_order` | integer | Display order |
 | `section` | text | `scene` \| `insight` \| `closing` |
 | `created_at` | timestamptz | |
 
-A dispatch is a `memory` with `memory_type: 'dispatch'`. The `dispatch_items` table references existing content without duplicating it.
+A dispatch is a `memory` with `memory_type: 'dispatch'`. The `dispatch_items` table references existing content without duplicating it. This follows the same polymorphic pattern used by the existing `favorites` table (`entity_type` + `entity_id`). Resolution is app-level, not DB-level FK constraints.
+
+**Closing text storage:** The dispatch's closing text is stored in the dispatch memory's `note` field — no additional column needed.
 
 ### Shared View
 
@@ -169,7 +173,8 @@ Renders a clean, mobile-friendly page:
 
 ### Sharing Mechanics
 
-- Each dispatch gets its own share token (via existing `trip_share_links` mechanism, extended with `dispatch_id`)
+- Each dispatch gets its own row in `trip_share_links` with `dispatch_id` set. One dispatch = one token = one row.
+- The shared dispatch view resolves the dispatch directly via token. The "View full trip" link is only shown if a separate trip-level share token exists (checked at render time).
 - Link is copy-to-clipboard for pasting into text, Slack, or email
 - No authentication required to view
 
@@ -195,6 +200,7 @@ Conference networking is valuable but ephemeral. No existing feature captures "I
 | Field | Type | Default | Purpose |
 |-------|------|---------|---------|
 | `trip_id` | uuid (FK) | null | Scopes contact to a trip |
+| `email` | text | null | Contact email address |
 | `organization` | text | null | Role/org line |
 | `met_context` | text | null | How/where you met, what you discussed |
 | `day_id` | uuid (FK) | null | Which day |
@@ -356,7 +362,7 @@ All schema changes are additive (new columns, one new table). No existing data i
 
 1. Add `memory_type`, `tags`, `speaker`, `session_title` to `memories`
 2. Add `tags` to `itinerary_items`
-3. Add `trip_id`, `organization`, `met_context`, `day_id`, `photo_path` to `family_contacts`
+3. Add `trip_id`, `email`, `organization`, `met_context`, `day_id`, `photo_path` to `family_contacts`
 4. Create `dispatch_items` table
 5. Extend `trip_share_links` with optional `dispatch_id`
 
@@ -367,8 +373,21 @@ All schema changes are additive (new columns, one new table). No existing data i
 - PIN protection remains the access model
 - No user authentication added
 
-### Offline
+### Offline (Stretch Goal)
 
-- Reflection capture must work offline (queue and sync when connected)
-- Dispatch creation requires connectivity (generates share token server-side)
-- PWA service worker caches the app shell and recent data
+The app does NOT currently have PWA/offline infrastructure. Building a full offline queue with sync requires significant new infrastructure (IndexedDB storage, sync triggers, conflict resolution) that risks the April 14 deadline.
+
+**v1 approach:** Require connectivity. Show a clear "saving..." toast with retry on failure. Conference hotel has WiFi. If connectivity is unreliable during sessions, fallback is typing in the phone's Notes app and transferring later.
+
+**Stretch goal (post-conference or if time allows):** Add `vite-plugin-pwa` with service worker, IndexedDB-backed offline queue for reflections, and background sync on reconnect.
+
+### Performance Indexes
+
+Add GIN indexes for tag array queries:
+- `CREATE INDEX idx_memories_tags ON memories USING GIN (tags);`
+- `CREATE INDEX idx_itinerary_items_tags ON itinerary_items USING GIN (tags);`
+- Add index on `family_contacts(trip_id)` and `family_contacts(day_id)` for scoped queries.
+
+### RLS Note
+
+Existing RLS policies are fully public (`USING (true)`). Dispatch share tokens provide obscurity-based access (unguessable URL), not cryptographic access control. This matches the current PIN-protected model. A future auth layer could add token validation at the RLS level.
