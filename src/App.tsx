@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy load shared trip page
 const SharedTrip = lazy(() => import("./pages/SharedTrip"));
+const SharedDispatch = lazy(() => import("./pages/SharedDispatch"));
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,14 @@ const App = () => (
                 <SharedTrip />
               </Suspense>
             } 
+          />
+          <Route
+            path="/shared/:token/dispatch/:id"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <SharedDispatch />
+              </Suspense>
+            }
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
