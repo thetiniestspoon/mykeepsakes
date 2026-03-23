@@ -86,6 +86,10 @@ export interface Memory {
   day_id: string | null;
   itinerary_item_id: string | null;
   location_id: string | null;
+  memory_type?: 'photo' | 'reflection' | 'dispatch';
+  tags?: string[] | null;
+  speaker?: string | null;
+  session_title?: string | null;
   created_at: string;
   // Joined data
   media?: MemoryMedia[];
