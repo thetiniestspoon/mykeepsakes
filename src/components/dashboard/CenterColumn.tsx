@@ -7,6 +7,8 @@ import { AlbumExperience } from './DetailPanels/AlbumExperience';
 import { StayDetail } from './DetailPanels/StayDetail';
 import { PackingDetail } from './DetailPanels/PackingDetail';
 import { DefaultCenterContent } from './DetailPanels/DefaultCenterContent';
+import { PeopleTab } from '@/components/PeopleTab';
+import { useActiveTrip } from '@/hooks/use-trip';
 import type { ItineraryItem, Location, Memory } from '@/types/trip';
 import type { MapLocation } from '@/types/map';
 
@@ -23,6 +25,7 @@ interface CenterColumnProps {
  */
 export function CenterColumn({ className }: CenterColumnProps) {
   const { selectedItem, defaultFocus } = useDashboardSelection();
+  const { data: trip } = useActiveTrip();
 
   // Render based on selection or default focus
   const renderContent = () => {
@@ -44,6 +47,8 @@ export function CenterColumn({ className }: CenterColumnProps) {
           return <StayDetail />;
         case 'packing':
           return <PackingDetail />;
+        case 'people':
+          return trip ? <PeopleTab tripId={trip.id} /> : null;
         default:
           return <DefaultCenterContent focus={defaultFocus} />;
       }

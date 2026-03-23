@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PinEntry } from '@/components/PinEntry';
 import { PinSetup } from '@/components/PinSetup';
 import { SettingsDialog } from '@/components/SettingsDialog';
@@ -13,19 +13,32 @@ import { LeftColumn } from '@/components/dashboard/LeftColumn';
 import { CenterColumn } from '@/components/dashboard/CenterColumn';
 import { RightColumn } from '@/components/dashboard/RightColumn';
 import { CompactHeader } from '@/components/dashboard/CompactHeader';
-import { useActiveTrip, getTripMode } from '@/hooks/use-trip';
+import { ReflectionFAB } from '@/components/reflection/ReflectionFAB';
+import { ReflectionCaptureSheet } from '@/components/reflection/ReflectionCaptureSheet';
+import { ConnectionCaptureSheet } from '@/components/connections/ConnectionCaptureSheet';
+import { useActiveTrip, getTripMode, useTripDays, getCurrentDayIndex } from '@/hooks/use-trip';
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [connectionOpen, setConnectionOpen] = useState(false);
+
   const { data: pin, isLoading: pinLoading } = usePin();
   const { data: trip } = useActiveTrip();
+  const { data: days = [] } = useTripDays(trip?.id);
   const { isWideLayout } = useDashboardMode();
   const queryClient = useQueryClient();
-  
+
   // Get trip mode for dashboard context
   const tripMode = trip ? getTripMode(trip) : 'pre';
+
+  // Determine current day for reflections/connections
+  const currentDayId = useMemo(() => {
+    if (!trip || days.length === 0) return undefined;
+    const idx = getCurrentDayIndex(trip, days, tripMode);
+    return days[idx]?.id;
+  }, [trip, days, tripMode]);
   
   // Check for existing session
   useEffect(() => {
@@ -88,12 +101,35 @@ const Index = () => {
         />
       )}
       
-      <SettingsDialog 
-        open={settingsOpen} 
+      <SettingsDialog
+        open={settingsOpen}
         onOpenChange={setSettingsOpen}
         currentPin={pin}
         onLogout={handleLogout}
       />
+
+      {/* Conference companion: FAB + capture sheets */}
+      {trip && (
+        <>
+          <ReflectionFAB
+            onReflection={() => setReflectionOpen(true)}
+            onConnection={() => setConnectionOpen(true)}
+          />
+          <ReflectionCaptureSheet
+            open={reflectionOpen}
+            onOpenChange={setReflectionOpen}
+            tripId={trip.id}
+            days={days}
+            currentDayId={currentDayId}
+          />
+          <ConnectionCaptureSheet
+            open={connectionOpen}
+            onOpenChange={setConnectionOpen}
+            tripId={trip.id}
+            currentDayId={currentDayId}
+          />
+        </>
+      )}
     </DashboardSelectionProvider>
   );
 };

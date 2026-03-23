@@ -1,4 +1,4 @@
-import { Book, Home, ListChecks, Images } from 'lucide-react';
+import { Book, Home, ListChecks, Images, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDashboardSelection, type SelectionType } from '@/contexts/DashboardSelectionContext';
 import { cn } from '@/lib/utils';
@@ -32,12 +32,19 @@ export function QuickIconRow() {
       type: 'stay' as SelectionType,
       section: 'lodging'
     },
-    { 
+    {
       id: 'album',
-      icon: Images, 
+      icon: Images,
       label: 'Album',
       type: 'album' as SelectionType,
       section: 'album'
+    },
+    {
+      id: 'people',
+      icon: Users,
+      label: 'People',
+      type: 'people' as SelectionType,
+      section: 'people'
     },
   ];
 
