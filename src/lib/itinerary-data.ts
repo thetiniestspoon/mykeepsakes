@@ -1,5 +1,12 @@
-// Provincetown Family Week 2026 Itinerary Data
-// This contains all the trip data including locations for the map
+// ============================================================================
+// LEGACY DEMO DATA -- Provincetown Family Week 2026
+// ============================================================================
+// This file contains static itinerary data used as fallback / seed content.
+// The app should pull live itinerary data from Supabase (conference_events,
+// dispatches tables). This file is kept as a reference and offline fallback
+// until the Supabase data pipeline is fully wired.
+// See: scripts/seed-sankofa.ts, supabase/migrations/20260323000000_conference_companion.sql
+// ============================================================================
 
 export interface Location {
   lat: number;
