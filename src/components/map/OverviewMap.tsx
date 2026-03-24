@@ -179,7 +179,7 @@ export function OverviewMap({
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const defaultCenter: [number, number] = center || [42.0584, -70.1836]; // Provincetown
+    const defaultCenter: [number, number] = center || [41.8505, -87.9357]; // Oak Brook, IL
     const map = L.map(mapRef.current).setView(defaultCenter, zoom);
     mapInstanceRef.current = map;
 

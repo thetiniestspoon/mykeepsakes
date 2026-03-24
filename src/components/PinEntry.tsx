@@ -48,10 +48,10 @@ export function PinEntry({ correctPin, onSuccess }: PinEntryProps) {
             <Heart className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-display text-foreground">
-            Family Week 2026
+            MyKeepsakes
           </CardTitle>
           <CardDescription className="text-body text-muted-foreground">
-            Provincetown, Massachusetts
+            Your trip companion
           </CardDescription>
         </CardHeader>
         

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, AlertTriangle, Ship, Car, Plus, Users, Loader2 } from 'lucide-react';
-import { EMERGENCY_CONTACTS, FERRY_INFO } from '@/lib/itinerary-data';
+import { Phone, AlertTriangle, Plane, Car, Plus, Users, Loader2 } from 'lucide-react';
+import { EMERGENCY_CONTACTS, TRANSPORT_INFO } from '@/lib/itinerary-data';
 import { useFamilyContacts, FamilyContact } from '@/hooks/use-trip-data';
 import { FamilyContactCard } from '@/components/contacts/FamilyContactCard';
 import { ContactEditor } from '@/components/contacts/ContactEditor';
@@ -126,37 +126,41 @@ export function ContactsTab() {
         </CardContent>
       </Card>
       
-      {/* Ferry Information */}
+      {/* Transport Information */}
       <Card className="shadow-warm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Ship className="w-5 h-5 text-beach-ocean-deep" />
-            Ferry Information
+            <Plane className="w-5 h-5 text-blue-600" />
+            Getting There
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {Object.entries(FERRY_INFO).map(([key, ferry]) => (
-            <div key={key} className="p-4 rounded-lg bg-beach-ocean-light/20">
-              <h4 className="font-semibold text-foreground">{ferry.name}</h4>
-              <p className="text-sm text-muted-foreground mt-1">{ferry.schedule}</p>
-              <p className="text-sm text-muted-foreground">{ferry.note}</p>
-              
+          {Object.entries(TRANSPORT_INFO).map(([key, transport]) => (
+            <div key={key} className="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+              <h4 className="font-semibold text-foreground">{transport.name}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{transport.schedule}</p>
+              <p className="text-sm text-muted-foreground">{transport.note}</p>
+
               <div className="flex flex-wrap gap-3 mt-3">
-                <a
-                  href={`tel:${ferry.phone}`}
-                  className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
-                >
-                  <Phone className="w-3 h-3" />
-                  {ferry.phone}
-                </a>
-                <a
-                  href={ferry.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-accent hover:underline"
-                >
-                  Book Tickets →
-                </a>
+                {'phone' in transport && transport.phone && (
+                  <a
+                    href={`tel:${transport.phone}`}
+                    className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                  >
+                    <Phone className="w-3 h-3" />
+                    {transport.phone}
+                  </a>
+                )}
+                {transport.website && (
+                  <a
+                    href={transport.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-accent hover:underline"
+                  >
+                    More Info →
+                  </a>
+                )}
               </div>
             </div>
           ))}

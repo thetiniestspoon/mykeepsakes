@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Map, Waves, Utensils, Activity, Home, Car, PartyPopper, MapPin, ExternalLink, Building, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ITINERARY, getAllLocations, PTOWN_CENTER, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
+import { ITINERARY, getAllLocations, TRIP_CENTER, CHICAGO_HIGHLIGHTS, RESTAURANTS } from '@/lib/itinerary-data';
 import { MapModal } from '@/components/map/MapModal';
 import { OverviewMap, MapLocation } from '@/components/map/OverviewMap';
 import { useAccommodations } from '@/hooks/use-accommodations';
@@ -65,15 +65,15 @@ export function MapTab() {
       });
     });
     
-    // Add guide beaches
-    BEACHES.forEach(beach => {
-      if (beach.location) {
+    // Add Chicago highlights / attractions
+    CHICAGO_HIGHLIGHTS.forEach(highlight => {
+      if (highlight.location) {
         locations.push({
-          id: beach.id,
-          lat: beach.location.lat,
-          lng: beach.location.lng,
-          name: beach.name,
-          category: 'beach',
+          id: highlight.id,
+          lat: highlight.location.lat,
+          lng: highlight.location.lng,
+          name: highlight.name,
+          category: 'activity',
         });
       }
     });
@@ -185,7 +185,7 @@ export function MapTab() {
     setMapModalOpen(true);
   };
   
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=Provincetown,+MA`;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=Oak+Brook,+IL`;
 
   // Get unique categories that have locations
   const availableCategories = useMemo(() => {

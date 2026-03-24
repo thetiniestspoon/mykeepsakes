@@ -7,23 +7,23 @@ import {
   AccordionItem, 
   AccordionTrigger 
 } from '@/components/ui/accordion';
-import { 
-  Waves, 
-  Utensils, 
-  Star, 
-  ExternalLink, 
-  Phone, 
+import {
+  Landmark,
+  Utensils,
+  Star,
+  ExternalLink,
+  Phone,
   MapPin,
   StickyNote,
   Camera,
   X,
   Trash2,
-  Compass,
-  PartyPopper
+  Info,
+  Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { BEACHES, RESTAURANTS, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
+import { CHICAGO_HIGHLIGHTS, RESTAURANTS, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
 import type { GuideItem } from '@/lib/itinerary-data';
 import {
   useFavorites,
@@ -264,75 +264,35 @@ export function GuideTab() {
       </div>
       
       <Accordion type="single" collapsible className="space-y-4">
-        {/* Activities */}
-        <AccordionItem value="activities" className="border rounded-lg shadow-warm overflow-hidden">
+        {/* Getting Around & Essentials */}
+        <AccordionItem value="essentials" className="border rounded-lg shadow-warm overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-beach-driftwood/20 flex items-center justify-center">
-                <Compass className="w-5 h-5 text-beach-driftwood" />
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Info className="w-5 h-5 text-blue-600" />
               </div>
               <div className="text-left">
-                <span className="font-semibold">Activities</span>
-                <p className="text-sm text-muted-foreground">{ACTIVITIES.length} things to do</p>
+                <span className="font-semibold">Getting Around & Essentials</span>
+                <p className="text-sm text-muted-foreground">Transport, weather, pharmacy</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
-            {ACTIVITIES.map((activity) => (
-              <GuideItemCard key={activity.id} item={activity} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+            {ACTIVITIES.map((item) => (
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
             ))}
           </AccordionContent>
         </AccordionItem>
 
-        {/* Events */}
-        <AccordionItem value="events" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-beach-sunset-gold/20 flex items-center justify-center">
-                <PartyPopper className="w-5 h-5 text-beach-sunset-gold" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Events</span>
-                <p className="text-sm text-muted-foreground">Family Week schedule</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {EVENTS.map((event) => (
-              <GuideItemCard key={event.id} item={event} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Beaches */}
-        <AccordionItem value="beaches" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-beach-seafoam flex items-center justify-center">
-                <Waves className="w-5 h-5 text-beach-ocean-deep" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Beaches</span>
-                <p className="text-sm text-muted-foreground">{BEACHES.length} spots to explore</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {BEACHES.map((beach) => (
-              <GuideItemCard key={beach.id} item={beach} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-        
-        {/* Restaurants */}
+        {/* Dining Near Hotel */}
         <AccordionItem value="restaurants" className="border rounded-lg shadow-warm overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-beach-sunset-coral/20 flex items-center justify-center">
-                <Utensils className="w-5 h-5 text-beach-sunset-coral" />
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <Utensils className="w-5 h-5 text-orange-600" />
               </div>
               <div className="text-left">
-                <span className="font-semibold">Restaurants</span>
+                <span className="font-semibold">Dining Near Hotel</span>
                 <p className="text-sm text-muted-foreground">{RESTAURANTS.length} places to eat</p>
               </div>
             </div>
@@ -340,6 +300,46 @@ export function GuideTab() {
           <AccordionContent className="px-4 pb-4 space-y-3">
             {RESTAURANTS.map((restaurant) => (
               <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Chicago Highlights */}
+        <AccordionItem value="highlights" className="border rounded-lg shadow-warm overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                <Landmark className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div className="text-left">
+                <span className="font-semibold">Chicago Highlights</span>
+                <p className="text-sm text-muted-foreground">{CHICAGO_HIGHLIGHTS.length} must-see attractions</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 space-y-3">
+            {CHICAGO_HIGHLIGHTS.map((item) => (
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Cultural Sites */}
+        <AccordionItem value="cultural" className="border rounded-lg shadow-warm overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <Heart className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="text-left">
+                <span className="font-semibold">Cultural Sites</span>
+                <p className="text-sm text-muted-foreground">Relevant to Sankofa's mission</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 space-y-3">
+            {EVENTS.map((item) => (
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
             ))}
           </AccordionContent>
         </AccordionItem>

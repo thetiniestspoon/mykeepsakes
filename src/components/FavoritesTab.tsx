@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, ExternalLink, Phone, MapPin, Calendar } from 'lucide-react';
 import { useFavorites, useNotes, usePhotos, getPhotoUrl } from '@/hooks/use-trip-data';
-import { ITINERARY, BEACHES, RESTAURANTS } from '@/lib/itinerary-data';
+import { ITINERARY, CHICAGO_HIGHLIGHTS, RESTAURANTS } from '@/lib/itinerary-data';
 import type { Activity, GuideItem } from '@/lib/itinerary-data';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
@@ -51,7 +51,7 @@ export function FavoritesTab() {
     });
   });
   
-  const favoriteBeaches = BEACHES.filter(b => favoriteIds.includes(b.id));
+  const favoriteBeaches = CHICAGO_HIGHLIGHTS.filter(b => favoriteIds.includes(b.id));
   const favoriteRestaurants = RESTAURANTS.filter(r => favoriteIds.includes(r.id));
   
   const hasFavorites = favoriteActivities.length > 0 || 
