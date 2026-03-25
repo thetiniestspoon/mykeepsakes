@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { hashPin } from '@/lib/emoji-pin';
 
 // PIN Management
 export function usePin() {
@@ -21,13 +22,14 @@ export function usePin() {
 
 export function useCreatePin() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (pin: string) => {
+    mutationFn: async (emojiPin: string[]) => {
+      const hashed = await hashPin(emojiPin);
       const { error } = await supabase
         .from('app_settings')
-        .insert({ setting_key: 'pin', setting_value: pin });
-      
+        .insert({ setting_key: 'pin', setting_value: hashed });
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -42,14 +44,15 @@ export function useCreatePin() {
 
 export function useUpdatePin() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (newPin: string) => {
+    mutationFn: async (emojiPin: string[]) => {
+      const hashed = await hashPin(emojiPin);
       const { error } = await supabase
         .from('app_settings')
-        .update({ setting_value: newPin })
+        .update({ setting_value: hashed })
         .eq('setting_key', 'pin');
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
