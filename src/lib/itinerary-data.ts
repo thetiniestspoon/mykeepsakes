@@ -1,6 +1,7 @@
 // ============================================================================
-// LEGACY DEMO DATA -- Itinerary portion is from Provincetown Family Week 2026
-// Guide data updated for Sankofa 2026 (Chicago / Oak Brook, IL)
+// SANKOFA 2026 — Healing, Justice & Sacred Care
+// Conference: April 21-25, 2026 at Chicago Marriott Oak Brook
+// Guide & itinerary data for Chicago / Oak Brook, IL
 // ============================================================================
 // This file contains static itinerary data used as fallback / seed content.
 // The app should pull live itinerary data from Supabase (conference_events,
@@ -69,8 +70,6 @@ export const TRIP_CENTER: Location = {
   name: "Oak Brook, IL"
 };
 
-/** @deprecated Use TRIP_CENTER instead */
-export const PTOWN_CENTER = TRIP_CENTER;
 
 // Emergency & Important Contacts
 export const EMERGENCY_CONTACTS: Contact[] = [
@@ -113,397 +112,340 @@ export const TRANSPORT_INFO = {
   }
 };
 
-/** @deprecated Use TRANSPORT_INFO instead */
-export const FERRY_INFO = TRANSPORT_INFO;
 
-// Sample Itinerary - 8-day Family Week, July 25 - August 1
+// Sankofa 2026 Conference Itinerary — April 20-25, 2026 (Chicago / Oak Brook, IL)
 export const ITINERARY: Day[] = [
   {
     id: 'day-1',
-    date: 'Saturday, July 25, 2026',
-    dayOfWeek: 'Saturday',
-    title: 'Arrival Day',
+    date: 'Monday, April 20, 2026',
+    dayOfWeek: 'Monday',
+    title: 'Travel & Check-In',
     activities: [
       {
         id: 'day1-travel',
-        time: '8:00 AM',
-        title: 'Depart for Cape Cod',
-        description: 'Pack the car and hit the road! Expect 2-3 hours depending on traffic.',
+        time: '12:00 PM',
+        title: 'Arrive in Chicago',
+        description: "Fly into O'Hare (ORD) or Midway (MDW). Uber/Lyft to hotel is about 25-30 minutes depending on traffic.",
         category: 'transport',
-        notes: 'Check traffic before leaving. Consider stopping in Plymouth for lunch.'
+        location: { lat: 41.9742, lng: -87.9073, name: "O'Hare International Airport" },
+        notes: "O'Hare is closer to Oak Brook. If arriving at Midway, expect ~30 min drive."
       },
       {
         id: 'day1-checkin',
-        time: '2:00 PM',
-        title: 'Check-in at Accommodation',
-        description: 'Check into your rental and get settled.',
+        time: '3:00 PM',
+        title: 'Check In — Chicago Marriott Oak Brook',
+        description: 'Conference hotel. Get settled and explore the property — on-site restaurant, bar, and Starbucks.',
         category: 'accommodation',
-        location: { lat: 42.0520, lng: -70.1890, name: 'Vacation Rental' }
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook', address: '1401 W 22nd St, Oak Brook, IL 60523' },
+        phone: '630-573-8555'
       },
       {
         id: 'day1-explore',
-        time: '4:00 PM',
-        title: 'Explore Commercial Street',
-        description: 'Take a stroll down the heart of Provincetown. Grab ice cream and browse the galleries.',
+        time: '5:00 PM',
+        title: 'Walk to Oakbrook Center',
+        description: 'Large outdoor shopping center across the street from the hotel. Good for a stretch, window shopping, and getting your bearings.',
         category: 'activity',
-        location: { lat: 42.0525, lng: -70.1855, name: 'Commercial Street' },
-        mapLink: 'https://maps.google.com/?q=Commercial+Street+Provincetown+MA'
+        location: { lat: 41.8490, lng: -87.9525, name: 'Oakbrook Center' },
+        link: 'https://www.oakbrookcenter.com/',
+        mapLink: 'https://maps.google.com/?q=Oakbrook+Center+Mall'
       },
       {
         id: 'day1-dinner',
-        time: '6:30 PM',
-        title: 'Dinner at The Mews',
-        description: 'Upscale casual waterfront dining with stunning harbor views. Great for families.',
+        time: '7:00 PM',
+        title: 'Dinner at Wildfire',
+        description: 'Upscale steakhouse and grill at Oakbrook Center. Wood-fired steaks, chops, and seafood. Great first-night spot.',
         category: 'dining',
-        location: { lat: 42.0505, lng: -70.1870, name: 'The Mews Restaurant' },
-        link: 'https://mewsptown.com/',
+        location: { lat: 41.8495, lng: -87.9520, name: 'Wildfire - Oakbrook Center' },
+        link: 'https://www.wildfirerestaurant.com/',
         linkLabel: 'View Menu',
-        phone: '508-487-1500'
+        phone: '630-586-9000'
       }
     ]
   },
   {
     id: 'day-2',
-    date: 'Sunday, July 26, 2026',
-    dayOfWeek: 'Sunday',
-    title: 'Beach Day & Family Week Kickoff',
+    date: 'Tuesday, April 21, 2026',
+    dayOfWeek: 'Tuesday',
+    title: 'Sankofa Day 1 — Opening',
     activities: [
       {
         id: 'day2-breakfast',
-        time: '8:30 AM',
-        title: 'Breakfast at Café Heaven',
-        description: 'Local favorite with excellent pastries and coffee.',
+        time: '7:30 AM',
+        title: 'Hotel Breakfast',
+        description: 'Breakfast at 1401 West Restaurant (on-site at the Marriott) or grab Starbucks in the lobby.',
         category: 'dining',
-        location: { lat: 42.0530, lng: -70.1860, name: 'Café Heaven' },
-        phone: '508-487-9639'
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
       },
       {
-        id: 'day2-beach',
-        time: '10:00 AM',
-        title: 'Herring Cove Beach',
-        description: 'Family-friendly beach with calm waters, bathrooms, and snack bar. Part of Cape Cod National Seashore.',
-        category: 'beach',
-        location: { lat: 42.0642, lng: -70.2095, name: 'Herring Cove Beach' },
-        mapLink: 'https://maps.google.com/?q=Herring+Cove+Beach+Provincetown',
-        notes: 'Bring beach umbrella and plenty of sunscreen!'
-      },
-      {
-        id: 'day2-kickoff',
-        time: '4:00 PM',
-        title: 'Family Week Welcome Event',
-        description: 'Official kickoff celebration for Family Week! Meet other families and get your schedule.',
+        id: 'day2-sessions',
+        time: '9:00 AM',
+        title: 'Conference Sessions Begin',
+        description: 'Opening plenary and morning workshops. Healing, Justice & Sacred Care.',
         category: 'event',
-        location: { lat: 42.0515, lng: -70.1865, name: 'Crown & Anchor' },
-        link: 'https://www.familyequality.org/family-week/',
-        linkLabel: 'Family Week Info'
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
+      },
+      {
+        id: 'day2-lunch',
+        time: '12:00 PM',
+        title: 'Lunch Break',
+        description: 'Conference lunch or walk to Oakbrook Center for options. Beatrix is a great neighborhood spot with health-conscious menu.',
+        category: 'dining',
+        location: { lat: 41.8498, lng: -87.9510, name: 'Beatrix - Oakbrook Center' }
+      },
+      {
+        id: 'day2-afternoon',
+        time: '1:30 PM',
+        title: 'Afternoon Workshops',
+        description: 'Afternoon conference sessions and breakout groups.',
+        category: 'event'
       },
       {
         id: 'day2-dinner',
-        time: '6:00 PM',
-        title: 'Lobster Pot for Dinner',
-        description: 'Iconic Provincetown seafood restaurant. Get the lobster roll!',
+        time: '6:30 PM',
+        title: 'Group Dinner at Antico Posto',
+        description: 'Italian trattoria near the mall. Great pasta, pizza, and wine list. Casual and welcoming for a group.',
         category: 'dining',
-        location: { lat: 42.0526, lng: -70.1842, name: 'The Lobster Pot' },
-        phone: '508-487-0842',
-        link: 'https://ptownlobsterpot.com/',
-        linkLabel: 'Make Reservation'
+        location: { lat: 41.8492, lng: -87.9530, name: 'Antico Posto' },
+        link: 'https://www.anticoposto.com/',
+        linkLabel: 'View Menu',
+        phone: '630-586-9200'
       }
     ]
   },
   {
     id: 'day-3',
-    date: 'Monday, July 27, 2026',
-    dayOfWeek: 'Monday',
-    title: 'Whale Watching Adventure',
+    date: 'Wednesday, April 22, 2026',
+    dayOfWeek: 'Wednesday',
+    title: 'Sankofa Day 2 — Deep Work',
     activities: [
       {
         id: 'day3-breakfast',
         time: '7:30 AM',
-        title: 'Early Breakfast',
-        description: 'Quick breakfast before the whale watch. Pack snacks for the boat!',
+        title: 'Breakfast at Hotel',
+        description: 'Fuel up for a full day of sessions.',
         category: 'dining'
       },
       {
-        id: 'day3-whales',
+        id: 'day3-sessions',
         time: '9:00 AM',
-        title: 'Whale Watching with Dolphin Fleet',
-        description: '3-4 hour excursion to see humpback whales in Stellwagen Bank. Book tickets in advance!',
-        category: 'activity',
-        location: { lat: 42.0542, lng: -70.1838, name: 'MacMillan Pier' },
-        link: 'https://whalewatch.com/',
-        linkLabel: 'Book Tickets',
-        phone: '508-240-3636',
-        notes: 'Bring layers - it gets cold on the water even in summer!'
-      },
-      {
-        id: 'day3-lunch',
-        time: '1:30 PM',
-        title: 'Lunch at Canteen',
-        description: 'Casual local spot with great sandwiches and seafood.',
-        category: 'dining',
-        location: { lat: 42.0517, lng: -70.1868, name: 'Canteen' }
-      },
-      {
-        id: 'day3-activities',
-        time: '3:00 PM',
-        title: 'Family Week Activities',
-        description: 'Check the Family Week schedule for afternoon activities and workshops.',
+        title: 'Morning Sessions',
+        description: 'Full day of conference programming.',
         category: 'event',
-        link: 'https://www.familyequality.org/family-week/',
-        linkLabel: 'View Schedule'
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
       },
       {
-        id: 'day3-sunset',
+        id: 'day3-grauemill',
+        time: '12:30 PM',
+        title: 'Lunch Break — Visit Graue Mill',
+        description: 'Only operating waterwheel gristmill in Illinois and a documented Underground Railroad station. Free admission. 10-minute drive from hotel. Opens mid-April.',
+        category: 'activity',
+        location: { lat: 41.8310, lng: -87.9370, name: 'Graue Mill and Museum', address: '3800 York Rd, Oak Brook, IL 60523' },
+        link: 'https://www.dupageforest.org/places-to-go/centers/graue-mill-and-museum',
+        linkLabel: 'Visit Info',
+        notes: 'Open Wed-Sun 10am-4pm mid-April through mid-November. Deeply relevant to Sankofa\'s mission — one of three authenticated Underground Railroad stations in Illinois.'
+      },
+      {
+        id: 'day3-afternoon',
+        time: '2:00 PM',
+        title: 'Afternoon Workshops',
+        description: 'Afternoon conference sessions.',
+        category: 'event'
+      },
+      {
+        id: 'day3-dinner',
         time: '7:00 PM',
-        title: 'Sunset at Race Point',
-        description: 'Drive out to Race Point for stunning sunset views over the dunes.',
-        category: 'beach',
-        location: { lat: 42.0816, lng: -70.2396, name: 'Race Point Beach' },
-        mapLink: 'https://maps.google.com/?q=Race+Point+Beach+Provincetown'
+        title: "Portillo's — Chicago Institution",
+        description: "You can't come to Chicago and not try Portillo's. Italian beef, Chicago-style hot dogs, and the legendary chocolate cake shake.",
+        category: 'dining',
+        location: { lat: 41.8340, lng: -87.9590, name: "Portillo's - Downers Grove" },
+        link: 'https://www.portillos.com/',
+        linkLabel: 'Menu',
+        phone: '630-596-2910',
+        notes: 'Must-try: Italian beef (dipped, with hot peppers) and the chocolate cake shake.'
       }
     ]
   },
   {
     id: 'day-4',
-    date: 'Tuesday, July 28, 2026',
-    dayOfWeek: 'Tuesday',
-    title: 'Art & Adventure Day',
+    date: 'Thursday, April 23, 2026',
+    dayOfWeek: 'Thursday',
+    title: 'Sankofa Day 3 + Chicago Exploration',
     activities: [
       {
-        id: 'day4-museum',
-        time: '10:00 AM',
-        title: 'Provincetown Art Association & Museum',
-        description: 'Explore the vibrant local art scene. Great for all ages with interactive exhibits.',
-        category: 'activity',
-        location: { lat: 42.0566, lng: -70.1786, name: 'PAAM' },
-        link: 'https://paam.org/',
-        linkLabel: 'Plan Your Visit',
-        phone: '508-487-1750'
+        id: 'day4-sessions',
+        time: '9:00 AM',
+        title: 'Morning Sessions',
+        description: 'Conference programming continues.',
+        category: 'event'
       },
       {
-        id: 'day4-bike',
+        id: 'day4-downtown',
         time: '1:00 PM',
-        title: 'Bike the Province Lands Trail',
-        description: 'Rent bikes and explore the beautiful Province Lands trails through dunes and forests.',
+        title: 'Afternoon in Downtown Chicago',
+        description: 'Take the Metra BNSF from Hinsdale station (~35 min to Union Station) or rideshare (~30 min). Explore the Magnificent Mile, Millennium Park, and the lakefront.',
         category: 'activity',
-        location: { lat: 42.0640, lng: -70.2080, name: 'Province Lands Visitor Center' },
-        link: 'https://www.nps.gov/caco/planyourvisit/provincelandsbikepath.htm',
-        linkLabel: 'Trail Info',
-        notes: 'Bike rentals available at several shops on Commercial Street.'
+        location: { lat: 41.8826, lng: -87.6226, name: 'Millennium Park' },
+        mapLink: 'https://maps.google.com/?q=Millennium+Park+Chicago',
+        notes: 'Metra BNSF line from Hinsdale or Westmont station is the easiest public transit option. ~$6 one-way.'
       },
       {
-        id: 'day4-beach2',
-        time: '4:00 PM',
-        title: 'Long Point Beach Exploration',
-        description: 'Take the shuttle or walk the breakwater to Long Point for a secluded beach experience.',
-        category: 'beach',
-        location: { lat: 42.0336, lng: -70.1688, name: 'Long Point' }
+        id: 'day4-bean',
+        time: '2:00 PM',
+        title: 'Cloud Gate & Millennium Park',
+        description: 'The iconic "Bean" sculpture, Crown Fountain, and Lurie Garden. Free admission. Perfect for photos.',
+        category: 'activity',
+        location: { lat: 41.8827, lng: -87.6233, name: 'Cloud Gate (The Bean)' },
+        mapLink: 'https://maps.google.com/?q=Cloud+Gate+Chicago'
+      },
+      {
+        id: 'day4-artinstitute',
+        time: '3:30 PM',
+        title: 'Art Institute of Chicago',
+        description: 'World-class art museum across from Millennium Park. 300,000+ works including iconic pieces by Seurat, Hopper, and Grant Wood.',
+        category: 'activity',
+        location: { lat: 41.8796, lng: -87.6237, name: 'Art Institute of Chicago' },
+        link: 'https://www.artic.edu/',
+        linkLabel: 'Plan Your Visit',
+        phone: '312-443-3600',
+        notes: 'Budget 2-3 hours minimum. Thursday evenings are extended hours.'
+      },
+      {
+        id: 'day4-artonmart',
+        time: '8:30 PM',
+        title: 'Art on theMART',
+        description: 'Contemporary artwork projected on the Merchandise Mart building facade. Free outdoor viewing from the Riverwalk. Launches April 23!',
+        category: 'activity',
+        location: { lat: 41.8885, lng: -87.6354, name: 'theMART - Chicago Riverwalk' },
+        link: 'https://www.artonthemart.com/',
+        linkLabel: 'Event Info',
+        notes: 'Projections run 8:30-9:00 PM, Thu-Sun starting April 23, 2026. Best viewed from the Riverwalk.'
       }
     ]
   },
   {
     id: 'day-5',
-    date: 'Wednesday, July 29, 2026',
-    dayOfWeek: 'Wednesday',
-    title: 'Family Week Fun Day',
+    date: 'Friday, April 24, 2026',
+    dayOfWeek: 'Friday',
+    title: 'Sankofa Day 4 — Culture & Heritage',
     activities: [
       {
-        id: 'day5-parade-prep',
-        time: '10:00 AM',
-        title: 'Parade Prep & Crafts',
-        description: 'Join other families creating costumes and decorations for the famous Family Week parade!',
+        id: 'day5-sessions',
+        time: '9:00 AM',
+        title: 'Morning Sessions',
+        description: 'Conference programming.',
         category: 'event',
-        location: { lat: 42.0515, lng: -70.1865, name: 'Family Week HQ' }
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
       },
       {
-        id: 'day5-picnic',
-        time: '12:00 PM',
-        title: 'Family Picnic',
-        description: 'Large group picnic with all Family Week families. Games and activities for kids.',
-        category: 'event'
-      },
-      {
-        id: 'day5-monument',
-        time: '3:00 PM',
-        title: 'Pilgrim Monument & Museum',
-        description: 'Climb the tallest all-granite structure in the US for 360-degree Cape views!',
+        id: 'day5-dusable',
+        time: '1:00 PM',
+        title: 'DuSable Black History Museum',
+        description: 'First museum in the US dedicated to African American history and culture. Over 15,000 pieces in its archives. Deeply relevant to Sankofa\'s mission of healing and justice.',
         category: 'activity',
-        location: { lat: 42.0555, lng: -70.1888, name: 'Pilgrim Monument' },
-        link: 'https://www.pilgrim-monument.org/',
-        linkLabel: 'Buy Tickets',
-        phone: '508-487-1310',
-        notes: '252 steps + 60 ramps. Worth it for the view!'
+        location: { lat: 41.7919, lng: -87.6087, name: 'DuSable Black History Museum' },
+        link: 'https://www.dusablemuseum.org/',
+        linkLabel: 'Plan Visit',
+        phone: '773-947-0600',
+        notes: '~30 min drive from hotel. In Washington Park on the South Side.'
+      },
+      {
+        id: 'day5-bronzeville',
+        time: '3:30 PM',
+        title: 'Walk Through Bronzeville',
+        description: 'Historic Black Metropolis neighborhood. Walk the trail of murals, monuments, and cultural landmarks on Martin Luther King Jr. Drive.',
+        category: 'activity',
+        location: { lat: 41.8183, lng: -87.6167, name: 'Bronzeville Historic District' },
+        mapLink: 'https://maps.google.com/?q=Bronzeville+Chicago',
+        notes: 'The "Walk of Fame" on King Dr. between 25th and 35th streets honors Black American achievers.'
+      },
+      {
+        id: 'day5-southside',
+        time: '4:30 PM',
+        title: 'South Side Community Art Center',
+        description: 'One of the first Black art centers in the US (est. 1940). Exhibitions, performances, and community programming. A living testament to Black creative resilience.',
+        category: 'activity',
+        location: { lat: 41.8166, lng: -87.6158, name: 'South Side Community Art Center' },
+        link: 'https://www.sscartcenter.org/',
+        linkLabel: 'Current Exhibits',
+        phone: '773-373-1026'
+      },
+      {
+        id: 'day5-farewell',
+        time: '7:00 PM',
+        title: 'Conference Farewell Dinner',
+        description: 'Closing dinner for Sankofa 2026. Location TBD by conference organizers.',
+        category: 'event'
       }
     ]
   },
   {
     id: 'day-6',
-    date: 'Thursday, July 30, 2026',
-    dayOfWeek: 'Thursday',
-    title: 'The Big Parade!',
-    activities: [
-      {
-        id: 'day6-prep',
-        time: '9:00 AM',
-        title: 'Final Parade Preparations',
-        description: 'Get costumes ready and meet up with your parade group!',
-        category: 'event'
-      },
-      {
-        id: 'day6-parade',
-        time: '11:00 AM',
-        title: 'Family Week Parade',
-        description: 'The highlight of the week! March down Commercial Street celebrating family diversity.',
-        category: 'event',
-        location: { lat: 42.0525, lng: -70.1855, name: 'Commercial Street' },
-        notes: 'This is an unforgettable experience. Cheer loud and proud!'
-      },
-      {
-        id: 'day6-celebration',
-        time: '1:00 PM',
-        title: 'Post-Parade Celebration',
-        description: 'Music, dancing, and festivities after the parade.',
-        category: 'event'
-      },
-      {
-        id: 'day6-farewell',
-        time: '6:00 PM',
-        title: 'Farewell Dinner at Napi\'s',
-        description: 'Creative international cuisine in a unique artistic setting.',
-        category: 'dining',
-        location: { lat: 42.0585, lng: -70.1925, name: 'Napi\'s Restaurant' },
-        phone: '508-487-1145',
-        link: 'https://www.napisrestaurant.com/',
-        linkLabel: 'Reserve Table'
-      }
-    ]
-  },
-  {
-    id: 'day-7',
-    date: 'Friday, July 31, 2026',
-    dayOfWeek: 'Friday',
-    title: 'Last Full Day',
-    activities: [
-      {
-        id: 'day7-breakfast',
-        time: '9:00 AM',
-        title: 'Leisurely Breakfast at Café Heaven',
-        description: 'Take your time over a delicious breakfast at this local favorite.',
-        category: 'dining',
-        location: { lat: 42.0530, lng: -70.1860, name: 'Café Heaven' },
-        phone: '508-487-9639'
-      },
-      {
-        id: 'day7-kayak',
-        time: '10:30 AM',
-        title: 'Kayaking or Paddleboarding',
-        description: 'Explore the harbor by water! Rentals available at the pier.',
-        category: 'activity',
-        location: { lat: 42.0540, lng: -70.1835, name: 'Provincetown Harbor' },
-        notes: 'Check weather conditions. Life jackets provided with rentals.'
-      },
-      {
-        id: 'day7-lunch',
-        time: '1:00 PM',
-        title: 'Lunch at Fanizzi\'s by the Sea',
-        description: 'Waterfront dining with stunning bay views. Great for families.',
-        category: 'dining',
-        location: { lat: 42.0495, lng: -70.1900, name: 'Fanizzi\'s Restaurant' },
-        link: 'https://www.fanizzisrestaurant.com/',
-        linkLabel: 'View Menu',
-        phone: '508-487-1964'
-      },
-      {
-        id: 'day7-shopping',
-        time: '3:00 PM',
-        title: 'Last-Minute Shopping',
-        description: 'Browse the galleries and shops on Commercial Street for souvenirs and gifts.',
-        category: 'activity',
-        location: { lat: 42.0525, lng: -70.1855, name: 'Commercial Street' },
-        mapLink: 'https://maps.google.com/?q=Commercial+Street+Provincetown+MA'
-      },
-      {
-        id: 'day7-beach',
-        time: '5:00 PM',
-        title: 'Final Beach Sunset at Herring Cove',
-        description: 'One last magical sunset at the beach. Bring a blanket and snacks.',
-        category: 'beach',
-        location: { lat: 42.0642, lng: -70.2095, name: 'Herring Cove Beach' },
-        mapLink: 'https://maps.google.com/?q=Herring+Cove+Beach+Provincetown',
-        notes: 'Arrive early for best parking. Sunset around 8:15 PM in late July.'
-      },
-      {
-        id: 'day7-dinner',
-        time: '7:30 PM',
-        title: 'Farewell Dinner at The Red Inn',
-        description: 'Elegant waterfront dining for a memorable last night. Reservations recommended.',
-        category: 'dining',
-        location: { lat: 42.0565, lng: -70.1902, name: 'The Red Inn' },
-        link: 'https://www.theredinn.com/',
-        linkLabel: 'Reserve Table',
-        phone: '508-487-7334'
-      }
-    ]
-  },
-  {
-    id: 'day-8',
-    date: 'Saturday, August 1, 2026',
+    date: 'Saturday, April 25, 2026',
     dayOfWeek: 'Saturday',
     title: 'Departure Day',
     activities: [
       {
-        id: 'day8-breakfast',
+        id: 'day6-breakfast',
         time: '8:00 AM',
-        title: 'Quick Breakfast',
-        description: 'Grab a quick bite before hitting the road.',
-        category: 'dining'
+        title: 'Final Breakfast',
+        description: 'Last meal at the hotel or walk to Lucca Osteria (0.1 miles from Marriott) for a sit-down brunch.',
+        category: 'dining',
+        location: { lat: 41.8508, lng: -87.9350, name: 'Lucca Osteria & Bar' }
       },
       {
-        id: 'day8-checkout',
+        id: 'day6-zoo',
         time: '10:00 AM',
-        title: 'Check Out',
-        description: 'Pack up and check out of accommodations.',
-        category: 'accommodation'
+        title: 'Brookfield Zoo (if time allows)',
+        description: 'World-renowned zoo, just 10 minutes from the hotel. Great way to spend a morning before a flight. Adults $24.95, kids 3-11 $17.95.',
+        category: 'activity',
+        location: { lat: 41.8317, lng: -87.8360, name: 'Brookfield Zoo Chicago' },
+        link: 'https://www.brookfieldzoo.org/',
+        linkLabel: 'Buy Tickets',
+        phone: '708-688-8000',
+        notes: 'Open 10am-5pm weekdays, 10am-6pm weekends. Parking $17-20. Only 10 min drive from hotel!'
       },
       {
-        id: 'day8-depart',
-        time: '11:00 AM',
-        title: 'Head Home',
-        description: 'Safe travels! Consider stopping in Plymouth or Sandwich on the way.',
+        id: 'day6-checkout',
+        time: '12:00 PM',
+        title: 'Check Out',
+        description: 'Check out of the Marriott. Hotel can store luggage if your flight is later.',
+        category: 'accommodation',
+        location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
+      },
+      {
+        id: 'day6-depart',
+        time: '2:00 PM',
+        title: 'Head to Airport',
+        description: "Allow 45-60 minutes to O'Hare with traffic, 30-40 to Midway. Uber/Lyft recommended.",
         category: 'transport',
-        notes: 'Saturday traffic can be heavy. Leave early if possible!'
+        notes: 'Saturday traffic is generally lighter, but check Maps before leaving.'
       }
     ]
   }
 ];
 
-// Packing List
+// Packing List — Chicago in Late April (expect 50-65°F, variable weather)
 export const PACKING_LIST: PackingItem[] = [
-  { id: 'pack-1', category: 'Beach', item: 'Sunscreen SPF 50+' },
-  { id: 'pack-2', category: 'Beach', item: 'Beach towels (multiple)' },
-  { id: 'pack-3', category: 'Beach', item: 'Beach umbrella or tent' },
-  { id: 'pack-4', category: 'Beach', item: 'Beach chairs' },
-  { id: 'pack-5', category: 'Beach', item: 'Sand toys for kids' },
-  { id: 'pack-6', category: 'Beach', item: 'Cooler for snacks' },
-  { id: 'pack-7', category: 'Clothing', item: 'Swimsuits (2+ per person)' },
-  { id: 'pack-8', category: 'Clothing', item: 'Cover-ups' },
-  { id: 'pack-9', category: 'Clothing', item: 'Light layers for evening' },
-  { id: 'pack-10', category: 'Clothing', item: 'Comfortable walking shoes' },
-  { id: 'pack-11', category: 'Clothing', item: 'Water shoes' },
-  { id: 'pack-12', category: 'Clothing', item: 'Rain jacket (just in case)' },
-  { id: 'pack-13', category: 'Clothing', item: 'Parade costume supplies' },
-  { id: 'pack-14', category: 'Kids', item: 'Favorite stuffed animal' },
-  { id: 'pack-15', category: 'Kids', item: 'Books and activities' },
-  { id: 'pack-16', category: 'Kids', item: 'Travel games' },
-  { id: 'pack-17', category: 'Kids', item: 'Snacks for car ride' },
-  { id: 'pack-18', category: 'Whale Watch', item: 'Binoculars' },
-  { id: 'pack-19', category: 'Whale Watch', item: 'Motion sickness meds' },
-  { id: 'pack-20', category: 'Whale Watch', item: 'Warm layers for boat' },
-  { id: 'pack-21', category: 'Essentials', item: 'Camera/phone chargers' },
-  { id: 'pack-22', category: 'Essentials', item: 'First aid kit' },
-  { id: 'pack-23', category: 'Essentials', item: 'Insect repellent' },
-  { id: 'pack-24', category: 'Essentials', item: 'Prescription medications' },
-  { id: 'pack-25', category: 'Essentials', item: 'Cash for small shops' },
+  { id: 'pack-1', category: 'Layers', item: 'Light jacket or blazer' },
+  { id: 'pack-2', category: 'Layers', item: 'Sweater or fleece for chilly mornings' },
+  { id: 'pack-3', category: 'Layers', item: 'Rain jacket or compact umbrella' },
+  { id: 'pack-4', category: 'Layers', item: 'Scarf or wrap (wind off the lake)' },
+  { id: 'pack-5', category: 'Clothing', item: 'Comfortable walking shoes (city exploring)' },
+  { id: 'pack-6', category: 'Clothing', item: 'Conference-appropriate outfits (4-5 days)' },
+  { id: 'pack-7', category: 'Clothing', item: 'One nice dinner outfit' },
+  { id: 'pack-8', category: 'Clothing', item: 'Casual clothes for museum/zoo days' },
+  { id: 'pack-9', category: 'Conference', item: 'Notebook and pens' },
+  { id: 'pack-10', category: 'Conference', item: 'Business cards' },
+  { id: 'pack-11', category: 'Conference', item: 'Laptop and charger' },
+  { id: 'pack-12', category: 'Conference', item: 'Printed schedule / badge info' },
+  { id: 'pack-13', category: 'Essentials', item: 'Phone charger / portable battery' },
+  { id: 'pack-14', category: 'Essentials', item: 'Prescription medications' },
+  { id: 'pack-15', category: 'Essentials', item: 'Sunglasses (April sun is bright!)' },
+  { id: 'pack-16', category: 'Essentials', item: 'Reusable water bottle' },
+  { id: 'pack-17', category: 'Essentials', item: 'Snacks for travel days' },
+  { id: 'pack-18', category: 'Essentials', item: 'Cash + credit cards (some spots are cash-only)' },
+  { id: 'pack-19', category: 'Travel', item: 'ID / boarding pass' },
+  { id: 'pack-20', category: 'Travel', item: 'Ventra card or transit app (CTA/Metra)' },
 ];
 
 // Guide - Chicago Highlights & Attractions
@@ -559,8 +501,6 @@ export const CHICAGO_HIGHLIGHTS: GuideItem[] = [
   }
 ];
 
-/** @deprecated Use CHICAGO_HIGHLIGHTS instead */
-export const BEACHES = CHICAGO_HIGHLIGHTS;
 
 // Guide - Dining Near Hotel (Oak Brook / nearby)
 export const RESTAURANTS: GuideItem[] = [
@@ -744,13 +684,13 @@ export function getAllLocations(): (Location & { itemId: string; itemType: strin
     });
   });
   
-  // Add beaches
-  BEACHES.forEach(beach => {
-    if (beach.location) {
+  // Add Chicago highlights / attractions
+  CHICAGO_HIGHLIGHTS.forEach(highlight => {
+    if (highlight.location) {
       locations.push({
-        ...beach.location,
-        itemId: beach.id,
-        itemType: 'beach'
+        ...highlight.location,
+        itemId: highlight.id,
+        itemType: 'attraction'
       });
     }
   });
