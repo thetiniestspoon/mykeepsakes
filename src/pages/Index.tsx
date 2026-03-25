@@ -3,6 +3,7 @@ import { PinEntry } from '@/components/PinEntry';
 import { PinSetup } from '@/components/PinSetup';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { usePin } from '@/hooks/use-trip-data';
+import { isHashedPin } from '@/lib/emoji-pin';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useDashboardMode } from '@/hooks/use-dashboard-mode';
@@ -62,21 +63,24 @@ const Index = () => {
     );
   }
   
-  // First-time setup - no PIN exists
-  if (!pin) {
+  // First-time setup OR migration from old plaintext PIN
+  // Old plaintext PINs (e.g. '1475963') are not 64-char hex hashes
+  const needsSetup = !pin || !isHashedPin(pin);
+
+  if (needsSetup) {
     return (
-      <PinSetup 
-        onComplete={() => queryClient.invalidateQueries({ queryKey: ['pin'] })} 
+      <PinSetup
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ['pin'] })}
       />
     );
   }
-  
-  // PIN entry
+
+  // PIN entry — pin is guaranteed to be a valid hash here
   if (!isAuthenticated) {
     return (
-      <PinEntry 
-        correctPin={pin} 
-        onSuccess={() => setIsAuthenticated(true)} 
+      <PinEntry
+        storedHash={pin}
+        onSuccess={() => setIsAuthenticated(true)}
       />
     );
   }

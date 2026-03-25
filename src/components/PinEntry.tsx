@@ -1,31 +1,36 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Waves, Sun, Heart, Shell } from 'lucide-react';
+import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
+import { hashPin } from '@/lib/emoji-pin';
 
 interface PinEntryProps {
-  correctPin: string;
+  storedHash: string;
   onSuccess: () => void;
 }
 
-export function PinEntry({ correctPin, onSuccess }: PinEntryProps) {
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
+export function PinEntry({ storedHash, onSuccess }: PinEntryProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (pin === correctPin) {
-      // Store session
-      sessionStorage.setItem('ptown-authenticated', 'true');
-      onSuccess();
-    } else {
-      setError(true);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      setTimeout(() => setError(false), 2000);
+  const handleSubmit = async (emojiPin: string[]) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const hash = await hashPin(emojiPin);
+      if (hash === storedHash) {
+        sessionStorage.setItem('ptown-authenticated', 'true');
+        onSuccess();
+      } else {
+        setError('Incorrect PIN. Please try again.');
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        setTimeout(() => setError(null), 3000);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,8 +46,8 @@ export function PinEntry({ correctPin, onSuccess }: PinEntryProps) {
       <div className="absolute bottom-16 left-16 text-beach-sand opacity-60">
         <Shell className="w-10 h-10" />
       </div>
-      
-      <Card className={`w-full max-w-md shadow-warm-lg transition-all ${shake ? 'animate-shake' : ''}`}>
+
+      <Card className={`w-full max-w-sm shadow-warm-lg transition-all ${shake ? 'animate-shake' : ''}`}>
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-warm">
             <Heart className="w-8 h-8 text-primary-foreground" />
@@ -51,45 +56,24 @@ export function PinEntry({ correctPin, onSuccess }: PinEntryProps) {
             MyKeepsakes
           </CardTitle>
           <CardDescription className="text-body text-muted-foreground">
-            Your trip companion
+            Tap your emoji PIN to unlock
           </CardDescription>
         </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="pin" className="text-sm font-medium text-foreground">
-                Enter your family PIN
-              </label>
-              <Input
-                id="pin"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="••••••••"
-                className={`text-center text-xl tracking-widest ${error ? 'border-destructive ring-destructive' : ''}`}
-                autoFocus
-              />
-              {error && (
-                <p className="text-sm text-destructive text-center animate-fade-in">
-                  Incorrect PIN. Please try again.
-                </p>
-              )}
-            </div>
-            
-            <Button type="submit" className="w-full" size="lg">
-              Enter Trip Planner
-            </Button>
-          </form>
-          
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Your vacation adventure awaits! 🌊
+
+        <CardContent className="space-y-4">
+          <EmojiPinPad
+            onSubmit={handleSubmit}
+            loading={loading}
+            error={error}
+            submitLabel="Unlock"
+          />
+
+          <p className="text-center text-sm text-muted-foreground">
+            Your vacation adventure awaits!
           </p>
         </CardContent>
       </Card>
-      
+
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
