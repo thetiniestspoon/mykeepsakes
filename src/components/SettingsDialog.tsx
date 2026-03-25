@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useUpdatePin } from '@/hooks/use-trip-data';
@@ -9,6 +8,7 @@ import { useActiveTrip, useDeleteTrip } from '@/hooks/use-trip';
 import { LogOut, Key, Download, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { ExportDialog } from '@/components/export/ExportDialog';
 import { TripSelector } from '@/components/trips/TripSelector';
+import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,33 +28,57 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: SettingsDialogProps) {
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [error, setError] = useState('');
+  const [pinStep, setPinStep] = useState<'idle' | 'create' | 'confirm'>('idle');
+  const [firstPin, setFirstPin] = useState<string[]>([]);
+  const [pinError, setPinError] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  
+
   const updatePin = useUpdatePin();
   const { data: trip } = useActiveTrip();
   const deleteTrip = useDeleteTrip();
 
-  const handleUpdatePin = () => {
-    if (newPin.length < 4) {
-      setError('PIN must be at least 4 digits');
+  const handleStartPinChange = () => {
+    setPinStep('create');
+    setFirstPin([]);
+    setPinError(null);
+  };
+
+  const handleFirstPin = (emojiPin: string[]) => {
+    setFirstPin(emojiPin);
+    setPinStep('confirm');
+    setPinError(null);
+  };
+
+  const handleConfirmPin = async (emojiPin: string[]) => {
+    if (emojiPin.join('') !== firstPin.join('')) {
+      setPinError('PINs do not match. Try again.');
+      setTimeout(() => {
+        setPinStep('create');
+        setFirstPin([]);
+        setPinError(null);
+      }, 1500);
       return;
     }
-    if (newPin !== confirmPin) {
-      setError('PINs do not match');
-      return;
-    }
-    
-    updatePin.mutate(newPin, {
+
+    updatePin.mutate(emojiPin, {
       onSuccess: () => {
-        setNewPin('');
-        setConfirmPin('');
-        setError('');
-      }
+        setPinStep('idle');
+        setFirstPin([]);
+        setPinError(null);
+      },
+      onError: () => {
+        setPinError('Failed to update PIN.');
+        setPinStep('idle');
+        setFirstPin([]);
+      },
     });
+  };
+
+  const handleCancelPinChange = () => {
+    setPinStep('idle');
+    setFirstPin([]);
+    setPinError(null);
   };
 
   const handleLogout = () => {
@@ -82,16 +106,16 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
               Manage your trip planner settings
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Trip Selector (mobile) */}
             <div className="sm:hidden space-y-2">
               <Label className="text-sm font-medium">Current Trip</Label>
               <TripSelector className="w-full justify-between" />
             </div>
-            
+
             <Separator className="sm:hidden" />
-            
+
             {/* Export Section */}
             <div className="space-y-3">
               <Label className="text-sm font-medium flex items-center gap-2">
@@ -101,8 +125,8 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
               <p className="text-xs text-muted-foreground">
                 Download your trip data and photos as a ZIP file.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setExportOpen(true)}
                 disabled={!trip}
                 className="w-full gap-2"
@@ -111,68 +135,81 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
                 Export to ZIP
               </Button>
             </div>
-            
+
             <Separator />
-            
+
             {/* Change PIN Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Key className="w-4 h-4" />
                 Change PIN
               </div>
-              
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="new-pin">New PIN</Label>
-                  <Input
-                    id="new-pin"
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="Enter new PIN"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-pin">Confirm PIN</Label>
-                  <Input
-                    id="confirm-pin"
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value)}
-                    placeholder="Confirm new PIN"
-                  />
-                </div>
-                
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-                
-                <Button 
-                  onClick={handleUpdatePin} 
-                  disabled={updatePin.isPending}
+
+              {pinStep === 'idle' && (
+                <Button
+                  variant="outline"
+                  onClick={handleStartPinChange}
                   className="w-full"
                 >
-                  {updatePin.isPending ? 'Updating...' : 'Update PIN'}
+                  Set New Emoji PIN
                 </Button>
-              </div>
+              )}
+
+              {pinStep === 'create' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Choose your new 4-emoji PIN
+                  </p>
+                  <EmojiPinPad
+                    onSubmit={handleFirstPin}
+                    error={pinError}
+                    submitLabel="Next"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelPinChange}
+                    className="w-full"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+
+              {pinStep === 'confirm' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Confirm your new PIN
+                  </p>
+                  <EmojiPinPad
+                    onSubmit={handleConfirmPin}
+                    loading={updatePin.isPending}
+                    error={pinError}
+                    submitLabel="Update PIN"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelPinChange}
+                    className="w-full"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
-            
+
             <Separator />
-            
+
             {/* Danger Zone */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-destructive flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 Danger Zone
               </Label>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 onClick={() => setDeleteConfirmOpen(true)}
                 disabled={!trip}
                 className="w-full gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
@@ -181,13 +218,13 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
                 Delete Current Trip
               </Button>
             </div>
-            
+
             <Separator />
-            
+
             {/* Logout Section */}
             <div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleLogout}
                 className="w-full gap-2"
               >
@@ -201,15 +238,15 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
           </div>
         </DialogContent>
       </Dialog>
-      
+
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
-      
+
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{trip?.title}" and all its data including itinerary, 
+              This will permanently delete "{trip?.title}" and all its data including itinerary,
               photos, and memories. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
