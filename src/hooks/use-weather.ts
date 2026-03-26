@@ -55,10 +55,10 @@ async function fetchWeatherFromEdge(lat: number, lng: number): Promise<WeatherDa
 export function useWeather() {
   const { data: trip } = useActiveTrip();
   
-  // For now, use a default location (Cape Cod) 
+  // Default location: Oak Brook, IL (Sankofa conference hotel area)
   // In production, this would use the trip's location coordinates
-  const lat = 41.6688;
-  const lng = -70.2962;
+  const lat = 41.8505;
+  const lng = -87.9357;
   
   return useQuery({
     queryKey: ['weather', lat, lng],

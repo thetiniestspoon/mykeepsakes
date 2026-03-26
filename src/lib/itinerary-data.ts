@@ -113,7 +113,9 @@ export const TRANSPORT_INFO = {
 };
 
 
-// Sankofa 2026 Conference Itinerary — April 20-25, 2026 (Chicago / Oak Brook, IL)
+// Sankofa 2026 Conference Itinerary — April 20-26, 2026 (Chicago / Oak Brook, IL)
+// Flights: UA1525 EWR→ORD Apr 20 (10:22a→12:06p) / UA563 ORD→EWR Apr 26 (7:00a→10:20a)
+// Confirmation: PKMJGM | Travelers: Shawn Jordan & Daniel Llanes
 export const ITINERARY: Day[] = [
   {
     id: 'day-1',
@@ -122,13 +124,22 @@ export const ITINERARY: Day[] = [
     title: 'Travel & Check-In',
     activities: [
       {
-        id: 'day1-travel',
-        time: '12:00 PM',
-        title: 'Arrive in Chicago',
-        description: "Fly into O'Hare (ORD) or Midway (MDW). Uber/Lyft to hotel is about 25-30 minutes depending on traffic.",
+        id: 'day1-flight-out',
+        time: '10:22 AM',
+        title: 'Flight: EWR → ORD (UA1525)',
+        description: "United Airlines UA1525, Newark (EWR) to O'Hare (ORD). Departs 10:22 AM, arrives 12:06 PM CT. Economy class. Travelers: Shawn Jordan & Daniel Llanes.",
         category: 'transport',
         location: { lat: 41.9742, lng: -87.9073, name: "O'Hare International Airport" },
-        notes: "O'Hare is closer to Oak Brook. If arriving at Midway, expect ~30 min drive."
+        notes: "Confirmation: PKMJGM. Seats: EWR-ORD 31B/29E. Allow 90 min before departure at EWR — aim to leave Maplewood by 7:30 AM."
+      },
+      {
+        id: 'day1-arrive-ord',
+        time: '12:06 PM',
+        title: "Arrive at O'Hare",
+        description: "Land at ORD. Grab bags and Uber/Lyft to Oak Brook — about 25-30 min depending on midday traffic.",
+        category: 'transport',
+        location: { lat: 41.9742, lng: -87.9073, name: "O'Hare International Airport" },
+        notes: "Rideshare pickup at Terminal 1 or 2 (United). Follow signs to 'Rideshare Pickup'."
       },
       {
         id: 'day1-checkin',
@@ -382,43 +393,96 @@ export const ITINERARY: Day[] = [
     id: 'day-6',
     date: 'Saturday, April 25, 2026',
     dayOfWeek: 'Saturday',
-    title: 'Departure Day',
+    title: 'Free Day — Explore Chicago',
     activities: [
       {
         id: 'day6-breakfast',
         time: '8:00 AM',
-        title: 'Final Breakfast',
-        description: 'Last meal at the hotel or walk to Lucca Osteria (0.1 miles from Marriott) for a sit-down brunch.',
+        title: 'Breakfast at Lucca Osteria',
+        description: 'Sit-down brunch just 0.1 miles from the Marriott. No conference schedule today — take it easy.',
         category: 'dining',
         location: { lat: 41.8508, lng: -87.9350, name: 'Lucca Osteria & Bar' }
       },
       {
         id: 'day6-zoo',
         time: '10:00 AM',
-        title: 'Brookfield Zoo (if time allows)',
-        description: 'World-renowned zoo, just 10 minutes from the hotel. Great way to spend a morning before a flight. Adults $24.95, kids 3-11 $17.95.',
+        title: 'Brookfield Zoo',
+        description: 'World-renowned zoo, just 10 minutes from the hotel. Adults $24.95, kids 3-11 $17.95.',
         category: 'activity',
         location: { lat: 41.8317, lng: -87.8360, name: 'Brookfield Zoo Chicago' },
         link: 'https://www.brookfieldzoo.org/',
         linkLabel: 'Buy Tickets',
         phone: '708-688-8000',
-        notes: 'Open 10am-5pm weekdays, 10am-6pm weekends. Parking $17-20. Only 10 min drive from hotel!'
+        notes: 'Open 10am-6pm weekends. Parking $17-20. Only 10 min drive from hotel!'
       },
       {
-        id: 'day6-checkout',
-        time: '12:00 PM',
-        title: 'Check Out',
-        description: 'Check out of the Marriott. Hotel can store luggage if your flight is later.',
+        id: 'day6-downtown',
+        time: '2:00 PM',
+        title: 'Afternoon in the City',
+        description: 'Last chance to hit anything you missed — Magnificent Mile, the Riverwalk, deep-dish pizza. Metra BNSF from Hinsdale (~35 min to Union Station) or rideshare.',
+        category: 'activity',
+        location: { lat: 41.8826, lng: -87.6226, name: 'Downtown Chicago' },
+        notes: 'Lou Malnati\'s or Giordano\'s for deep dish if you haven\'t yet.'
+      },
+      {
+        id: 'day6-dinner',
+        time: '7:00 PM',
+        title: 'Final Dinner — Seasons 52',
+        description: 'Fresh seasonal grill at Oakbrook Center. Nice wine selection and mini desserts. Good send-off dinner close to the hotel.',
+        category: 'dining',
+        location: { lat: 41.8498, lng: -87.9515, name: 'Seasons 52' },
+        link: 'https://www.seasons52.com/',
+        linkLabel: 'View Menu',
+        phone: '630-571-4752'
+      },
+      {
+        id: 'day6-pack',
+        time: '9:30 PM',
+        title: 'Pack Up — Early Flight Tomorrow',
+        description: 'Flight departs ORD at 7:00 AM. Uber pickup around 4:30 AM. Pack tonight, set two alarms.',
+        category: 'accommodation',
+        notes: 'Request late checkout or store luggage at front desk if exploring during the day. Final checkout tonight.'
+      }
+    ]
+  },
+  {
+    id: 'day-7',
+    date: 'Sunday, April 26, 2026',
+    dayOfWeek: 'Sunday',
+    title: 'Departure Day',
+    activities: [
+      {
+        id: 'day7-wakeup',
+        time: '4:00 AM',
+        title: 'Wake Up & Check Out',
+        description: 'Early morning — 7:00 AM flight means leaving the hotel by 4:30 AM latest. Express checkout at the front desk or use the Marriott app.',
         category: 'accommodation',
         location: { lat: 41.8505, lng: -87.9357, name: 'Chicago Marriott Oak Brook' }
       },
       {
-        id: 'day6-depart',
-        time: '2:00 PM',
-        title: 'Head to Airport',
-        description: "Allow 45-60 minutes to O'Hare with traffic, 30-40 to Midway. Uber/Lyft recommended.",
+        id: 'day7-to-airport',
+        time: '4:30 AM',
+        title: "Uber to O'Hare",
+        description: "Sunday early morning — expect 20-25 min to ORD with no traffic. Schedule the Uber the night before.",
         category: 'transport',
-        notes: 'Saturday traffic is generally lighter, but check Maps before leaving.'
+        notes: 'Pre-schedule Uber/Lyft for 4:30 AM. Sunday morning traffic will be minimal.'
+      },
+      {
+        id: 'day7-flight-home',
+        time: '7:00 AM',
+        title: 'Flight: ORD → EWR (UA563)',
+        description: "United Airlines UA563, O'Hare (ORD) to Newark (EWR). Departs 7:00 AM CT, arrives 10:20 AM ET. Economy class. Travelers: Shawn Jordan & Daniel Llanes.",
+        category: 'transport',
+        location: { lat: 41.9742, lng: -87.9073, name: "O'Hare International Airport" },
+        notes: "Confirmation: PKMJGM. Seats: ORD-EWR 31C/29D. Arrive EWR by 10:20 AM — home to Maplewood by noon."
+      },
+      {
+        id: 'day7-arrive-home',
+        time: '10:20 AM',
+        title: 'Arrive Newark — Home',
+        description: 'Land at EWR. Grab bags and head home to Maplewood. Welcome back!',
+        category: 'transport',
+        location: { lat: 40.6895, lng: -74.1745, name: 'Newark Liberty International Airport' }
       }
     ]
   }

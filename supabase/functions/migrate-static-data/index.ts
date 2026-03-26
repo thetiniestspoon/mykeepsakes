@@ -6,91 +6,50 @@ const corsHeaders = {
 };
 
 // Static itinerary data embedded for migration
+// NOTE: This function is deprecated for Sankofa. Use scripts/seed-sankofa.ts instead.
+// Kept as a migration scaffold for future trips.
 const ITINERARY_DATA = {
   trip: {
-    title: "Family Week 2026",
-    location_name: "Provincetown, MA",
-    start_date: "2026-07-25",
-    end_date: "2026-08-01",
-    timezone: "America/New_York"
+    title: "Sankofa 2026 — Healing, Justice & Sacred Care",
+    location_name: "Chicago / Oak Brook, IL",
+    start_date: "2026-04-20",
+    end_date: "2026-04-26",
+    timezone: "America/Chicago"
   },
   days: [
-    { date: "2026-07-25", title: "Arrival Day", dayOfWeek: "Saturday" },
-    { date: "2026-07-26", title: "Beach Day & Family Week Kickoff", dayOfWeek: "Sunday" },
-    { date: "2026-07-27", title: "Whale Watching Adventure", dayOfWeek: "Monday" },
-    { date: "2026-07-28", title: "Art & Adventure Day", dayOfWeek: "Tuesday" },
-    { date: "2026-07-29", title: "Family Week Fun Day", dayOfWeek: "Wednesday" },
-    { date: "2026-07-30", title: "The Big Parade!", dayOfWeek: "Thursday" },
-    { date: "2026-07-31", title: "Last Full Day", dayOfWeek: "Friday" },
-    { date: "2026-08-01", title: "Departure Day", dayOfWeek: "Saturday" }
+    { date: "2026-04-20", title: "Travel Day — EWR → ORD", dayOfWeek: "Monday" },
+    { date: "2026-04-21", title: "Sankofa Day 1 — Opening", dayOfWeek: "Tuesday" },
+    { date: "2026-04-22", title: "Sankofa Day 2 — Deep Work", dayOfWeek: "Wednesday" },
+    { date: "2026-04-23", title: "Sankofa Day 3 + Chicago", dayOfWeek: "Thursday" },
+    { date: "2026-04-24", title: "Sankofa Day 4 — Culture & Heritage", dayOfWeek: "Friday" },
+    { date: "2026-04-25", title: "Free Day — Explore Chicago", dayOfWeek: "Saturday" },
+    { date: "2026-04-26", title: "Departure Day — ORD → EWR", dayOfWeek: "Sunday" }
   ],
   activities: [
-    // Day 1 - Arrival
-    { dayIndex: 0, time: "08:00", title: "Depart for Cape Cod", description: "Pack the car and hit the road! Expect 2-3 hours depending on traffic.", category: "transport", notes: "Check traffic before leaving. Consider stopping in Plymouth for lunch." },
-    { dayIndex: 0, time: "14:00", title: "Check-in at Accommodation", description: "Check into your rental and get settled.", category: "accommodation", location: { name: "Vacation Rental", lat: 42.0520, lng: -70.1890 } },
-    { dayIndex: 0, time: "16:00", title: "Explore Commercial Street", description: "Take a stroll down the heart of Provincetown. Grab ice cream and browse the galleries.", category: "activity", location: { name: "Commercial Street", lat: 42.0525, lng: -70.1855 } },
-    { dayIndex: 0, time: "18:30", title: "Dinner at The Mews", description: "Upscale casual waterfront dining with stunning harbor views. Great for families.", category: "dining", location: { name: "The Mews Restaurant", lat: 42.0505, lng: -70.1870 }, link: "https://mewsptown.com/", linkLabel: "View Menu", phone: "508-487-1500" },
-    
-    // Day 2 - Beach Day
-    { dayIndex: 1, time: "08:30", title: "Breakfast at Café Heaven", description: "Local favorite with excellent pastries and coffee.", category: "dining", location: { name: "Café Heaven", lat: 42.0530, lng: -70.1860 }, phone: "508-487-9639" },
-    { dayIndex: 1, time: "10:00", title: "Herring Cove Beach", description: "Family-friendly beach with calm waters, bathrooms, and snack bar. Part of Cape Cod National Seashore.", category: "beach", location: { name: "Herring Cove Beach", lat: 42.0642, lng: -70.2095 }, notes: "Bring beach umbrella and plenty of sunscreen!" },
-    { dayIndex: 1, time: "16:00", title: "Family Week Welcome Event", description: "Official kickoff celebration for Family Week! Meet other families and get your schedule.", category: "event", location: { name: "Crown & Anchor", lat: 42.0515, lng: -70.1865 }, link: "https://www.familyequality.org/family-week/", linkLabel: "Family Week Info" },
-    { dayIndex: 1, time: "18:00", title: "Lobster Pot for Dinner", description: "Iconic Provincetown seafood restaurant. Get the lobster roll!", category: "dining", location: { name: "The Lobster Pot", lat: 42.0526, lng: -70.1842 }, phone: "508-487-0842", link: "https://ptownlobsterpot.com/", linkLabel: "Make Reservation" },
-    
-    // Day 3 - Whale Watching
-    { dayIndex: 2, time: "07:30", title: "Early Breakfast", description: "Quick breakfast before the whale watch. Pack snacks for the boat!", category: "dining" },
-    { dayIndex: 2, time: "09:00", title: "Whale Watching with Dolphin Fleet", description: "3-4 hour excursion to see humpback whales in Stellwagen Bank. Book tickets in advance!", category: "activity", location: { name: "MacMillan Pier", lat: 42.0542, lng: -70.1838 }, link: "https://whalewatch.com/", linkLabel: "Book Tickets", phone: "508-240-3636", notes: "Bring layers - it gets cold on the water even in summer!" },
-    { dayIndex: 2, time: "13:30", title: "Lunch at Canteen", description: "Casual local spot with great sandwiches and seafood.", category: "dining", location: { name: "Canteen", lat: 42.0517, lng: -70.1868 } },
-    { dayIndex: 2, time: "15:00", title: "Family Week Activities", description: "Check the Family Week schedule for afternoon activities and workshops.", category: "event", link: "https://www.familyequality.org/family-week/", linkLabel: "View Schedule" },
-    { dayIndex: 2, time: "19:00", title: "Sunset at Race Point", description: "Drive out to Race Point for stunning sunset views over the dunes.", category: "beach", location: { name: "Race Point Beach", lat: 42.0816, lng: -70.2396 } },
-    
-    // Day 4 - Art & Adventure
-    { dayIndex: 3, time: "10:00", title: "Provincetown Art Association & Museum", description: "Explore the vibrant local art scene. Great for all ages with interactive exhibits.", category: "activity", location: { name: "PAAM", lat: 42.0566, lng: -70.1786 }, link: "https://paam.org/", linkLabel: "Plan Your Visit", phone: "508-487-1750" },
-    { dayIndex: 3, time: "13:00", title: "Bike the Province Lands Trail", description: "Rent bikes and explore the beautiful Province Lands trails through dunes and forests.", category: "activity", location: { name: "Province Lands Visitor Center", lat: 42.0640, lng: -70.2080 }, link: "https://www.nps.gov/caco/planyourvisit/provincelandsbikepath.htm", linkLabel: "Trail Info", notes: "Bike rentals available at several shops on Commercial Street." },
-    { dayIndex: 3, time: "16:00", title: "Long Point Beach Exploration", description: "Take the shuttle or walk the breakwater to Long Point for a secluded beach experience.", category: "beach", location: { name: "Long Point", lat: 42.0336, lng: -70.1688 } },
-    
-    // Day 5 - Family Week Fun Day
-    { dayIndex: 4, time: "10:00", title: "Parade Prep & Crafts", description: "Join other families creating costumes and decorations for the famous Family Week parade!", category: "event", location: { name: "Family Week HQ", lat: 42.0515, lng: -70.1865 } },
-    { dayIndex: 4, time: "12:00", title: "Family Picnic", description: "Large group picnic with all Family Week families. Games and activities for kids.", category: "event" },
-    { dayIndex: 4, time: "15:00", title: "Pilgrim Monument & Museum", description: "Climb the tallest all-granite structure in the US for 360-degree Cape views!", category: "activity", location: { name: "Pilgrim Monument", lat: 42.0555, lng: -70.1888 }, link: "https://www.pilgrim-monument.org/", linkLabel: "Buy Tickets", phone: "508-487-1310", notes: "252 steps + 60 ramps. Worth it for the view!" },
-    
-    // Day 6 - The Big Parade
-    { dayIndex: 5, time: "09:00", title: "Final Parade Preparations", description: "Get costumes ready and meet up with your parade group!", category: "event" },
-    { dayIndex: 5, time: "11:00", title: "Family Week Parade", description: "The highlight of the week! March down Commercial Street celebrating family diversity.", category: "event", location: { name: "Commercial Street", lat: 42.0525, lng: -70.1855 }, notes: "This is an unforgettable experience. Cheer loud and proud!" },
-    { dayIndex: 5, time: "13:00", title: "Post-Parade Celebration", description: "Music, dancing, and festivities after the parade.", category: "event" },
-    { dayIndex: 5, time: "18:00", title: "Farewell Dinner at Napi's", description: "Creative international cuisine in a unique artistic setting.", category: "dining", location: { name: "Napi's Restaurant", lat: 42.0585, lng: -70.1925 }, phone: "508-487-1145", link: "https://www.napisrestaurant.com/", linkLabel: "Reserve Table" },
-    
-    // Day 7 - Last Full Day
-    { dayIndex: 6, time: "09:00", title: "Leisurely Breakfast at Café Heaven", description: "Take your time over a delicious breakfast at this local favorite.", category: "dining", location: { name: "Café Heaven", lat: 42.0530, lng: -70.1860 }, phone: "508-487-9639" },
-    { dayIndex: 6, time: "10:30", title: "Kayaking or Paddleboarding", description: "Explore the harbor by water! Rentals available at the pier.", category: "activity", location: { name: "Provincetown Harbor", lat: 42.0540, lng: -70.1835 }, notes: "Check weather conditions. Life jackets provided with rentals." },
-    { dayIndex: 6, time: "13:00", title: "Lunch at Fanizzi's by the Sea", description: "Waterfront dining with stunning bay views. Great for families.", category: "dining", location: { name: "Fanizzi's Restaurant", lat: 42.0495, lng: -70.1900 }, link: "https://www.fanizzisrestaurant.com/", linkLabel: "View Menu", phone: "508-487-1964" },
-    { dayIndex: 6, time: "15:00", title: "Last-Minute Shopping", description: "Browse the galleries and shops on Commercial Street for souvenirs and gifts.", category: "activity", location: { name: "Commercial Street", lat: 42.0525, lng: -70.1855 } },
-    { dayIndex: 6, time: "17:00", title: "Final Beach Sunset at Herring Cove", description: "One last magical sunset at the beach. Bring a blanket and snacks.", category: "beach", location: { name: "Herring Cove Beach", lat: 42.0642, lng: -70.2095 }, notes: "Arrive early for best parking. Sunset around 8:15 PM in late July." },
-    { dayIndex: 6, time: "19:30", title: "Farewell Dinner at The Red Inn", description: "Elegant waterfront dining for a memorable last night. Reservations recommended.", category: "dining", location: { name: "The Red Inn", lat: 42.0565, lng: -70.1902 }, link: "https://www.theredinn.com/", linkLabel: "Reserve Table", phone: "508-487-7334" },
-    
-    // Day 8 - Departure
-    { dayIndex: 7, time: "08:00", title: "Quick Breakfast", description: "Grab a quick bite before hitting the road.", category: "dining" },
-    { dayIndex: 7, time: "10:00", title: "Check Out", description: "Pack up and check out of accommodations.", category: "accommodation" },
-    { dayIndex: 7, time: "11:00", title: "Head Home", description: "Safe travels! Consider stopping in Plymouth or Sandwich on the way.", category: "transport", notes: "Saturday traffic can be heavy. Leave early if possible!" }
+    { dayIndex: 0, time: "10:22", title: "Flight EWR → ORD (UA1525)", description: "United Airlines. Arrive ORD 12:06 PM CT.", category: "transport", notes: "Confirmation: PKMJGM" },
+    { dayIndex: 0, time: "15:00", title: "Hotel Check-in", description: "Chicago Marriott Oak Brook", category: "accommodation", location: { name: "Chicago Marriott Oak Brook", lat: 41.8505, lng: -87.9357 } },
+    { dayIndex: 1, time: "09:00", title: "Conference Sessions Begin", description: "Opening plenary and morning workshops.", category: "event", location: { name: "Chicago Marriott Oak Brook", lat: 41.8505, lng: -87.9357 } },
+    { dayIndex: 2, time: "09:00", title: "Morning Sessions", description: "Full day of conference programming.", category: "event", location: { name: "Chicago Marriott Oak Brook", lat: 41.8505, lng: -87.9357 } },
+    { dayIndex: 3, time: "09:00", title: "Morning Sessions", description: "Conference programming continues.", category: "event" },
+    { dayIndex: 3, time: "13:00", title: "Downtown Chicago Afternoon", description: "Millennium Park, Art Institute, and Riverwalk.", category: "activity", location: { name: "Millennium Park", lat: 41.8826, lng: -87.6226 } },
+    { dayIndex: 4, time: "09:00", title: "Morning Sessions", description: "Conference programming.", category: "event" },
+    { dayIndex: 4, time: "13:00", title: "DuSable Black History Museum", description: "First museum in the US dedicated to African American history.", category: "activity", location: { name: "DuSable Black History Museum", lat: 41.7919, lng: -87.6087 } },
+    { dayIndex: 5, time: "10:00", title: "Brookfield Zoo", description: "World-renowned zoo, 10 min from hotel.", category: "activity", location: { name: "Brookfield Zoo Chicago", lat: 41.8317, lng: -87.8360 } },
+    { dayIndex: 6, time: "07:00", title: "Flight ORD → EWR (UA563)", description: "United Airlines. Arrive EWR 10:20 AM ET.", category: "transport", notes: "Confirmation: PKMJGM" }
   ],
   guideLocations: [
-    // Beaches
-    { name: "Herring Cove Beach", category: "beach", lat: 42.0642, lng: -70.2095, notes: "Most popular family beach. Calm waters, restrooms, snack bar, lifeguards. Stunning sunsets." },
-    { name: "Race Point Beach", category: "beach", lat: 42.0816, lng: -70.2396, notes: "Wilder, more dramatic beach facing the open Atlantic. Great for walking and sunset views." },
-    { name: "Long Point Beach", category: "beach", lat: 42.0336, lng: -70.1688, notes: "Remote and beautiful. Accessible via shuttle or 1.5 mile walk across the breakwater." },
-    
-    // Restaurants
-    { name: "The Lobster Pot", category: "restaurant", lat: 42.0526, lng: -70.1842, phone: "508-487-0842", url: "https://ptownlobsterpot.com/", notes: "Iconic Provincetown seafood. Get the lobster bisque and lobster roll." },
-    { name: "The Mews Restaurant", category: "restaurant", lat: 42.0505, lng: -70.1870, phone: "508-487-1500", url: "https://mewsptown.com/", notes: "Upscale waterfront dining with amazing harbor views." },
-    { name: "Café Heaven", category: "restaurant", lat: 42.0530, lng: -70.1860, phone: "508-487-9639", notes: "Cozy breakfast and lunch spot. Excellent pastries." },
-    { name: "Canteen", category: "restaurant", lat: 42.0517, lng: -70.1868, notes: "Casual local spot with great sandwiches, tacos, and local seafood." },
-    { name: "Napi's Restaurant", category: "restaurant", lat: 42.0585, lng: -70.1925, phone: "508-487-1145", url: "https://www.napisrestaurant.com/", notes: "Creative international cuisine in an artistic, eclectic setting." },
-    
-    // Activities
-    { name: "Dolphin Fleet Whale Watching", category: "activity", lat: 42.0542, lng: -70.1838, phone: "508-240-3636", url: "https://whalewatch.com/", notes: "3-4 hour excursion to see humpback whales in Stellwagen Bank." },
-    { name: "Provincetown Art Association & Museum", category: "activity", lat: 42.0566, lng: -70.1786, phone: "508-487-1750", url: "https://paam.org/", notes: "Explore the vibrant local art scene with interactive exhibits." },
-    { name: "Province Lands Bike Trail", category: "activity", lat: 42.0640, lng: -70.2080, url: "https://www.nps.gov/caco/planyourvisit/provincelandsbikepath.htm", notes: "Beautiful trails through dunes and forests." },
-    { name: "Pilgrim Monument & Museum", category: "activity", lat: 42.0555, lng: -70.1888, phone: "508-487-1310", url: "https://www.pilgrim-monument.org/", notes: "Climb the tallest all-granite structure in the US for 360-degree views!" }
+    { name: "Chicago Marriott Oak Brook", category: "accommodation", lat: 41.8505, lng: -87.9357, phone: "630-573-8555", notes: "Conference hotel. 1401 W 22nd St, Oak Brook, IL 60523." },
+    { name: "Oakbrook Center", category: "activity", lat: 41.8490, lng: -87.9525, url: "https://www.oakbrookcenter.com/", notes: "Large outdoor shopping center, 5 min walk from hotel. Dining and shops." },
+    { name: "Millennium Park", category: "attraction", lat: 41.8826, lng: -87.6226, notes: "Iconic public park with The Bean, Crown Fountain, and Lurie Garden. Free." },
+    { name: "Art Institute of Chicago", category: "attraction", lat: 41.8796, lng: -87.6237, phone: "312-443-3600", url: "https://www.artic.edu/", notes: "World-class art museum. 300,000+ works." },
+    { name: "DuSable Black History Museum", category: "attraction", lat: 41.7919, lng: -87.6087, phone: "773-947-0600", url: "https://www.dusablemuseum.org/", notes: "First US museum dedicated to African American history." },
+    { name: "Graue Mill and Museum", category: "attraction", lat: 41.8310, lng: -87.9370, notes: "Underground Railroad station. Only operating waterwheel gristmill in Illinois." },
+    { name: "Brookfield Zoo Chicago", category: "activity", lat: 41.8317, lng: -87.8360, phone: "708-688-8000", url: "https://www.brookfieldzoo.org/", notes: "10 min from hotel. Open 10am-6pm weekends." },
+    { name: "Wildfire", category: "restaurant", lat: 41.8495, lng: -87.9520, phone: "630-586-9000", url: "https://www.wildfirerestaurant.com/", notes: "Upscale steakhouse at Oakbrook Center." },
+    { name: "Antico Posto", category: "restaurant", lat: 41.8492, lng: -87.9530, phone: "630-586-9200", url: "https://www.anticoposto.com/", notes: "Italian trattoria near Oakbrook Center." },
+    { name: "Portillo's", category: "restaurant", lat: 41.8340, lng: -87.9590, phone: "630-596-2910", url: "https://www.portillos.com/", notes: "Chicago institution. Italian beef, hot dogs, chocolate cake shake." },
+    { name: "Seasons 52", category: "restaurant", lat: 41.8498, lng: -87.9515, phone: "630-571-4752", url: "https://www.seasons52.com/", notes: "Fresh seasonal grill with health-conscious menu." },
+    { name: "O'Hare International Airport", category: "transport", lat: 41.9742, lng: -87.9073, url: "https://www.flychicago.com/ohare/", notes: "25-30 min from hotel. Uber/Lyft recommended." }
   ]
 };
 

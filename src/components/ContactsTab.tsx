@@ -179,19 +179,19 @@ export function ContactsTab() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>
-              <span><strong>MacMillan Pier Lot:</strong> Central location, fills up early in summer. $3/hour.</span>
+              <span><strong>Hotel Parking:</strong> Complimentary self-parking at Chicago Marriott Oak Brook.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>
-              <span><strong>Grace Hall Lot:</strong> Short walk to Commercial Street. Free after 6pm.</span>
+              <span><strong>Oakbrook Center:</strong> Free parking at the outdoor mall, 5 min walk from hotel.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>
-              <span><strong>Beach Parking:</strong> National Seashore lots require fee. Arrive before 10am on weekends.</span>
+              <span><strong>Downtown Chicago:</strong> Use Metra BNSF or rideshare. Street parking is expensive and scarce.</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>
-              <span><strong>Street Parking:</strong> Limited and strictly enforced. Check signs carefully!</span>
+              <span><strong>Airport:</strong> Uber/Lyft recommended to/from O'Hare. 25-30 min from hotel.</span>
             </li>
           </ul>
         </CardContent>

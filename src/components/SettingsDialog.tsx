@@ -82,7 +82,7 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('ptown-authenticated');
+    sessionStorage.removeItem('mk-authenticated');
     onLogout();
     onOpenChange(false);
   };

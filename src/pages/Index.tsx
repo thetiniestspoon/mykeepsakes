@@ -43,7 +43,7 @@ const Index = () => {
   
   // Check for existing session
   useEffect(() => {
-    const authenticated = sessionStorage.getItem('ptown-authenticated') === 'true';
+    const authenticated = sessionStorage.getItem('mk-authenticated') === 'true';
     setIsAuthenticated(authenticated);
   }, []);
   

@@ -111,7 +111,7 @@ export function QuickAddButton() {
                 id="quick-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Lunch at The Lobster Pot"
+                placeholder="e.g., Lunch at Antico Posto"
                 autoFocus
               />
             </div>

@@ -14,7 +14,7 @@ const mockActivity: LegacyActivity = {
     id: 'loc-1',
     lat: 41.6623,
     lng: -70.2001,
-    name: 'Herring Cove Beach',
+    name: 'Millennium Park',
     address: '123 Beach St',
   },
   link: 'https://beach.com',

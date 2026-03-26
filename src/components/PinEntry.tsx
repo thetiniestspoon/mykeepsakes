@@ -21,7 +21,7 @@ export function PinEntry({ storedHash, onSuccess }: PinEntryProps) {
     try {
       const hash = await hashPin(emojiPin);
       if (hash === storedHash) {
-        sessionStorage.setItem('ptown-authenticated', 'true');
+        sessionStorage.setItem('mk-authenticated', 'true');
         onSuccess();
       } else {
         setError('Incorrect PIN. Please try again.');

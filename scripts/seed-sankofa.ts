@@ -19,8 +19,8 @@ async function seed() {
     .insert({
       title: 'Sankofa 2026 — Healing, Justice & Sacred Care',
       location_name: 'Chicago / Oak Brook, IL',
-      start_date: '2026-04-21',
-      end_date: '2026-04-24',
+      start_date: '2026-04-20',
+      end_date: '2026-04-26',
       timezone: 'America/Chicago',
     })
     .select()
@@ -30,10 +30,13 @@ async function seed() {
 
   // 2. Create days
   const days = [
-    { date: '2026-04-21', title: 'Arrival & Opening', sort_index: 0 },
-    { date: '2026-04-22', title: 'Conference Day 1', sort_index: 1 },
-    { date: '2026-04-23', title: 'Conference Day 2', sort_index: 2 },
-    { date: '2026-04-24', title: 'Closing & Departure', sort_index: 3 },
+    { date: '2026-04-20', title: 'Travel Day — EWR → ORD', sort_index: 0 },
+    { date: '2026-04-21', title: 'Sankofa Day 1 — Opening', sort_index: 1 },
+    { date: '2026-04-22', title: 'Sankofa Day 2 — Deep Work', sort_index: 2 },
+    { date: '2026-04-23', title: 'Sankofa Day 3 + Chicago', sort_index: 3 },
+    { date: '2026-04-24', title: 'Sankofa Day 4 — Culture & Heritage', sort_index: 4 },
+    { date: '2026-04-25', title: 'Free Day — Explore Chicago', sort_index: 5 },
+    { date: '2026-04-26', title: 'Departure Day — ORD → EWR', sort_index: 6 },
   ];
   const { data: createdDays, error: daysError } = await supabase
     .from('itinerary_days')
@@ -49,10 +52,10 @@ async function seed() {
       trip_id: trip.id,
       title: 'Chicago Marriott Oak Brook',
       address: '1401 W 22nd St, Oak Brook, IL 60523',
-      check_in: '2026-04-21T16:00:00-05:00',
-      check_out: '2026-04-24T12:00:00-05:00',
+      check_in: '2026-04-20T15:00:00-05:00',
+      check_out: '2026-04-26T04:00:00-05:00',
       is_selected: true,
-      notes: 'Confirmation #84897700. $154/night ($503.58 total). Sharing with Dan Llanes. Complimentary parking. Phone: +1-630-573-8555',
+      notes: 'Confirmation #84897700. Sharing with Dan Llanes. Complimentary parking. Phone: +1-630-573-8555. Flight confirmation: PKMJGM (United).',
       location_lat: 41.8505,
       location_lng: -87.9357,
     });
@@ -102,22 +105,35 @@ async function seed() {
   // 7. Create itinerary items
   const dayMap = Object.fromEntries(createdDays.map((d) => [d.date, d.id]));
   const items = [
-    { trip_id: trip.id, day_id: dayMap['2026-04-21'], title: 'Hotel Check-in', start_time: '16:00', category: 'accommodation', status: 'planned', sort_index: 0, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-21'], title: 'Opening Session', category: 'event', status: 'planned', sort_index: 1, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Morning Plenary', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Workshop Block 1', category: 'event', status: 'planned', sort_index: 1, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Lunch', category: 'dining', status: 'planned', sort_index: 2, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Workshop Block 2', category: 'event', status: 'planned', sort_index: 3, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Dinner', category: 'dining', status: 'planned', sort_index: 4, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Evening Programming', category: 'event', status: 'planned', sort_index: 5, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Morning Plenary', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Workshop Block 1', category: 'event', status: 'planned', sort_index: 1, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Lunch', category: 'dining', status: 'planned', sort_index: 2, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Workshop Block 2', category: 'event', status: 'planned', sort_index: 3, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Dinner & Celebration', category: 'dining', status: 'planned', sort_index: 4, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Closing Session', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Hotel Checkout', start_time: '12:00', category: 'accommodation', status: 'planned', sort_index: 1, item_type: 'activity' },
-    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Departure', category: 'transport', status: 'planned', sort_index: 2, item_type: 'activity' },
+    // Apr 20 — Travel Day
+    { trip_id: trip.id, day_id: dayMap['2026-04-20'], title: 'Flight EWR → ORD (UA1525)', start_time: '10:22', category: 'transport', status: 'planned', sort_index: 0, item_type: 'activity', notes: 'Confirmation: PKMJGM. Arrive ORD 12:06 PM CT.' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-20'], title: 'Hotel Check-in', start_time: '15:00', category: 'accommodation', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-20'], title: 'Dinner at Wildfire', start_time: '19:00', category: 'dining', status: 'planned', sort_index: 2, item_type: 'activity' },
+    // Apr 21 — Sankofa Day 1
+    { trip_id: trip.id, day_id: dayMap['2026-04-21'], title: 'Conference Sessions Begin', start_time: '09:00', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-21'], title: 'Afternoon Workshops', start_time: '13:30', category: 'event', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-21'], title: 'Dinner at Antico Posto', start_time: '18:30', category: 'dining', status: 'planned', sort_index: 2, item_type: 'activity' },
+    // Apr 22 — Sankofa Day 2
+    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Morning Sessions', start_time: '09:00', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Graue Mill Visit', start_time: '12:30', category: 'activity', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: 'Afternoon Workshops', start_time: '14:00', category: 'event', status: 'planned', sort_index: 2, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-22'], title: "Portillo's Dinner", start_time: '19:00', category: 'dining', status: 'planned', sort_index: 3, item_type: 'activity' },
+    // Apr 23 — Sankofa Day 3
+    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Morning Sessions', start_time: '09:00', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Downtown Chicago Afternoon', start_time: '13:00', category: 'activity', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Art Institute of Chicago', start_time: '15:30', category: 'activity', status: 'planned', sort_index: 2, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-23'], title: 'Art on theMART', start_time: '20:30', category: 'activity', status: 'planned', sort_index: 3, item_type: 'activity' },
+    // Apr 24 — Sankofa Day 4
+    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Morning Sessions', start_time: '09:00', category: 'event', status: 'planned', sort_index: 0, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'DuSable Black History Museum', start_time: '13:00', category: 'activity', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Bronzeville Walk', start_time: '15:30', category: 'activity', status: 'planned', sort_index: 2, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-24'], title: 'Conference Farewell Dinner', start_time: '19:00', category: 'event', status: 'planned', sort_index: 3, item_type: 'activity' },
+    // Apr 25 — Free Day
+    { trip_id: trip.id, day_id: dayMap['2026-04-25'], title: 'Brookfield Zoo', start_time: '10:00', category: 'activity', status: 'planned', sort_index: 0, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-25'], title: 'Explore Downtown', start_time: '14:00', category: 'activity', status: 'planned', sort_index: 1, item_type: 'activity' },
+    { trip_id: trip.id, day_id: dayMap['2026-04-25'], title: 'Final Dinner — Seasons 52', start_time: '19:00', category: 'dining', status: 'planned', sort_index: 2, item_type: 'activity' },
+    // Apr 26 — Departure
+    { trip_id: trip.id, day_id: dayMap['2026-04-26'], title: 'Flight ORD → EWR (UA563)', start_time: '07:00', category: 'transport', status: 'planned', sort_index: 0, item_type: 'activity', notes: 'Confirmation: PKMJGM. Arrive EWR 10:20 AM ET.' },
   ];
   const { error: itemError } = await supabase
     .from('itinerary_items')

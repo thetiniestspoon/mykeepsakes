@@ -226,7 +226,7 @@ export function ActivityEditor({
               id="locationName"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
-              placeholder="e.g., Herring Cove Beach"
+              placeholder="e.g., Chicago Marriott Oak Brook"
             />
           </div>
 
