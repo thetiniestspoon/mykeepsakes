@@ -28,7 +28,7 @@ export function useCreatePin() {
       const hashed = await hashPin(emojiPin);
       const { error } = await supabase
         .from('app_settings')
-        .insert({ setting_key: 'pin', setting_value: hashed });
+        .upsert({ setting_key: 'pin', setting_value: hashed }, { onConflict: 'setting_key' });
 
       if (error) throw error;
     },
