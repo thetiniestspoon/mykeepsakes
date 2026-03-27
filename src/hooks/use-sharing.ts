@@ -117,5 +117,5 @@ export function useValidateShareToken(token: string | undefined) {
 
 // Generate shareable URL
 export function getShareUrl(token: string): string {
-  return `${window.location.origin}/shared/${token}`;
+  return `${window.location.origin}/mykeepsakes/shared/${token}`;
 }

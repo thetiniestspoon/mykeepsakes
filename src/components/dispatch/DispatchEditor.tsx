@@ -141,7 +141,7 @@ export default function DispatchEditor({
         closingNote,
         items: buildItems(),
       });
-      const url = `${window.location.origin}/shared/${result.shareToken}/dispatch/${result.dispatch.id}`;
+      const url = `${window.location.origin}/mykeepsakes/shared/${result.shareToken}/dispatch/${result.dispatch.id}`;
       setShareUrl(url);
     } catch {
       // error toast handled by hook

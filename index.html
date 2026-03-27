@@ -21,6 +21,21 @@
 
   <body>
     <div id="root"></div>
+    <!-- GitHub Pages SPA redirect handler -->
+    <script>
+      (function(){
+        var redirect = window.location.search.match(/^\?\/(.*)/);
+        if (redirect) {
+          var decoded = redirect[1].replace(/~and~/g, '&');
+          var parts = decoded.split('&');
+          var path = parts[0];
+          var search = parts.length > 1 ? '?' + parts.slice(1).join('&') : '';
+          window.history.replaceState(null, null,
+            '/mykeepsakes/' + path + search + window.location.hash
+          );
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
