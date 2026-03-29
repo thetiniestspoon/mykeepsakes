@@ -1,5 +1,5 @@
 // Run with: npx tsx scripts/seed-sankofa.ts
-// Requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
+// Requires VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local
 
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';

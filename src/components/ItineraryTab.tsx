@@ -363,6 +363,7 @@ function ActivityCard({ activity, isCustom, onEdit, onDelete, onHide, onOpenMap,
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={handlePhotoUpload}
           />

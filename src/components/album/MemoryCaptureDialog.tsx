@@ -175,6 +175,7 @@ export function MemoryCaptureDialog({
               ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
+              capture="environment"
               multiple
               className="hidden"
               onChange={handleFileSelect}

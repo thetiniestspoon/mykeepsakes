@@ -148,7 +148,7 @@ export function SwipeableActivityCard({
                 className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
               >
                 <Edit className="w-5 h-5" />
-                <span className="text-[10px]">Edit</span>
+                <span className="text-xs">Edit</span>
               </button>
             )}
             {onSkip && (
@@ -157,7 +157,7 @@ export function SwipeableActivityCard({
                 className="flex flex-col items-center gap-1 p-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
               >
                 <SkipForward className="w-5 h-5" />
-                <span className="text-[10px]">Skip</span>
+                <span className="text-xs">Skip</span>
               </button>
             )}
             {onAddMemory && (
@@ -166,7 +166,7 @@ export function SwipeableActivityCard({
                 className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
               >
                 <Camera className="w-5 h-5" />
-                <span className="text-[10px]">Memory</span>
+                <span className="text-xs">Memory</span>
               </button>
             )}
             {onDelete && (
@@ -175,7 +175,7 @@ export function SwipeableActivityCard({
                 className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
               >
                 <Trash2 className="w-5 h-5" />
-                <span className="text-[10px]">Delete</span>
+                <span className="text-xs">Delete</span>
               </button>
             )}
           </>
