@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { PinEntry } from '@/components/PinEntry';
 import { MultiUserPinEntry } from '@/components/MultiUserPinEntry';
 import { PinSetup } from '@/components/PinSetup';
 import { SettingsDialog } from '@/components/SettingsDialog';

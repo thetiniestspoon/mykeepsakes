@@ -292,41 +292,112 @@ export type Database = {
         }
         Relationships: []
       }
+      dispatch_items: {
+        Row: {
+          id: string
+          dispatch_id: string
+          item_type: string
+          item_id: string
+          sort_order: number
+          section: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          dispatch_id: string
+          item_type: string
+          item_id: string
+          sort_order?: number
+          section: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          dispatch_id?: string
+          item_type?: string
+          item_id?: string
+          sort_order?: number
+          section?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_items_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_contacts: {
         Row: {
           category: string
           created_at: string
+          day_id: string | null
+          email: string | null
           emergency_info: string | null
           id: string
+          met_context: string | null
           name: string
           notes: string | null
+          organization: string | null
           phone: string | null
+          photo_path: string | null
           relationship: string | null
+          trip_id: string | null
           updated_at: string
         }
         Insert: {
           category?: string
           created_at?: string
+          day_id?: string | null
+          email?: string | null
           emergency_info?: string | null
           id?: string
+          met_context?: string | null
           name: string
           notes?: string | null
+          organization?: string | null
           phone?: string | null
+          photo_path?: string | null
           relationship?: string | null
+          trip_id?: string | null
           updated_at?: string
         }
         Update: {
           category?: string
           created_at?: string
+          day_id?: string | null
+          email?: string | null
           emergency_info?: string | null
           id?: string
+          met_context?: string | null
           name?: string
           notes?: string | null
+          organization?: string | null
           phone?: string | null
+          photo_path?: string | null
           relationship?: string | null
+          trip_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_contacts_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_contacts_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_days"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {
@@ -421,6 +492,7 @@ export type Database = {
           source: string | null
           start_time: string | null
           status: string | null
+          tags: string[] | null
           title: string
           trip_id: string
           updated_at: string | null
@@ -444,6 +516,7 @@ export type Database = {
           source?: string | null
           start_time?: string | null
           status?: string | null
+          tags?: string[] | null
           title: string
           trip_id: string
           updated_at?: string | null
@@ -467,6 +540,7 @@ export type Database = {
           source?: string | null
           start_time?: string | null
           status?: string | null
+          tags?: string[] | null
           title?: string
           trip_id?: string
           updated_at?: string | null
@@ -672,7 +746,11 @@ export type Database = {
           id: string
           itinerary_item_id: string | null
           location_id: string | null
+          memory_type: string
           note: string | null
+          session_title: string | null
+          speaker: string | null
+          tags: string[] | null
           title: string | null
           trip_id: string
         }
@@ -682,7 +760,11 @@ export type Database = {
           id?: string
           itinerary_item_id?: string | null
           location_id?: string | null
+          memory_type?: string
           note?: string | null
+          session_title?: string | null
+          speaker?: string | null
+          tags?: string[] | null
           title?: string | null
           trip_id: string
         }
@@ -692,7 +774,11 @@ export type Database = {
           id?: string
           itinerary_item_id?: string | null
           location_id?: string | null
+          memory_type?: string
           note?: string | null
+          session_title?: string | null
+          speaker?: string | null
+          tags?: string[] | null
           title?: string | null
           trip_id?: string
         }
@@ -828,6 +914,7 @@ export type Database = {
       trip_share_links: {
         Row: {
           created_at: string | null
+          dispatch_id: string | null
           expires_at: string | null
           id: string
           permission: string | null
@@ -836,6 +923,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          dispatch_id?: string | null
           expires_at?: string | null
           id?: string
           permission?: string | null
@@ -844,6 +932,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          dispatch_id?: string | null
           expires_at?: string | null
           id?: string
           permission?: string | null
@@ -858,7 +947,44 @@ export type Database = {
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trip_share_links_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "memories"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      user_emoji_pins: {
+        Row: {
+          id: string
+          email: string
+          display_name: string
+          pin_hash: string
+          avatar_emoji: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          display_name: string
+          pin_hash: string
+          avatar_emoji?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          display_name?: string
+          pin_hash?: string
+          avatar_emoji?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       trips: {
         Row: {
