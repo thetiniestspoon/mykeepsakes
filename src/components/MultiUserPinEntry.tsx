@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Waves, Sun, Heart, Shell } from 'lucide-react';
 import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
 import { hashPin } from '@/lib/emoji-pin';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MultiUserPinEntryProps {
   onSuccess: (email: string, displayName: string) => void;
@@ -25,11 +25,6 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
-
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL || '',
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
-  );
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
