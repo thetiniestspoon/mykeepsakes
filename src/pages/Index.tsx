@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PinEntry } from '@/components/PinEntry';
+import { MultiUserPinEntry } from '@/components/MultiUserPinEntry';
 import { PinSetup } from '@/components/PinSetup';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { usePin } from '@/hooks/use-trip-data';
@@ -75,11 +76,10 @@ const Index = () => {
     );
   }
 
-  // PIN entry — pin is guaranteed to be a valid hash here
+  // PIN entry — use multi-user auth flow
   if (!isAuthenticated) {
     return (
-      <PinEntry
-        storedHash={pin}
+      <MultiUserPinEntry
         onSuccess={() => setIsAuthenticated(true)}
       />
     );
