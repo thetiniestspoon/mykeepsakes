@@ -31,8 +31,8 @@ async function seedEmojPins() {
 
   console.log('🔐 Seeding emoji PINs...\n');
 
-  // Shawn's PIN: 🦅🔐🏠💎
-  const shawnPin = ['🦅', '🔐', '🏠', '💎'];
+  // Shawn's PIN: 🦝🔑🏠💎
+  const shawnPin = ['🦝', '🔑', '🏠', '💎'];
   const shawnHash = await hashPin(shawnPin);
   console.log(`✓ Shawn's PIN: ${shawnPin.join('')}`);
   console.log(`  Hash: ${shawnHash.substring(0, 16)}...`);
