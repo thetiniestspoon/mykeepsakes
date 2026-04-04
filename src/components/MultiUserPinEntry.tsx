@@ -1,88 +1,98 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Waves, Sun, Heart, Shell } from 'lucide-react';
 import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
-import { hashPin } from '@/lib/emoji-pin';
-import { supabase } from '@/integrations/supabase/client';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface MultiUserPinEntryProps {
   onSuccess: (email: string, displayName: string) => void;
 }
 
-interface UserPin {
-  email: string;
-  display_name: string;
-  avatar_emoji: string;
-  pin_hash: string;
-}
-
 export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
   const [step, setStep] = useState<'email' | 'pin'>('email');
   const [email, setEmail] = useState('');
-  const [currentUser, setCurrentUser] = useState<UserPin | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds((s) => {
+        if (s <= 1) {
+          setError(null);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    setError(null);
+    setStep('pin');
+  };
+
+  const handlePinSubmit = useCallback(async (emojiPin: string[]) => {
+    if (lockoutSeconds > 0) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      // Look up user by email
-      const { data, error: queryError } = await supabase
-        .from('user_emoji_pins')
-        .select('email, display_name, avatar_emoji, pin_hash')
-        .eq('email', email.toLowerCase())
-        .single();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-user-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim(), emojiPin: emojiPin.join('') }),
+      });
 
-      if (queryError || !data) {
-        setError('Email not found. Please check and try again.');
+      const data = await res.json();
+
+      if (res.status === 429) {
+        setLockoutSeconds(data.lockout_seconds || 300);
+        setError(`Too many attempts. Try again in ${data.lockout_seconds || 300}s.`);
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
         return;
       }
 
-      setCurrentUser(data as UserPin);
-      setStep('pin');
-    } catch (err) {
-      setError('Error looking up user. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePinSubmit = async (emojiPin: string[]) => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const hash = await hashPin(emojiPin);
-      if (hash === currentUser.pin_hash) {
-        // Success! Store auth info and proceed
-        sessionStorage.setItem('mk-authenticated', 'true');
-        sessionStorage.setItem('mk-user-email', currentUser.email);
-        sessionStorage.setItem('mk-user-name', currentUser.display_name);
-        onSuccess(currentUser.email, currentUser.display_name);
-      } else {
-        setError('Incorrect PIN. Please try again.');
+      if (!res.ok || !data.success) {
+        const remaining = data.attempts_remaining;
+        const msg = remaining != null && remaining <= 2
+          ? `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+          : 'Incorrect email or PIN. Please try again.';
+        setError(msg);
         setShake(true);
         setTimeout(() => setShake(false), 500);
         setTimeout(() => setError(null), 3000);
+        return;
       }
+
+      sessionStorage.setItem('mk-authenticated', 'true');
+      sessionStorage.setItem('mk-user-email', data.email);
+      sessionStorage.setItem('mk-user-name', data.display_name);
+      onSuccess(data.email, data.display_name);
+    } catch {
+      setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, lockoutSeconds, onSuccess]);
 
   const handleBackToEmail = () => {
     setStep('email');
-    setCurrentUser(null);
     setError(null);
+    setLockoutSeconds(0);
   };
 
   return (
@@ -101,17 +111,13 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
       <Card className={`w-full max-w-sm shadow-warm-lg transition-all ${shake ? 'animate-shake' : ''}`}>
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-warm">
-            {step === 'pin' && currentUser ? (
-              <span className="text-4xl">{currentUser.avatar_emoji}</span>
-            ) : (
-              <Heart className="w-8 h-8 text-primary-foreground" />
-            )}
+            <Heart className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-display text-foreground">
             MyKeepsakes
           </CardTitle>
           <CardDescription className="text-body text-muted-foreground">
-            {step === 'email' ? 'Enter your email to begin' : `Welcome, ${currentUser?.display_name}!`}
+            {step === 'email' ? 'Enter your email to begin' : 'Enter your emoji PIN'}
           </CardDescription>
         </CardHeader>
 
@@ -136,12 +142,21 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
             </form>
           ) : (
             <>
-              <EmojiPinPad
-                onSubmit={handlePinSubmit}
-                loading={loading}
-                error={error}
-                submitLabel="Unlock"
-              />
+              {lockoutSeconds > 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-destructive font-medium">Account temporarily locked</p>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Try again in {lockoutSeconds}s
+                  </p>
+                </div>
+              ) : (
+                <EmojiPinPad
+                  onSubmit={handlePinSubmit}
+                  loading={loading}
+                  error={error}
+                  submitLabel="Unlock"
+                />
+              )}
               <Button
                 variant="outline"
                 onClick={handleBackToEmail}
