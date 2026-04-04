@@ -27,7 +27,7 @@ export interface ItineraryDay {
 export type ItemType = 'activity' | 'marker';
 export type ItemStatus = 'planned' | 'done' | 'skipped';
 export type ItemSource = 'manual' | 'import';
-export type ItemCategory = 'activity' | 'dining' | 'beach' | 'accommodation' | 'transport' | 'event';
+export type ItemCategory = 'activity' | 'dining' | 'beach' | 'accommodation' | 'transport' | 'event' | 'workshop' | 'meal' | 'social' | 'worship' | 'seminar';
 
 export interface ItineraryItem {
   id: string;
@@ -49,6 +49,9 @@ export interface ItineraryItem {
   link_label: string | null;
   phone: string | null;
   notes: string | null;
+  tags: string[] | null;
+  speaker: string | null;
+  track: string | null;
   created_at: string;
   updated_at: string;
   // Joined data

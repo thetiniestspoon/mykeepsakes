@@ -1,12 +1,17 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
 } from '@/components/ui/accordion';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Landmark,
   Utensils,
@@ -19,7 +24,8 @@ import {
   X,
   Trash2,
   Info,
-  Heart
+  Heart,
+  CalendarPlus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,8 +42,12 @@ import {
   useDeletePhoto,
   getPhotoUrl
 } from '@/hooks/use-trip-data';
+import { useActiveTrip, useTripDays } from '@/hooks/use-trip';
+import { useCreateItem } from '@/hooks/use-itinerary';
+import { useCreateLocation } from '@/hooks/use-locations';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
+import type { ItemCategory } from '@/types/trip';
 
 interface SelectedLocation {
   lat: number;
@@ -50,11 +60,14 @@ interface GuideItemCardProps {
   item: GuideItem;
   onOpenMap?: (location: SelectedLocation) => void;
   onOpenPhoto?: (photos: Array<{ id: string; storage_path: string; caption?: string | null }>, index: number) => void;
+  onAddToDay?: (item: GuideItem, dayId: string) => void;
+  days?: Array<{ id: string; date: string; title: string | null }>;
 }
 
-function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
+function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: GuideItemCardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteContent, setNoteContent] = useState('');
+  const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: favorites } = useFavorites();
@@ -198,16 +211,43 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
         </div>
         
         <div className="flex flex-col gap-1">
+          {onAddToDay && days && days.length > 0 && (
+            <Popover open={dayPickerOpen} onOpenChange={setDayPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
+                  title="Add to itinerary"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <p className="text-xs font-medium text-muted-foreground px-2 pb-2">Add to day:</p>
+                {days.map((day) => (
+                  <button
+                    key={day.id}
+                    onClick={() => {
+                      onAddToDay(item, day.id);
+                      setDayPickerOpen(false);
+                    }}
+                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+                  >
+                    {day.title || day.date}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
           <button
-            onClick={() => toggleFavorite.mutate({ 
-              itemId: item.id, 
+            onClick={() => toggleFavorite.mutate({
+              itemId: item.id,
               itemType: item.category,
-              isFavorite: !isFavorite 
+              isFavorite: !isFavorite
             })}
             className={cn(
               "p-1.5 rounded-full transition-colors",
-              isFavorite 
-                ? "text-beach-sunset-gold bg-beach-sunset-gold/20" 
+              isFavorite
+                ? "text-beach-sunset-gold bg-beach-sunset-gold/20"
                 : "text-muted-foreground hover:text-beach-sunset-gold"
             )}
           >
@@ -239,12 +279,30 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto }: GuideItemCardProps) {
   );
 }
 
+// Map guide category to itinerary category
+function guideToItemCategory(guideCategory: GuideItem['category']): ItemCategory {
+  switch (guideCategory) {
+    case 'restaurant': return 'dining';
+    case 'attraction':
+    case 'cultural':
+    case 'activity': return 'activity';
+    case 'essential': return 'activity';
+    case 'transport': return 'transport';
+    default: return 'activity';
+  }
+}
+
 export function GuideTab() {
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerPhotos, setPhotoViewerPhotos] = useState<Array<{ id: string; storage_path: string; caption?: string | null }>>([]);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
+
+  const { data: trip } = useActiveTrip();
+  const { data: days = [] } = useTripDays(trip?.id);
+  const createItem = useCreateItem();
+  const createLocation = useCreateLocation();
 
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
@@ -255,6 +313,57 @@ export function GuideTab() {
     setPhotoViewerPhotos(photos);
     setPhotoViewerIndex(index);
     setPhotoViewerOpen(true);
+  };
+
+  const handleAddToDay = async (guideItem: GuideItem, dayId: string) => {
+    if (!trip?.id) return;
+
+    let locationId: string | null = null;
+
+    // Create a location if the guide item has coordinates
+    if (guideItem.location) {
+      try {
+        const loc = await createLocation.mutateAsync({
+          trip_id: trip.id,
+          name: guideItem.location.name,
+          category: guideToItemCategory(guideItem.category),
+          address: guideItem.location.address || null,
+          lat: guideItem.location.lat,
+          lng: guideItem.location.lng,
+          phone: guideItem.phone || null,
+          url: guideItem.link || null,
+          notes: null,
+          visited_at: null,
+        });
+        locationId = loc.id;
+      } catch {
+        // Location may already exist — continue without it
+      }
+    }
+
+    createItem.mutate({
+      trip_id: trip.id,
+      day_id: dayId,
+      title: guideItem.name,
+      description: guideItem.description,
+      start_time: null,
+      end_time: null,
+      category: guideToItemCategory(guideItem.category),
+      item_type: 'activity',
+      location_id: locationId,
+      source: 'manual',
+      external_ref: guideItem.id,
+      sort_index: 99,
+      status: 'planned',
+      completed_at: null,
+      link: guideItem.link || null,
+      link_label: null,
+      phone: guideItem.phone || null,
+      notes: null,
+      tags: null,
+      speaker: null,
+      track: null,
+    });
   };
 
   return (
@@ -280,7 +389,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {ACTIVITIES.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -300,7 +409,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {RESTAURANTS.map((restaurant) => (
-              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -320,7 +429,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {CHICAGO_HIGHLIGHTS.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
             ))}
           </AccordionContent>
         </AccordionItem>
@@ -340,7 +449,7 @@ export function GuideTab() {
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
             {EVENTS.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} />
+              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
             ))}
           </AccordionContent>
         </AccordionItem>

@@ -197,6 +197,11 @@ export function CompactActivityCard({
                 {displayTime}
               </span>
             )}
+            {activity.track && (
+              <span className="text-[10px] font-bold text-muted-foreground/70 flex-shrink-0">
+                {activity.track}
+              </span>
+            )}
             <span className={cn(
               "text-sm truncate",
               isCompleted && "line-through text-muted-foreground"
@@ -204,6 +209,11 @@ export function CompactActivityCard({
               {activity.title}
             </span>
           </div>
+          {activity.speaker && (
+            <div className="text-[11px] text-muted-foreground truncate pl-[calc(theme(spacing.1)+theme(spacing.1.5))]">
+              {activity.speaker}
+            </div>
+          )}
         </div>
       </button>
 

@@ -192,6 +192,12 @@ export function ActivityDetail({
           </div>}
       </div>
 
+      {/* Speaker & Track */}
+      {(activity.speaker || activity.track) && <div className="flex items-center gap-2 flex-wrap">
+          {activity.speaker && <span className="text-sm text-muted-foreground">{activity.speaker}</span>}
+          {activity.track && <Badge variant="outline" className="text-xs">Track {activity.track}</Badge>}
+        </div>}
+
       {/* Icon Action Row */}
       <TooltipProvider>
         <div className="flex items-center justify-center gap-1 py-3 border-y border-border">

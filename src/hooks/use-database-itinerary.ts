@@ -57,6 +57,8 @@ export interface LegacyActivity {
   completedAt?: string;
   dayId: string;
   itemType: 'activity' | 'marker';
+  speaker?: string;
+  track?: string;
 }
 
 // Legacy Day interface for backward compatibility
@@ -94,6 +96,8 @@ function toActivities(items: ItineraryItem[]): LegacyActivity[] {
     completedAt: item.completed_at || undefined,
     dayId: item.day_id,
     itemType: item.item_type as 'activity' | 'marker',
+    speaker: item.speaker || undefined,
+    track: item.track || undefined,
   }));
 }
 
