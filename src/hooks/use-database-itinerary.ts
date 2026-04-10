@@ -59,6 +59,7 @@ export interface LegacyActivity {
   itemType: 'activity' | 'marker';
   speaker?: string;
   track?: string;
+  isChosen?: boolean;
 }
 
 // Legacy Day interface for backward compatibility
@@ -98,6 +99,7 @@ function toActivities(items: ItineraryItem[]): LegacyActivity[] {
     itemType: item.item_type as 'activity' | 'marker',
     speaker: item.speaker || undefined,
     track: item.track || undefined,
+    isChosen: item.is_chosen ?? false,
   }));
 }
 

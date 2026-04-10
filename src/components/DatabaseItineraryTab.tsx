@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { Loader2, Calendar, LayoutList, Clock } from 'lucide-react';
+import { Loader2, Calendar, LayoutList, Clock, Star } from 'lucide-react';
 import { 
   DndContext, 
   DragOverlay, 
@@ -37,6 +37,24 @@ type ViewMode = 'cards' | 'timeline';
 export function DatabaseItineraryTab() {
   const { days, trip, isLoading, isError } = useDatabaseItinerary();
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [chosenOnly, setChosenOnly] = useState(false);
+
+  // Does this trip have any chosen items? (Hide the toggle otherwise.)
+  const hasChosenItems = useMemo(
+    () => days.some(d => d.activities.some(a => a.isChosen)),
+    [days]
+  );
+
+  // Filter days when "Chosen only" is active:
+  // hide non-chosen rows that have a `track` (workshop siblings), keep everything
+  // else (plenaries, meals, worship, personal options, non-track activities).
+  const chosenFilteredDays = useMemo(() => {
+    if (!chosenOnly) return days;
+    return days.map(day => ({
+      ...day,
+      activities: day.activities.filter(a => a.isChosen || !a.track),
+    }));
+  }, [days, chosenOnly]);
   
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -48,15 +66,15 @@ export function DatabaseItineraryTab() {
   // Hooks
   const timeReorder = useTimeBasedReorder();
   const flattenedItems = useFlattenedItinerary(days);
-  
-  const { 
-    isTodayMode, 
-    toggleTodayMode, 
-    filteredDays, 
+
+  const {
+    isTodayMode,
+    toggleTodayMode,
+    filteredDays,
     nextPlannedActivity,
     isActiveTrip,
-    hasTodayContent 
-  } = useTodayMode(days);
+    hasTodayContent
+  } = useTodayMode(chosenFilteredDays);
   
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -250,8 +268,8 @@ export function DatabaseItineraryTab() {
               onClick={() => setViewMode('cards')}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                viewMode === 'cards' 
-                  ? "bg-background text-foreground shadow-sm" 
+                viewMode === 'cards'
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -262,8 +280,8 @@ export function DatabaseItineraryTab() {
               onClick={() => setViewMode('timeline')}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                viewMode === 'timeline' 
-                  ? "bg-background text-foreground shadow-sm" 
+                viewMode === 'timeline'
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -271,6 +289,24 @@ export function DatabaseItineraryTab() {
               <span>Timeline</span>
             </button>
           </div>
+
+          {/* Chosen Only Toggle — only shown when the trip has registered picks */}
+          {hasChosenItems && (
+            <button
+              onClick={() => setChosenOnly(v => !v)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all border",
+                chosenOnly
+                  ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700"
+                  : "bg-background text-muted-foreground border-border hover:text-foreground"
+              )}
+              title="Hide workshop options you didn't register for"
+              aria-pressed={chosenOnly}
+            >
+              <Star className={cn("w-4 h-4", chosenOnly && "fill-current")} />
+              <span>{chosenOnly ? 'Showing registered only' : 'Registered only'}</span>
+            </button>
+          )}
         </div>
       </div>
       

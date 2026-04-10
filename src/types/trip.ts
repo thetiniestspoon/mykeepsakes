@@ -52,6 +52,7 @@ export interface ItineraryItem {
   tags: string[] | null;
   speaker: string | null;
   track: string | null;
+  is_chosen: boolean;
   created_at: string;
   updated_at: string;
   // Joined data
