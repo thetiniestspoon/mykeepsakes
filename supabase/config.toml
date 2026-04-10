@@ -1,4 +1,4 @@
-project_id = "umtjakhlqvjxidcnfjhf"
+project_id = "ckjcieeccopqowlfljja"
 
 [functions.migrate-static-data]
 verify_jwt = false
