@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { 
+import {
   Utensils,
   Waves,
   Home,
@@ -8,7 +8,8 @@ import {
   Activity,
   MapPin,
   CheckCircle2,
-  GripVertical
+  GripVertical,
+  Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardSelectionOptional } from '@/contexts/DashboardSelectionContext';
@@ -145,6 +146,7 @@ export function CompactActivityCard({
         "border",
         categoryColors[activity.category],
         isCompleted && "opacity-50",
+        activity.isChosen && !isCompleted && !isSelected && "ring-1 ring-amber-400/60 border-amber-400/60",
         isSelected && "ring-2 ring-primary ring-offset-1 bg-accent",
         isNextActivity && !isSelected && "ring-1 ring-primary/50 bg-primary/5"
       )}
@@ -201,6 +203,12 @@ export function CompactActivityCard({
               <span className="text-[10px] font-bold text-muted-foreground/70 flex-shrink-0">
                 {activity.track}
               </span>
+            )}
+            {activity.isChosen && !isCompleted && (
+              <Star
+                className="w-3 h-3 flex-shrink-0 fill-amber-400 text-amber-500"
+                aria-label="Registered session"
+              />
             )}
             <span className={cn(
               "text-sm truncate",

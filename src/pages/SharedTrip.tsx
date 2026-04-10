@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Waves, Sun, Calendar, MapPin, Clock, ExternalLink, Phone, Utensils, Activity, Home, Car, PartyPopper, Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Waves, Sun, Calendar, MapPin, Clock, ExternalLink, Phone, Utensils, Activity, Home, Car, PartyPopper, Loader2, AlertCircle, Lock, Star } from 'lucide-react';
 import { useValidateShareToken } from '@/hooks/use-sharing';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -187,9 +187,12 @@ export default function SharedTrip() {
                       const Icon = config.icon;
                       
                       return (
-                        <div 
+                        <div
                           key={item.id}
-                          className="flex gap-3 p-3 rounded-lg bg-secondary/30"
+                          className={cn(
+                            "flex gap-3 p-3 rounded-lg bg-secondary/30",
+                            item.is_chosen && "ring-1 ring-amber-400/60 bg-amber-50/30 dark:bg-amber-950/10"
+                          )}
                         >
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
@@ -197,15 +200,27 @@ export default function SharedTrip() {
                           )}>
                             <Icon className="w-5 h-5" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="font-medium text-foreground">{item.title}</h3>
-                              {item.start_time && (
-                                <Badge variant="secondary" className="shrink-0 text-xs">
-                                  {item.start_time.slice(0, 5)}
-                                </Badge>
-                              )}
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {item.is_chosen && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs border-amber-400/60 text-amber-700 dark:text-amber-400"
+                                    title="Registered session"
+                                  >
+                                    <Star className="w-3 h-3 fill-current mr-1" />
+                                    Registered
+                                  </Badge>
+                                )}
+                                {item.start_time && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.start_time.slice(0, 5)}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             
                             {item.description && (

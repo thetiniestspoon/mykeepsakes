@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Utensils, Waves, Home, Car, PartyPopper, Activity } from 'lucide-react';
+import { CheckCircle2, Circle, Utensils, Waves, Home, Car, PartyPopper, Activity, Star } from 'lucide-react';
 import type { LegacyActivity } from '@/hooks/use-database-itinerary';
 
 interface TimelineItemProps {
@@ -37,6 +37,7 @@ export function TimelineItem({ activity, isNext, onClick }: TimelineItemProps) {
         "relative flex items-start gap-3 w-full text-left p-3 rounded-lg border-l-4 transition-all hover:shadow-md",
         categoryColors[activity.category] || 'border-gray-500 bg-gray-50',
         isCompleted && "opacity-60",
+        activity.isChosen && !isCompleted && "ring-1 ring-amber-400/60",
         isNext && "ring-2 ring-primary ring-offset-2"
       )}
     >
@@ -64,6 +65,15 @@ export function TimelineItem({ activity, isNext, onClick }: TimelineItemProps) {
           {isNext && (
             <span className="text-xs px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full">
               Up Next
+            </span>
+          )}
+          {activity.isChosen && !isCompleted && (
+            <span
+              className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"
+              title="Registered session"
+            >
+              <Star className="w-3 h-3 fill-current" />
+              Registered
             </span>
           )}
         </div>
