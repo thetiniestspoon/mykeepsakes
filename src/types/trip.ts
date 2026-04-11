@@ -3,6 +3,54 @@
 
 export type TripMode = 'pre' | 'active' | 'post';
 
+/**
+ * Trip metadata — namespaced JSON storage for trip-scoped facts that
+ * don't warrant their own column. Shape is trip-type dependent and not
+ * enforced at the DB level. Extend the namespace unions as new trip
+ * types are supported.
+ *
+ * Current namespaces:
+ * - `registration`: conference registration receipt + attendee info
+ */
+export interface TripMetadata {
+  registration?: {
+    order_id?: string;
+    registration_type?: string;
+    price_usd?: number;
+    payment_status?: 'paid' | 'pending' | 'refunded' | string;
+    submitted_at?: string; // ISO 8601
+    attendee?: {
+      first_name?: string;
+      last_name?: string;
+      preferred_name?: string;
+      pronouns?: string;
+      title?: string;
+      denominational_affiliation?: string;
+    };
+    contact?: {
+      email?: string;
+      phone?: string;
+      address?: {
+        street?: string;
+        city?: string;
+        region?: string;
+        postal_code?: string;
+        country?: string;
+      };
+    };
+    credentials?: {
+      highest_degree?: string;
+      cpe_units_completed?: number;
+      prior_sankofa_cpe_units?: number;
+      interested_in_future_sankofa_cpe?: boolean;
+      is_ordained?: boolean;
+      is_board_certified_chaplain?: boolean;
+    };
+  };
+  // Future namespaces: travel, lodging, contacts, etc.
+  [key: string]: unknown;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -10,6 +58,7 @@ export interface Trip {
   start_date: string; // DATE as ISO string
   end_date: string;
   timezone: string;
+  metadata: TripMetadata;
   created_at: string;
   updated_at: string;
 }
