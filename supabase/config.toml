@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.export-trip]
 verify_jwt = false
+
+[functions.verify-user-pin]
+verify_jwt = false
