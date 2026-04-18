@@ -18,6 +18,7 @@ import { ReflectionFAB } from '@/components/reflection/ReflectionFAB';
 import { ReflectionCaptureSheet } from '@/components/reflection/ReflectionCaptureSheet';
 import { ConnectionCaptureSheet } from '@/components/connections/ConnectionCaptureSheet';
 import { useActiveTrip, getTripMode, useTripDays, getCurrentDayIndex } from '@/hooks/use-trip';
+import { CollageRoot } from '@/preview/collage/CollageRoot';
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -87,53 +88,55 @@ const Index = () => {
   // Wide layout: 3-column grid (landscape/desktop)
   // Narrow layout: Swipeable 3-panel accordion (portrait/mobile)
   return (
-    <DashboardSelectionProvider initialTripMode={tripMode}>
-      {isWideLayout ? (
-        <DashboardLayout
-          header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
-          leftColumn={<LeftColumn />}
-          centerColumn={<CenterColumn />}
-          rightColumn={<RightColumn />}
-        />
-      ) : (
-        <SwipeableDashboard
-          header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
-          leftColumn={<LeftColumn />}
-          centerColumn={<CenterColumn />}
-          rightColumn={<RightColumn />}
-        />
-      )}
-      
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        currentPin={pin}
-        onLogout={handleLogout}
-      />
+    <CollageRoot>
+      <DashboardSelectionProvider initialTripMode={tripMode}>
+        {isWideLayout ? (
+          <DashboardLayout
+            header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
+            leftColumn={<LeftColumn />}
+            centerColumn={<CenterColumn />}
+            rightColumn={<RightColumn />}
+          />
+        ) : (
+          <SwipeableDashboard
+            header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
+            leftColumn={<LeftColumn />}
+            centerColumn={<CenterColumn />}
+            rightColumn={<RightColumn />}
+          />
+        )}
 
-      {/* Conference companion: FAB + capture sheets */}
-      {trip && (
-        <>
-          <ReflectionFAB
-            onReflection={() => setReflectionOpen(true)}
-            onConnection={() => setConnectionOpen(true)}
-          />
-          <ReflectionCaptureSheet
-            open={reflectionOpen}
-            onOpenChange={setReflectionOpen}
-            tripId={trip.id}
-            days={days}
-            currentDayId={currentDayId}
-          />
-          <ConnectionCaptureSheet
-            open={connectionOpen}
-            onOpenChange={setConnectionOpen}
-            tripId={trip.id}
-            currentDayId={currentDayId}
-          />
-        </>
-      )}
-    </DashboardSelectionProvider>
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          currentPin={pin}
+          onLogout={handleLogout}
+        />
+
+        {/* Conference companion: FAB + capture sheets */}
+        {trip && (
+          <>
+            <ReflectionFAB
+              onReflection={() => setReflectionOpen(true)}
+              onConnection={() => setConnectionOpen(true)}
+            />
+            <ReflectionCaptureSheet
+              open={reflectionOpen}
+              onOpenChange={setReflectionOpen}
+              tripId={trip.id}
+              days={days}
+              currentDayId={currentDayId}
+            />
+            <ConnectionCaptureSheet
+              open={connectionOpen}
+              onOpenChange={setConnectionOpen}
+              tripId={trip.id}
+              currentDayId={currentDayId}
+            />
+          </>
+        )}
+      </DashboardSelectionProvider>
+    </CollageRoot>
   );
 };
 
