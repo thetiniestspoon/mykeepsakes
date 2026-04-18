@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>MyKeepsakes · Warm-Minimal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=Source+Sans+3:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sand:#E8E1D4;
+    --terra:#D97757;
+    --off:#FAF8F3;
+    --ink:#2A1F1A;
+    --muted:#6E5E52;
+    --line:#2A1F1A1A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100vh;height:100dvh;overflow:hidden;background:var(--off);color:var(--ink);font-family:'Source Sans 3',-apple-system,system-ui,sans-serif;font-feature-settings:"ss01","kern"}
+  .page{height:100vh;height:100dvh;display:grid;grid-template-columns:1.1fr 1fr;overflow:hidden}
+
+  .left{padding:56px clamp(32px,5vw,72px) 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+  .top{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;font-weight:500}
+  .mark{display:flex;align-items:center;gap:10px;color:var(--ink)}
+  .mark::before{content:"";width:28px;height:2px;background:var(--terra)}
+  .nav{display:flex;gap:26px}
+  .nav a{color:var(--muted);text-decoration:none}
+  .nav a[aria-current]{color:var(--ink)}
+
+  .words{max-width:26ch;margin-top:auto;margin-bottom:auto;padding:48px 0}
+  .eyebrow{font-family:'Archivo';font-weight:500;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--terra);margin-bottom:28px;display:flex;align-items:center;gap:12px}
+  .eyebrow::before{content:"";width:14px;height:1px;background:var(--terra)}
+  h1{font-family:'Archivo';font-weight:800;font-size:clamp(56px,6.4vw,88px);line-height:.98;letter-spacing:-.03em;margin:0 0 28px;max-width:14ch}
+  h1 em{font-style:italic;font-family:'Source Sans 3';font-weight:400;color:var(--terra);letter-spacing:-.01em}
+  p{font-size:clamp(16px,1.3vw,19px);line-height:1.6;color:var(--muted);max-width:40ch;margin:0 0 40px}
+  .cta{display:flex;gap:16px;align-items:center}
+  .btn{appearance:none;border:0;cursor:pointer;font-family:'Archivo';font-weight:500;font-size:14px;letter-spacing:.06em;padding:16px 28px;border-radius:2px;background:var(--ink);color:var(--off);transition:background .2s ease,transform .2s ease}
+  .btn:hover{background:var(--terra)}
+  .btn.ghost{background:transparent;color:var(--ink);padding:16px 0}
+  .btn.ghost::after{content:" →";transition:margin .2s ease}
+  .btn.ghost:hover{color:var(--terra)}
+  .btn.ghost:hover::after{margin-left:4px}
+
+  .bottom{display:flex;justify-content:space-between;align-items:end;font-size:12px;color:var(--muted);letter-spacing:.1em}
+  .bottom .pagination{display:flex;gap:10px;align-items:center;font-family:'Archivo';font-variant-numeric:tabular-nums}
+  .bottom .pagination b{color:var(--ink);font-weight:500}
+
+  .right{position:relative;background:var(--sand);overflow:hidden}
+  .right::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(ellipse at 70% 30%, rgba(217,119,87,.25) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 80%, rgba(42,31,26,.18) 0%, transparent 55%),
+    linear-gradient(155deg, #E8E1D4 0%, #CDAE91 55%, #6E4A34 100%);
+  }
+  .photo-card{position:absolute;top:56px;right:56px;bottom:56px;left:56px;background:linear-gradient(165deg,#3c2b20 0%,#7a553d 40%,#bfa184 72%,#e8d4bc 100%);border-radius:2px;box-shadow:0 24px 60px -24px rgba(42,31,26,.4);overflow:hidden}
+  .photo-card::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 35%, rgba(255,240,220,.5) 0%, transparent 30%)}
+  .caption{position:absolute;bottom:72px;left:72px;right:72px;color:var(--off);z-index:2}
+  .caption .where{font-family:'Archivo';font-weight:500;font-size:13px;letter-spacing:.28em;text-transform:uppercase;opacity:.85;margin-bottom:12px}
+  .caption .title{font-family:'Archivo';font-weight:400;font-size:clamp(22px,2.3vw,30px);line-height:1.25;max-width:24ch}
+  .caption .title em{font-family:'Source Sans 3';font-style:italic;color:#F6C9A8}
+
+  .counter{position:absolute;top:72px;right:72px;color:var(--off);font-family:'Archivo';font-weight:500;font-size:12px;letter-spacing:.28em;z-index:2}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:1fr;grid-template-rows:1fr 40vh}
+    .left{padding:32px 24px}
+    .photo-card{top:20px;right:20px;bottom:20px;left:20px}
+    .caption{bottom:28px;left:28px;right:28px}
+  }
+  @media (prefers-reduced-motion:reduce){ .btn{transition:none} .btn.ghost::after{transition:none} }
+</style>
+</head>
+<body>
+  <main class="page">
+    <section class="left">
+      <div class="top">
+        <span class="mark">MyKeepsakes</span>
+        <nav class="nav">
+          <a href="#" aria-current="page">Trips</a>
+          <a href="#">Moments</a>
+          <a href="#">Sign in</a>
+        </nav>
+      </div>
+
+      <div class="words">
+        <div class="eyebrow">Trip 01 · Sankofa</div>
+        <h1>Come back to the <em>day</em> it all stayed.</h1>
+        <p>MyKeepsakes holds the trip after the trip — photographs tied to their days, small notes that stay with the moments that earned them.</p>
+        <div class="cta">
+          <button class="btn">Open Sankofa</button>
+          <button class="btn ghost">Add a trip</button>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <span>Kept by Shawn &amp; Dan · since 2026</span>
+        <div class="pagination"><b>01</b> / 07 trips</div>
+      </div>
+    </section>
+
+    <section class="right" aria-hidden="true">
+      <div class="photo-card"></div>
+      <div class="counter">01 / 07</div>
+      <div class="caption">
+        <div class="where">Ghana · Cape Coast</div>
+        <div class="title">The long afternoon we didn't rush, <em>and the one we did.</em></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

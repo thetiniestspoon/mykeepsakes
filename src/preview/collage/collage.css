@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&family=Caveat:wght@500;600&display=swap');
+
+.collage-root {
+  /* tokens per mykeepsakes/.planning/DESIGN-SYSTEM.md */
+  --c-ink: #1D1D1B;
+  --c-ink-muted: #4A4843;
+  --c-creme: #F7F3E9;
+  --c-pen: #1F3CC6;
+  --c-tape: #F6D55C;
+  --c-paper: #FFFFFF;
+  --c-line: rgba(29, 29, 27, 0.12);
+  --c-shadow: 0 8px 24px -6px rgba(29, 29, 27, 0.22);
+  --c-shadow-sm: 0 3px 10px -4px rgba(29, 29, 27, 0.22);
+
+  --c-success: #3C7A4E;
+  --c-warn: #C27814;
+  --c-danger: #A83232;
+
+  --c-r-sm: 2px;
+  --c-r-md: 4px;
+  --c-r-lg: 6px;
+
+  --c-t-fast: 140ms;
+  --c-t-med: 240ms;
+  --c-t-slow: 420ms;
+  --c-ease-out: cubic-bezier(.22, .61, .36, 1);
+  --c-ease-in: cubic-bezier(.55, .06, .68, .19);
+
+  --c-font-display: 'Rubik Mono One', ui-monospace, 'Courier New', monospace;
+  --c-font-body: 'IBM Plex Serif', Georgia, 'Iowan Old Style', serif;
+  --c-font-script: 'Caveat', 'Segoe Script', cursive;
+
+  color: var(--c-ink);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(246, 213, 92, 0.16), transparent 42%),
+    radial-gradient(circle at 88% 82%, rgba(31, 60, 198, 0.10), transparent 46%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.012) 0 1px, transparent 1px 28px),
+    var(--c-creme);
+  font-family: var(--c-font-body);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.55;
+}
+
+.collage-root *,
+.collage-root *::before,
+.collage-root *::after {
+  box-sizing: border-box;
+}
+
+.collage-root button {
+  font-family: inherit;
+}
+
+.collage-root a {
+  color: var(--c-pen);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.collage-root a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Entrance animation used by PolaroidCard / stacks */
+@keyframes collage-shuffle-in {
+  0%   { opacity: 0; transform: translateY(10px) rotate(var(--c-rot, 0deg)) scale(.98); }
+  100% { opacity: 1; transform: translateY(0)    rotate(var(--c-rot, 0deg)) scale(1);  }
+}
+
+.collage-root .collage-enter {
+  animation: collage-shuffle-in var(--c-t-med) var(--c-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collage-root * {
+    animation-duration: 1ms !important;
+    animation-delay: 0 !important;
+    transition-duration: 1ms !important;
+  }
+  .collage-root [style*="rotate"] {
+    /* reduced-motion users still get 0° rotations where --c-rot isn't set,
+       but authored static rotations remain legible */
+  }
+}

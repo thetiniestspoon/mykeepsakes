@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Waves, Sun, Heart, Shell } from 'lucide-react';
-import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
+import { CollageRoot } from '@/preview/collage/CollageRoot';
+import { CollageEmojiPad } from '@/components/auth/CollageEmojiPad';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+import { Tape } from '@/preview/collage/ui/Tape';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -11,6 +12,11 @@ interface MultiUserPinEntryProps {
   onSuccess: (email: string, displayName: string) => void;
 }
 
+/**
+ * PIN entry — migrated to Collage direction 2026-04-17.
+ * Auth logic (edge-function verify, rate-limit lockout, sessionStorage) unchanged.
+ * Only the presentation swapped to Collage tokens + Centered Card layout (PinV1).
+ */
 export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
   const [step, setStep] = useState<'email' | 'pin'>('email');
   const [email, setEmail] = useState('');
@@ -22,7 +28,7 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
   useEffect(() => {
     if (lockoutSeconds <= 0) return;
     const timer = setInterval(() => {
-      setLockoutSeconds((s) => {
+      setLockoutSeconds(s => {
         if (s <= 1) {
           setError(null);
           return 0;
@@ -43,51 +49,55 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
     setStep('pin');
   };
 
-  const handlePinSubmit = useCallback(async (emojiPin: string[]) => {
-    if (lockoutSeconds > 0) return;
+  const handlePinSubmit = useCallback(
+    async (emojiPin: string[]) => {
+      if (lockoutSeconds > 0) return;
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-user-pin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), emojiPin: emojiPin.join('') }),
-      });
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-user-pin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.toLowerCase().trim(), emojiPin: emojiPin.join('') }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (res.status === 429) {
-        setLockoutSeconds(data.lockout_seconds || 300);
-        setError(`Too many attempts. Try again in ${data.lockout_seconds || 300}s.`);
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        return;
+        if (res.status === 429) {
+          setLockoutSeconds(data.lockout_seconds || 300);
+          setError(`Too many attempts. Try again in ${data.lockout_seconds || 300}s.`);
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          return;
+        }
+
+        if (!res.ok || !data.success) {
+          const remaining = data.attempts_remaining;
+          const msg =
+            remaining != null && remaining <= 2
+              ? `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+              : 'Incorrect email or PIN. Please try again.';
+          setError(msg);
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          setTimeout(() => setError(null), 3000);
+          return;
+        }
+
+        sessionStorage.setItem('mk-authenticated', 'true');
+        sessionStorage.setItem('mk-user-email', data.email);
+        sessionStorage.setItem('mk-user-name', data.display_name);
+        onSuccess(data.email, data.display_name);
+      } catch {
+        setError('Connection error. Please try again.');
+      } finally {
+        setLoading(false);
       }
-
-      if (!res.ok || !data.success) {
-        const remaining = data.attempts_remaining;
-        const msg = remaining != null && remaining <= 2
-          ? `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
-          : 'Incorrect email or PIN. Please try again.';
-        setError(msg);
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      sessionStorage.setItem('mk-authenticated', 'true');
-      sessionStorage.setItem('mk-user-email', data.email);
-      sessionStorage.setItem('mk-user-name', data.display_name);
-      onSuccess(data.email, data.display_name);
-    } catch {
-      setError('Connection error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [email, lockoutSeconds, onSuccess]);
+    },
+    [email, lockoutSeconds, onSuccess],
+  );
 
   const handleBackToEmail = () => {
     setStep('email');
@@ -96,90 +106,209 @@ export function MultiUserPinEntry({ onSuccess }: MultiUserPinEntryProps) {
   };
 
   return (
-    <div className="min-h-screen bg-beach-gradient flex flex-col items-center justify-center p-4">
-      {/* Decorative elements */}
-      <div className="absolute top-8 left-8 text-beach-sunset-coral opacity-50">
-        <Sun className="w-12 h-12" />
-      </div>
-      <div className="absolute top-12 right-12 text-beach-ocean-light opacity-40">
-        <Waves className="w-16 h-16" />
-      </div>
-      <div className="absolute bottom-16 left-16 text-beach-sand opacity-60">
-        <Shell className="w-10 h-10" />
-      </div>
+    <CollageRoot>
+      <main
+        style={{
+          minHeight: '100vh',
+          minHeight: '100dvh',
+          display: 'grid',
+          placeItems: 'center',
+          padding: '48px 20px',
+        }}
+      >
+        <section
+          className={shake ? 'mk-pin-shake' : ''}
+          style={{
+            background: 'var(--c-paper)',
+            position: 'relative',
+            padding: '44px 36px 40px',
+            boxShadow: 'var(--c-shadow)',
+            width: 'min(440px, 100%)',
+            textAlign: 'center',
+          }}
+        >
+          <Tape position="top-left" rotate={-6} />
+          <Tape position="top-right" rotate={8} />
 
-      <Card className={`w-full max-w-sm shadow-warm-lg transition-all ${shake ? 'animate-shake' : ''}`}>
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-warm">
-            <Heart className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl font-display text-foreground">
+          <Stamp variant="outline" size="sm" rotate={-3} style={{ marginBottom: 20 }}>
+            {step === 'email' ? "who's coming in" : 'enter your four'}
+          </Stamp>
+
+          <h1
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 28,
+              fontWeight: 500,
+              letterSpacing: '-.005em',
+              margin: '0 0 6px',
+              color: 'var(--c-ink)',
+            }}
+          >
             MyKeepsakes
-          </CardTitle>
-          <CardDescription className="text-body text-muted-foreground">
-            {step === 'email' ? 'Enter your email to begin' : 'Enter your emoji PIN'}
-          </CardDescription>
-        </CardHeader>
+          </h1>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontStyle: 'italic',
+              color: 'var(--c-ink-muted)',
+              margin: '0 0 28px',
+              fontSize: 15,
+            }}
+          >
+            {step === 'email' ? 'Enter your email to begin' : email}
+          </p>
 
-        <CardContent className="space-y-4">
           {step === 'email' ? (
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <Input
+            <form onSubmit={handleEmailSubmit}>
+              <input
                 type="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 disabled={loading}
-                className="text-center"
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  fontFamily: 'var(--c-font-body)',
+                  fontSize: 16,
+                  textAlign: 'center',
+                  background: 'var(--c-creme)',
+                  border: '1.5px solid var(--c-ink)',
+                  borderRadius: 'var(--c-r-sm)',
+                  color: 'var(--c-ink)',
+                  outline: 'none',
+                  transition: 'border-color var(--c-t-fast)',
+                }}
+                onFocus={ev => {
+                  ev.currentTarget.style.borderColor = 'var(--c-pen)';
+                }}
+                onBlur={ev => {
+                  ev.currentTarget.style.borderColor = 'var(--c-ink)';
+                }}
               />
-              {error && <p className="text-destructive text-sm text-center">{error}</p>}
-              <Button type="submit" disabled={loading || !email} className="w-full">
-                {loading ? 'Looking up...' : 'Continue'}
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Your vacation adventure awaits!
-              </p>
+              {error && (
+                <p
+                  role="alert"
+                  style={{
+                    color: '#A83232',
+                    fontFamily: 'var(--c-font-body)',
+                    fontStyle: 'italic',
+                    fontSize: 14,
+                    margin: '12px 0 0',
+                  }}
+                >
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={loading || !email}
+                style={{
+                  appearance: 'none',
+                  cursor: loading || !email ? 'not-allowed' : 'pointer',
+                  width: '100%',
+                  marginTop: 20,
+                  padding: '14px 18px',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 12,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                  background: 'var(--c-ink)',
+                  color: 'var(--c-creme)',
+                  border: 0,
+                  borderRadius: 'var(--c-r-sm)',
+                  boxShadow: 'var(--c-shadow-sm)',
+                  opacity: loading || !email ? 0.5 : 1,
+                  transition: 'transform var(--c-t-fast) var(--c-ease-out)',
+                }}
+                onMouseOver={ev => {
+                  if (!loading && email) ev.currentTarget.style.transform = 'translate(-2px,-2px)';
+                }}
+                onMouseOut={ev => (ev.currentTarget.style.transform = 'none')}
+              >
+                {loading ? 'looking up…' : 'continue →'}
+              </button>
+              <MarginNote rotate={1} size={18} style={{ marginTop: 22, display: 'block' }}>
+                — welcome back
+              </MarginNote>
             </form>
           ) : (
             <>
               {lockoutSeconds > 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-destructive font-medium">Account temporarily locked</p>
-                  <p className="text-muted-foreground text-sm mt-1">
+                <div style={{ padding: '24px 0' }}>
+                  <p
+                    role="alert"
+                    style={{
+                      color: '#A83232',
+                      fontFamily: 'var(--c-font-body)',
+                      fontWeight: 500,
+                      margin: 0,
+                    }}
+                  >
+                    Account temporarily locked
+                  </p>
+                  <p
+                    style={{
+                      color: 'var(--c-ink-muted)',
+                      fontFamily: 'var(--c-font-body)',
+                      fontStyle: 'italic',
+                      fontSize: 14,
+                      margin: '6px 0 0',
+                    }}
+                  >
                     Try again in {lockoutSeconds}s
                   </p>
                 </div>
               ) : (
-                <EmojiPinPad
-                  onSubmit={handlePinSubmit}
-                  loading={loading}
-                  error={error}
-                  submitLabel="Unlock"
-                />
+                <CollageEmojiPad onSubmit={handlePinSubmit} loading={loading} error={error} />
               )}
-              <Button
-                variant="outline"
+
+              <button
+                type="button"
                 onClick={handleBackToEmail}
                 disabled={loading}
-                className="w-full"
+                style={{
+                  appearance: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  width: '100%',
+                  marginTop: 24,
+                  padding: '12px 16px',
+                  fontFamily: 'var(--c-font-body)',
+                  fontSize: 14,
+                  color: 'var(--c-ink-muted)',
+                  background: 'transparent',
+                  border: '1px dashed var(--c-line)',
+                  borderRadius: 'var(--c-r-sm)',
+                  opacity: loading ? 0.5 : 1,
+                }}
               >
-                Change Email
-              </Button>
+                ← change email
+              </button>
             </>
           )}
-        </CardContent>
-      </Card>
+
+          <div style={{ marginTop: 28 }}>
+            <StickerPill variant="pen" style={{ opacity: 0.75 }}>
+              beacon uu · shawn &amp; dan
+            </StickerPill>
+          </div>
+        </section>
+      </main>
 
       <style>{`
-        @keyframes shake {
+        @keyframes mk-pin-shake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
           20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
+        .mk-pin-shake {
+          animation: mk-pin-shake 0.5s ease-in-out;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mk-pin-shake { animation: none !important; }
         }
       `}</style>
-    </div>
+    </CollageRoot>
   );
 }

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MyKeepsakes · /p:consider preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0F0F0E; --ink:#F5F1EA; --muted:#8B8578; --accent:#F6D55C; --accent-2:#D97757; --accent-3:#8BB174; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100vh;height:100dvh;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;overflow:hidden}
+  .app{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #ffffff14;gap:24px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;letter-spacing:.02em}
+  .brand::before{content:"▲";color:var(--accent)}
+  .brand small{color:var(--muted);font-weight:400;margin-left:6px}
+  nav{display:flex;gap:6px}
+  .tab{appearance:none;background:transparent;border:1px solid #ffffff1f;color:var(--ink);font:inherit;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .2s ease}
+  .tab:hover{border-color:#ffffff44}
+  .tab[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .dot{width:8px;height:8px;border-radius:999px}
+  .dot.v1{background:var(--accent)}
+  .dot.v2{background:var(--accent-2)}
+  .dot.v3{background:var(--accent-3)}
+  .tools{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px}
+  .tools a{color:var(--ink);text-decoration:none;border:1px solid #ffffff1f;padding:8px 12px;border-radius:999px;font-size:12px}
+  .tools a:hover{border-color:#ffffff44}
+
+  main{position:relative;overflow:hidden}
+  iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+
+  footer{display:flex;justify-content:space-between;align-items:center;padding:10px 24px;border-top:1px solid #ffffff14;color:var(--muted);font-size:12px}
+  .meta b{color:var(--ink);font-weight:500}
+  kbd{border:1px solid #ffffff28;padding:2px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--ink)}
+
+  @media (max-width:720px){
+    header{flex-wrap:wrap;gap:10px}
+    nav{order:3;width:100%;overflow-x:auto;padding-bottom:4px}
+    .tools{font-size:11px}
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">MyKeepsakes <small>/ p:consider preview</small></div>
+      <nav role="tablist" aria-label="Aesthetic candidates">
+        <button class="tab" data-v="1" aria-pressed="true"><span class="dot v1"></span> Collage</button>
+        <button class="tab" data-v="2" aria-pressed="false"><span class="dot v2"></span> Warm-Minimal</button>
+        <button class="tab" data-v="3" aria-pressed="false"><span class="dot v3"></span> Garden</button>
+      </nav>
+      <div class="tools">
+        <a id="open" href="v1-collage.html" target="_blank" rel="noopener">Open raw ↗</a>
+      </div>
+    </header>
+    <main>
+      <iframe id="stage" src="v1-collage.html" title="Variation preview"></iframe>
+    </main>
+    <footer>
+      <div class="meta">Viewing <b id="label">Variation 1 · Collage</b></div>
+      <div>Switch: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> · Raw file: <kbd>o</kbd></div>
+    </footer>
+  </div>
+
+<script>
+  const files = {
+    1: { file: "v1-collage.html",      label: "Variation 1 · Collage" },
+    2: { file: "v2-warm-minimal.html", label: "Variation 2 · Warm-Minimal" },
+    3: { file: "v3-garden.html",       label: "Variation 3 · Garden" },
+  };
+  const stage = document.getElementById("stage");
+  const label = document.getElementById("label");
+  const open  = document.getElementById("open");
+  const tabs  = document.querySelectorAll(".tab");
+
+  function pick(n){
+    const cfg = files[n]; if (!cfg) return;
+    stage.src = cfg.file;
+    label.textContent = cfg.label;
+    open.href = cfg.file;
+    tabs.forEach(t => t.setAttribute("aria-pressed", t.dataset.v === String(n) ? "true" : "false"));
+  }
+  tabs.forEach(t => t.addEventListener("click", () => pick(Number(t.dataset.v))));
+  window.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "1" || e.key === "2" || e.key === "3") pick(Number(e.key));
+    if (e.key === "o" || e.key === "O") window.open(open.href, "_blank");
+  });
+</script>
+</body>
+</html>

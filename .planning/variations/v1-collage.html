@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>MyKeepsakes · Collage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --creme:#F7F3E9;
+    --tape:#F6D55C;
+    --pen:#1F3CC6;
+    --ink:#1D1D1B;
+    --shadow: 0 8px 24px -6px rgba(29,29,27,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100vh;height:100dvh;overflow:hidden;background:var(--creme);color:var(--ink);font-family:'IBM Plex Serif',Georgia,serif}
+  body{
+    background:
+      radial-gradient(circle at 15% 20%, rgba(246,213,92,.18), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(31,60,198,.12), transparent 45%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 1px, transparent 1px 28px),
+      var(--creme);
+  }
+  .page{position:relative;height:100vh;height:100dvh;overflow:hidden}
+  .corner{position:absolute;top:24px;left:28px;display:flex;align-items:center;gap:10px;font-family:'Rubik Mono One',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase}
+  .corner::before{content:"";width:10px;height:10px;background:var(--pen);border-radius:999px}
+  .corner em{font-style:normal;color:var(--pen)}
+  .stamp{position:absolute;top:24px;right:28px;border:1.5px dashed var(--pen);color:var(--pen);padding:6px 12px;font-family:'Rubik Mono One';font-size:10px;letter-spacing:.25em;transform:rotate(4deg)}
+
+  .stage{position:relative;height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,440px);gap:48px;padding:80px 64px 56px}
+
+  .words h1{font-family:'Rubik Mono One',monospace;font-size:clamp(48px,8.2vw,104px);line-height:.9;margin:0 0 24px;letter-spacing:-.02em;max-width:11ch}
+  .words h1 .ink{color:var(--ink)}
+  .words h1 .pen{color:var(--pen)}
+  .words h1 .mark{position:relative;display:inline-block;padding:0 .12em}
+  .words h1 .mark::after{content:"";position:absolute;inset:auto -.06em .08em -.06em;height:.35em;background:var(--tape);z-index:-1;transform:rotate(-1deg)}
+  .words .kicker{font-family:'Caveat',cursive;font-size:clamp(22px,2.6vw,30px);color:var(--pen);transform:rotate(-2deg);margin-bottom:28px;display:inline-block}
+  .words p{font-size:clamp(15px,1.3vw,18px);line-height:1.65;max-width:44ch;margin:0 0 32px}
+  .cta{display:inline-flex;gap:14px;align-items:center}
+  .btn{appearance:none;border:0;cursor:pointer;font-family:'Rubik Mono One';font-size:12px;letter-spacing:.22em;text-transform:uppercase;padding:16px 22px;background:var(--ink);color:var(--creme);box-shadow:var(--shadow);transition:transform .18s ease}
+  .btn:hover{transform:translate(-2px,-2px)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);box-shadow:none}
+
+  .stack{position:relative;align-self:center;height:70%}
+  .card{position:absolute;inset:auto;background:#fff;padding:18px 18px 52px;box-shadow:var(--shadow);transform-origin:center}
+  .card .photo{width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,#8E7E59 0%,#C2A87A 30%,#D9BE8C 60%,#6B5840 100%);position:relative;overflow:hidden}
+  .card .photo.a{background:linear-gradient(160deg,#4a6b3e 0%,#8ba66e 45%,#d6c084 90%)}
+  .card .photo.b{background:linear-gradient(200deg,#b0785a 0%,#d7a379 45%,#f0d3ae 100%)}
+  .card .photo.c{background:linear-gradient(140deg,#5b7fa8 0%,#8aaecc 50%,#d6e3ee 100%)}
+  .card .cap{font-family:'Caveat',cursive;font-size:18px;color:var(--ink);position:absolute;left:18px;right:18px;bottom:14px;text-align:center}
+  .card .tape{position:absolute;width:88px;height:22px;background:rgba(246,213,92,.7);top:-10px;left:50%;transform:translateX(-50%) rotate(-2deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .card.one{width:58%;right:8%;top:0;transform:rotate(-4deg);z-index:3}
+  .card.two{width:50%;left:0;top:22%;transform:rotate(3deg);z-index:2}
+  .card.three{width:42%;right:0;bottom:0;transform:rotate(6deg);z-index:1}
+
+  .sticker{position:absolute;bottom:28px;left:64px;background:var(--pen);color:var(--creme);padding:10px 14px;font-family:'Rubik Mono One';font-size:10px;letter-spacing:.22em;transform:rotate(-3deg);box-shadow:var(--shadow)}
+  .meta{position:absolute;bottom:28px;right:28px;font-family:'Caveat',cursive;font-size:20px;color:var(--pen)}
+
+  @media (max-width:900px){
+    .stage{grid-template-columns:1fr;padding:64px 24px 24px;gap:24px}
+    .stack{height:42%;order:2}
+    .stamp{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .btn{transition:none}
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <div class="corner"><em>MyKeepsakes</em> · Sankofa CPE · 2026</div>
+    <div class="stamp">keep · return · send forward</div>
+
+    <section class="stage">
+      <div class="words">
+        <span class="kicker">a field notebook for the work</span>
+        <h1><span class="ink">The days</span><br><span class="pen">after the days</span><br><span class="mark ink">that changed us.</span></h1>
+        <p>MyKeepsakes carries the conference home — speakers you didn't want to forget, worship that opened something, a name from across a lunch table. Yours, whenever you come back to it.</p>
+        <div class="cta">
+          <button class="btn">Open Sankofa →</button>
+          <button class="btn ghost">Next trip</button>
+        </div>
+      </div>
+
+      <div class="stack" aria-hidden="true">
+        <div class="card one"><span class="tape"></span><div class="photo a"></div><div class="cap">opening worship — Dr. Danie</div></div>
+        <div class="card two"><span class="tape"></span><div class="photo b"></div><div class="cap">the workshop that cracked open</div></div>
+        <div class="card three"><span class="tape"></span><div class="photo c"></div><div class="cap">late dinner with Rev. Jé</div></div>
+      </div>
+    </section>
+
+    <span class="sticker">✦ trip 01 of many</span>
+    <span class="meta">— Shawn &amp; Dan · Beacon UU</span>
+  </main>
+</body>
+</html>
