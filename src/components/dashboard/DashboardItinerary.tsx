@@ -1,11 +1,11 @@
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Calendar } from 'lucide-react';
-import { 
-  DndContext, 
-  DragOverlay, 
-  DragStartEvent, 
-  DragMoveEvent, 
-  DragEndEvent, 
+import { Loader2, Calendar, LayoutGrid } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  DragStartEvent,
+  DragMoveEvent,
+  DragEndEvent,
   DragOverEvent,
   PointerSensor,
   TouchSensor,
@@ -17,14 +17,23 @@ import { useDatabaseItinerary, type LegacyActivity } from '@/hooks/use-database-
 import { useTodayMode } from '@/hooks/use-today-mode';
 import { useDashboardSelectionOptional } from '@/contexts/DashboardSelectionContext';
 import { useTimeBasedReorder, calculateSortIndexForPosition } from '@/hooks/use-time-based-reorder';
-import { 
-  createDragState, 
-  updateDragState, 
+import {
+  createDragState,
+  updateDragState,
   formatTimeForDisplay,
-  type TimeDragState 
+  type TimeDragState
 } from '@/lib/time-drag-modifier';
 import { CompactDayCard } from './CompactDayCard';
 import { CompactActivityCard } from './CompactActivityCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { DatabaseItineraryTab } from '@/components/DatabaseItineraryTab';
 
 /**
  * Compact itinerary view for the dashboard left column.
@@ -245,7 +254,33 @@ export function DashboardItinerary() {
   }
   
   return (
-    <DndContext
+    <>
+      {/* Day View trigger — opens Session Blocks modal for wide planning view */}
+      <div className="px-2 pt-2 flex justify-end">
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[var(--c-ink-muted)] hover:text-[var(--c-ink)] hover:bg-[var(--c-creme)] transition-colors"
+              aria-label="Open full day view"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Day view
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[min(1400px,95vw)] w-full max-h-[95vh] h-full overflow-y-auto p-0 gap-0">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Session Blocks — day view</DialogTitle>
+              <DialogDescription>
+                Trip activities grouped by time of day: morning, midday, afternoon, evening.
+              </DialogDescription>
+            </DialogHeader>
+            <DatabaseItineraryTab />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
@@ -288,5 +323,6 @@ export function DashboardItinerary() {
         )}
       </DragOverlay>
     </DndContext>
+    </>
   );
 }

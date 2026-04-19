@@ -1,81 +1,84 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
-import { Loader2, Calendar, LayoutList, Clock, Ticket } from 'lucide-react';
-import { 
-  DndContext, 
-  DragOverlay, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
-  useSensors,
-  DragStartEvent,
-  DragMoveEvent,
-  DragEndEvent,
-  DragOverEvent,
-} from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useState, useMemo } from 'react';
+import { Loader2, Calendar, Ticket } from 'lucide-react';
 import { useDatabaseItinerary, type LegacyActivity } from '@/hooks/use-database-itinerary';
-import { DatabaseDayCard } from '@/components/itinerary/DatabaseDayCard';
 import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCard';
 import { TodayModeToggle } from '@/components/itinerary/TodayModeToggle';
 import { QuickAddButton } from '@/components/itinerary/QuickAddButton';
-import { TimelineView } from '@/components/itinerary/TimelineView';
 import { useTodayMode } from '@/hooks/use-today-mode';
 import { getTripMode } from '@/hooks/use-trip';
-import { useTimeBasedReorder, calculateSortIndexForPosition } from '@/hooks/use-time-based-reorder';
-import { useFlattenedItinerary, getItemsForDay } from '@/hooks/use-flattened-itinerary';
-import { 
-  createDragState, 
-  updateDragState, 
-  formatTimeForDisplay,
-  type TimeDragState 
-} from '@/lib/time-drag-modifier';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { Tape } from '@/preview/collage/ui/Tape';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
 import { cn } from '@/lib/utils';
 
-type ViewMode = 'cards' | 'timeline';
+/**
+ * Session Blocks day-view — port of DayV2 (locked variant) into production.
+ * Shows ONE day at a time with activities grouped into 4 time-of-day blocks
+ * (Morning / Midday / Afternoon / Evening) in a wide auto-fit grid.
+ *
+ * Preserved interactivity: click-to-select activity → opens DetailPanel in
+ * the parent Dashboard context (via DatabaseActivityCard's onSelect), edit
+ * dialog (via DatabaseActivityCard's inline edit), today-mode filter,
+ * chosen-only filter.
+ *
+ * Intentionally omitted: drag-reorder. Time-delta drag doesn't map cleanly
+ * to a 4-column layout — drop position and Y-delta would fight, and items
+ * would appear to teleport back to their original block after drop when
+ * their start_time didn't change. Drag-reorder stays available in the
+ * compact sidebar (DashboardItinerary).
+ */
+
+type BlockName = 'morning' | 'midday' | 'afternoon' | 'evening';
+
+const BLOCKS: {
+  key: BlockName;
+  label: string;
+  range: string;
+  stamp: string;
+  fromH: number;
+  toH: number;
+  tapeRotate: number;
+}[] = [
+  { key: 'morning',   label: 'Morning',   range: 'before 11', stamp: '☀ MORNING',   fromH: 0,  toH: 11, tapeRotate: -4 },
+  { key: 'midday',    label: 'Midday',    range: '11 — 2',    stamp: '✦ MIDDAY',    fromH: 11, toH: 14, tapeRotate: 2 },
+  { key: 'afternoon', label: 'Afternoon', range: '2 — 5',     stamp: '◈ AFTERNOON', fromH: 14, toH: 17, tapeRotate: -2 },
+  { key: 'evening',   label: 'Evening',   range: 'after 5',   stamp: '◐ EVENING',   fromH: 17, toH: 24, tapeRotate: 4 },
+];
+
+function timeToBlock(iso?: string | null): BlockName {
+  if (!iso) return 'midday';
+  const h = parseInt(iso.slice(0, 2), 10);
+  const block = BLOCKS.find(b => h >= b.fromH && h < b.toH);
+  return block?.key ?? 'midday';
+}
 
 export function DatabaseItineraryTab() {
   const { days, trip, isLoading, isError } = useDatabaseItinerary();
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [chosenOnly, setChosenOnly] = useState(false);
+  const [selectedDayIdRaw, setSelectedDayIdRaw] = useState<string | null>(null);
 
-  // Does this trip have any chosen items? (Hide the toggle otherwise.)
   const hasChosenItems = useMemo(
     () => days.some(d => d.activities.some(a => a.isChosen)),
     [days]
   );
 
-  // Drag state
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeItem, setActiveItem] = useState<LegacyActivity | null>(null);
-  const [overDayId, setOverDayId] = useState<string | null>(null);
-  const [previewTimes, setPreviewTimes] = useState<Map<string, string>>(new Map());
-  const dragStateRef = useRef<TimeDragState | null>(null);
-  
-  // Hooks
-  const timeReorder = useTimeBasedReorder();
-  const flattenedItems = useFlattenedItinerary(days);
-
-  // Count of chosen workshops for the aria-live status announcement.
   const chosenCount = useMemo(
     () => days.reduce((n, d) => n + d.activities.filter(a => a.isChosen).length, 0),
     [days]
   );
 
-  // BUG-06 fix: pass unfiltered `days` so nextPlannedActivity sees all workshops,
-  // not just the chosen ones. Chosen-only filter is applied below on the rendered output.
+  // BUG-06: pass unfiltered `days` so nextPlannedActivity sees all workshops.
   const {
     isTodayMode,
     toggleTodayMode,
     filteredDays,
     nextPlannedActivity,
     isActiveTrip,
-    hasTodayContent
+    hasTodayContent,
   } = useTodayMode(days);
 
   // Apply chosen-only filter after today-mode filter for rendering only.
-  // Hides non-chosen rows that have a `track` (workshop siblings); keeps everything
-  // else (plenaries, meals, worship, personal options, non-track activities).
   const daysToRender = useMemo(() => {
     if (!chosenOnly) return filteredDays;
     return filteredDays.map(day => ({
@@ -83,111 +86,37 @@ export function DatabaseItineraryTab() {
       activities: day.activities.filter(a => a.isChosen || !a.track),
     }));
   }, [filteredDays, chosenOnly]);
-  
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+
+  // Resolve selected day with fallback — if current selection isn't in the
+  // rendered list (filtered out), fall back to the first available day.
+  const selectedDayId = useMemo(() => {
+    if (selectedDayIdRaw && daysToRender.some(d => d.id === selectedDayIdRaw)) {
+      return selectedDayIdRaw;
+    }
+    return daysToRender[0]?.id ?? null;
+  }, [selectedDayIdRaw, daysToRender]);
+
+  const selectedDay = useMemo(
+    () => daysToRender.find(d => d.id === selectedDayId),
+    [daysToRender, selectedDayId]
   );
-  
-  // Handle drag start
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const itemId = String(event.active.id);
-    const item = flattenedItems.find(i => i.id === itemId);
-    
-    if (item) {
-      setActiveId(itemId);
-      setActiveItem(item.activity);
-      
-      // Initialize drag state for time tracking
-      if (item.startTime) {
-        dragStateRef.current = createDragState(item.startTime, 0);
-      }
-    }
-  }, [flattenedItems]);
-  
-  // Handle drag move - track velocity and update preview time
-  const handleDragMove = useCallback((event: DragMoveEvent) => {
-    if (!activeId || !dragStateRef.current) return;
-    
-    const deltaY = event.delta.y;
-    dragStateRef.current = updateDragState(dragStateRef.current, deltaY);
-    
-    // Update preview time for the dragged item
-    const newPreviewTime = formatTimeForDisplay(dragStateRef.current.currentTime);
-    if (newPreviewTime) {
-      setPreviewTimes(new Map([[activeId, newPreviewTime]]));
-    }
-  }, [activeId]);
-  
-  // Handle drag over - detect which day we're hovering
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const overId = event.over?.id;
-    if (!overId) {
-      setOverDayId(null);
-      return;
-    }
-    
-    // Check if we're over an activity - find its day
-    const overItem = flattenedItems.find(i => i.id === overId);
-    if (overItem) {
-      setOverDayId(overItem.dayId);
-    }
-  }, [flattenedItems]);
-  
-  // Handle drag end - persist the change
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && activeItem && dragStateRef.current) {
-      const activeItemData = flattenedItems.find(i => i.id === active.id);
-      const overItemData = flattenedItems.find(i => i.id === over.id);
-      
-      if (activeItemData && overItemData) {
-        // Determine target day (could be same or different)
-        const targetDayId = overItemData.dayId;
-        const newTime = dragStateRef.current.currentTime;
-        
-        // Calculate sort index
-        const targetDayItems = getItemsForDay(flattenedItems, targetDayId);
-        const overIndex = targetDayItems.findIndex(i => i.id === over.id);
-        const newSortIndex = calculateSortIndexForPosition(
-          targetDayItems.map(i => ({ id: i.id, sortIndex: i.sortIndex })),
-          overIndex
-        );
-        
-        // Only update if something changed
-        if (targetDayId !== activeItemData.dayId || newTime !== activeItemData.startTime) {
-          timeReorder.mutate({
-            itemId: String(active.id),
-            newDayId: targetDayId,
-            newStartTime: newTime,
-            newSortIndex,
-            originalDayId: activeItemData.dayId,
-            originalStartTime: activeItemData.startTime || undefined,
-          });
-        }
-      }
-    }
-    
-    // Reset state
-    setActiveId(null);
-    setActiveItem(null);
-    setOverDayId(null);
-    setPreviewTimes(new Map());
-    dragStateRef.current = null;
-  }, [activeItem, flattenedItems, timeReorder]);
+
+  // Group the selected day's activities by time-of-day block.
+  const grouped = useMemo(() => {
+    const map = new Map<BlockName, LegacyActivity[]>();
+    BLOCKS.forEach(b => map.set(b.key, []));
+    if (!selectedDay) return map;
+    selectedDay.activities.forEach(a => {
+      const key = timeToBlock(a.rawStartTime);
+      map.get(key)!.push(a);
+    });
+    return map;
+  }, [selectedDay]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--c-ink-muted)]" />
       </div>
     );
   }
@@ -195,9 +124,9 @@ export function DatabaseItineraryTab() {
   if (isError || !trip) {
     return (
       <div className="text-center py-12">
-        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">No trip itinerary found.</p>
-        <p className="text-sm text-muted-foreground mt-1">
+        <Calendar className="w-12 h-12 text-[var(--c-ink-muted)] mx-auto mb-4" />
+        <p className="text-[var(--c-ink-muted)]">No trip itinerary found.</p>
+        <p className="text-sm text-[var(--c-ink-muted)] mt-1">
           Create a trip to get started!
         </p>
       </div>
@@ -205,97 +134,71 @@ export function DatabaseItineraryTab() {
   }
 
   const mode = getTripMode(trip);
-  
-  // Format dates for display
+
   const startDate = new Date(trip.start_date + 'T00:00:00');
   const endDate = new Date(trip.end_date + 'T00:00:00');
-  const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+  const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} — ${endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
-  // Calculate overall progress
   const allActivities = days.flatMap(d => d.activities.filter(a => a.itemType === 'activity'));
   const completedCount = allActivities.filter(a => a.status === 'done').length;
   const totalCount = allActivities.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  const selectedDayIndex = daysToRender.findIndex(d => d.id === selectedDayId);
+  const selectedDayDateLabel = selectedDay?.date
+    ? new Date(selectedDay.date + 'T00:00:00').toLocaleString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+      })
+    : '';
+
   return (
-    <div className="space-y-4 pb-20">
-      <div className="text-center py-4">
-        <h2 className="font-display text-2xl text-foreground">{trip.title}</h2>
-        <p className="text-muted-foreground">{dateRange}</p>
-        
-        {/* Overall progress */}
+    <div className="collage-root space-y-6 pb-20 px-4 sm:px-8 pt-6">
+      {/* Trip header */}
+      <header className="text-center space-y-2">
+        <Stamp variant="outline" size="sm" rotate={-2}>the day · by block</Stamp>
+        <h2 className="font-display text-2xl text-[var(--c-ink)]">{trip.title}</h2>
+        <p className="text-[var(--c-ink-muted)]">{dateRange}</p>
+
         {totalCount > 0 && (
           <div className="mt-3 max-w-xs mx-auto">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <div className="flex justify-between text-xs text-[var(--c-ink-muted)] mb-1">
               <span>Overall Progress</span>
               <span>{completedCount}/{totalCount} activities ({progressPercent}%)</span>
             </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-300 rounded-full"
+            <div className="w-full h-2 bg-[var(--c-line)] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[var(--c-pen)] transition-all duration-300 rounded-full"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
         )}
-        
-        {/* Trip mode indicator */}
+
         <div className="mt-2">
           {mode === 'pre' && (
-            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-[var(--c-pen)]/10 text-[var(--c-pen)] rounded-full">
               Upcoming Trip
             </span>
           )}
           {mode === 'active' && (
-            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
               Trip in Progress
             </span>
           )}
           {mode === 'post' && (
-            <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-[var(--c-tape)]/30 text-[var(--c-ink)] rounded-full">
               Trip Complete
             </span>
           )}
         </div>
-        
-        {/* View mode controls */}
+
         <div className="mt-4 flex flex-col items-center gap-3">
-          {/* Today Mode Toggle - only during active trips */}
-          <TodayModeToggle 
-            isTodayMode={isTodayMode} 
+          <TodayModeToggle
+            isTodayMode={isTodayMode}
             onToggle={toggleTodayMode}
             isActiveTrip={isActiveTrip}
           />
-          
-          {/* View Mode Toggle (Cards vs Timeline) */}
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                viewMode === 'cards'
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutList className="w-4 h-4" />
-              <span>Cards</span>
-            </button>
-            <button
-              onClick={() => setViewMode('timeline')}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                viewMode === 'timeline'
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Timeline</span>
-            </button>
-          </div>
 
-          {/* Chosen Only segmented toggle — only shown when the trip has registered picks */}
           {hasChosenItems && (
             <div
               className="flex items-center gap-1 p-1 bg-muted rounded-lg"
@@ -332,77 +235,132 @@ export function DatabaseItineraryTab() {
           )}
         </div>
 
-        {/* A11Y-03: announce filter state changes to assistive tech */}
         <div role="status" aria-live="polite" className="sr-only">
           {chosenOnly
             ? `Showing ${chosenCount} registered workshop${chosenCount === 1 ? '' : 's'}; other workshop options hidden.`
             : 'Showing all sessions.'}
         </div>
-      </div>
-      
-      {/* No content message for today mode */}
+      </header>
+
+      {/* Day switcher */}
+      {daysToRender.length > 0 && (
+        <div
+          className="flex items-center justify-center gap-2 flex-wrap"
+          role="tablist"
+          aria-label="Select day"
+        >
+          {daysToRender.map((d, i) => {
+            const isSelected = d.id === selectedDayId;
+            return (
+              <button
+                key={d.id}
+                onClick={() => setSelectedDayIdRaw(d.id)}
+                role="tab"
+                aria-selected={isSelected}
+                className="transition-opacity"
+                style={{ opacity: isSelected ? 1 : 0.55 }}
+              >
+                <StickerPill variant={isSelected ? 'ink' : 'pen'} style={{ fontSize: 9, padding: '8px 10px' }}>
+                  Day {i + 1}
+                </StickerPill>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Selected day label */}
+      {selectedDay && (
+        <div className="text-center">
+          <h3 className="font-display text-xl text-[var(--c-ink)]">
+            {selectedDay.title ?? `Day ${selectedDayIndex + 1}`}
+          </h3>
+          <p className="text-sm italic text-[var(--c-ink-muted)]">
+            {selectedDayDateLabel}
+            {trip.location_name ? ` · ${trip.location_name}` : ''}
+          </p>
+        </div>
+      )}
+
+      {/* No-content fallback for today mode */}
       {isTodayMode && !hasTodayContent && (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No activities scheduled for today.</p>
-          <button 
+          <p className="text-[var(--c-ink-muted)]">No activities scheduled for today.</p>
+          <button
             onClick={toggleTodayMode}
-            className="mt-2 text-sm text-primary hover:underline"
+            className="mt-2 text-sm text-[var(--c-pen)] hover:underline"
           >
             View full timeline
           </button>
         </div>
       )}
-      
-      {/* Day cards or timeline view wrapped in unified DndContext */}
-      <DndContext
-        /* BUG-04: disable drag in chosen-only view — the filtered list hides
-           sibling items, so drop-position math would land items under hidden
-           rows. Chosen-only is a read view. */
-        sensors={chosenOnly ? [] : sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragMove={handleDragMove}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        {viewMode === 'cards' ? (
-          daysToRender.map((day) => (
-            <DatabaseDayCard 
-              key={day.id} 
-              day={day}
-              nextActivityId={nextPlannedActivity?.activityId}
-              isReceivingDrag={overDayId === day.id && activeItem?.dayId !== day.id}
-              previewTimes={previewTimes}
-            />
-          ))
-        ) : (
-          daysToRender.map((day) => (
-            <div key={day.id} className="bg-card rounded-lg border p-4 shadow-warm">
-              <h3 className="font-display text-lg mb-4">{day.title}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{day.dayOfWeek}, {day.date}</p>
-              <TimelineView 
-                day={day} 
-                nextActivityId={nextPlannedActivity?.activityId}
-              />
-            </div>
-          ))
-        )}
-        
-        {/* Drag Overlay - shows dragged item */}
-        <DragOverlay>
-          {activeItem && (
-            <div className="opacity-90 shadow-xl rounded-lg">
-              <DatabaseActivityCard 
-                activity={activeItem}
-                previewTime={previewTimes.get(activeItem.id)}
-                isDragging
-              />
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
-      
-      {/* Quick Add FAB */}
+
+      {/* Block grid */}
+      {selectedDay && (
+        <div
+          className="grid gap-6 sm:gap-8"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+        >
+          {BLOCKS.map(block => {
+            const blockItems = grouped.get(block.key) ?? [];
+            const hasAny = blockItems.length > 0;
+            return (
+              <section
+                key={block.key}
+                className="relative"
+                style={{
+                  background: 'var(--c-paper)',
+                  boxShadow: 'var(--c-shadow)',
+                  padding: '28px 24px 22px',
+                  opacity: hasAny ? 1 : 0.55,
+                }}
+              >
+                <Tape position="top" rotate={block.tapeRotate} />
+
+                <div className="flex items-baseline justify-between mb-5 gap-2">
+                  <span
+                    style={{
+                      fontFamily: 'var(--c-font-display)',
+                      fontSize: 14,
+                      letterSpacing: '.2em',
+                      color: 'var(--c-ink)',
+                    }}
+                  >
+                    {block.stamp}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--c-font-body)',
+                      fontStyle: 'italic',
+                      color: 'var(--c-ink-muted)',
+                      fontSize: 12,
+                    }}
+                  >
+                    {block.range}
+                  </span>
+                </div>
+
+                {!hasAny && (
+                  <MarginNote rotate={-1} size={18} style={{ display: 'block' }}>
+                    (nothing here)
+                  </MarginNote>
+                )}
+
+                <div className="space-y-3">
+                  {blockItems.map(activity => (
+                    <DatabaseActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      isNextActivity={activity.id === nextPlannedActivity?.activityId}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
       <QuickAddButton />
     </div>
   );
