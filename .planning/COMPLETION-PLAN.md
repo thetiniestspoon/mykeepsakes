@@ -50,9 +50,9 @@ All locks live at `.planning/DESIGN-SYSTEM.md` under "Locked layouts (per surfac
 | Album | **V1 — Scrapbook Pages by Day** | `CollageAlbum.tsx` → V1 |
 | Dispatch | **V2 — Split Workspace** | `CollageDispatch.tsx` → V2 |
 | Shared-Trip | **V1 — Single Long Letter** | `CollageSharedTrip.tsx` → V1 |
-| Lodging | ⚠ **pending user pick** — V1 Concierge Card vs. V2 Ticket+Stubs | `CollageLodging.tsx` → V1 (placeholder) |
-| Reflection | ⚠ **pending user pick** — V1 Notebook Page vs. V2 Index Card | `CollageReflection.tsx` → V1 (placeholder) |
-| Connection | ⚠ **pending user pick** — V1 Business Card vs. V2 Index Card + Preview | `CollageConnection.tsx` → V1 (placeholder) |
+| Lodging | **V1 — Concierge Card** | `CollageLodging.tsx` → V1 |
+| Reflection | **V2 — Index Card** | `CollageReflection.tsx` → V2 |
+| Connection | **V2 — Index Card + Live Preview** | `CollageConnection.tsx` → V2 |
 
 ### Production migrations completed
 
@@ -111,19 +111,17 @@ Load via `import '@/preview/collage/collage.css';` and wrap the target content w
 
 ## What's left to ship (execution order)
 
-### Phase 1 — Resolve pending picks (20 min)
+### Phase 1 — Resolve pending picks ✅ Complete (2026-04-18)
 
-User was mid-review when the plan was handed off. When you pick this up:
+All three pending picks locked. See `.planning/DESIGN-SYSTEM.md` "Locked
+layouts (per surface)" for rationale on each:
 
-1. Tell the user: "You still have three pending picks from the last batch — Lodging, Reflection, Connection. Want to review now, or should I lock recommended defaults and proceed?" If they want to review, show them:
-   - Lodging V1: http://localhost:8080/mykeepsakes/preview/collage/lodging
-   - Lodging V2: http://localhost:8080/mykeepsakes/preview/collage/lodging?v=2
-   - Reflection V1: http://localhost:8080/mykeepsakes/preview/collage/reflection
-   - Reflection V2: http://localhost:8080/mykeepsakes/preview/collage/reflection?v=2
-   - Connection V1: http://localhost:8080/mykeepsakes/preview/collage/connection
-   - Connection V2: http://localhost:8080/mykeepsakes/preview/collage/connection?v=2
-2. Once picked, update the dispatcher in `src/preview/collage/pages/Collage{Lodging,Reflection,Connection}.tsx` so the bare route renders the chosen variant.
-3. Append the picks to the "Locked layouts (per surface)" table in `.planning/DESIGN-SYSTEM.md`.
+- **Lodging → V1 Concierge Card** — one honored paper card for the chosen stay
+- **Reflection → V2 Index Card** — bounded surface invites honesty over performance
+- **Connection → V2 Index Card + Live Preview** — consistent with Dispatch split-workspace pattern
+
+Dispatchers at `src/preview/collage/pages/Collage{Lodging,Reflection,Connection}.tsx`
+already default to the chosen variants.
 
 ### Phase 2 — Finish the demo sweep (4 surfaces, ~1 turn with parallel agents)
 
