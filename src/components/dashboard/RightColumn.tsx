@@ -314,10 +314,10 @@ export function RightColumn({ className }: RightColumnProps) {
       
       {/* Highlight banner - shown when pins are highlighted with a label (and not collapsed) */}
       {highlightedMapPins.length > 0 && highlightLabel && !isFilterCollapsed && (
-        <div className="flex items-center justify-between px-3 py-2 bg-primary/10 border-b border-primary/20">
+        <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-pen)]/10 border-b border-[var(--c-pen)]/20">
           <div className="flex items-center gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span className="font-medium text-primary">
+            <MapPin className="w-4 h-4 text-[var(--c-pen)]" />
+            <span className="font-medium text-[var(--c-pen)]">
               {highlightLabel}
               {highlightedMapPins.length > 1 && ` (${highlightedMapPins.length} locations)`}
             </span>
