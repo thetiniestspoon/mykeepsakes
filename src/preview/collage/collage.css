@@ -40,6 +40,30 @@
   min-height: 100vh;
   min-height: 100dvh;
   line-height: 1.55;
+
+  /* shadcn theme-token overrides — map app-level tokens to Collage palette
+     so Card/Button/Badge/Progress/etc. pick up Collage colors without
+     needing per-primitive rewrites. Values are shadcn HSL-triplet format
+     (H S% L%), consumed via hsl(var(--token)) in tailwind.config.ts. */
+  --background:            43 50% 94%;  /* creme */
+  --foreground:            60 4% 11%;   /* ink */
+  --card:                  0 0% 100%;   /* paper */
+  --card-foreground:       60 4% 11%;
+  --popover:               0 0% 100%;
+  --popover-foreground:    60 4% 11%;
+  --primary:               230 73% 45%; /* pen */
+  --primary-foreground:    43 50% 94%;
+  --secondary:             47 90% 66%;  /* tape */
+  --secondary-foreground:  60 4% 11%;
+  --muted:                 43 50% 94%;  /* creme (subtle fill) */
+  --muted-foreground:      40 5% 28%;   /* ink-muted */
+  --accent:                47 90% 66%;  /* tape */
+  --accent-foreground:     60 4% 11%;
+  --destructive:           0 54% 43%;   /* danger */
+  --destructive-foreground:43 50% 94%;
+  --border:                40 6% 85%;   /* ink @12% flattened on creme */
+  --input:                 40 6% 85%;
+  --ring:                  230 73% 45%; /* pen */
 }
 
 .collage-root *,
