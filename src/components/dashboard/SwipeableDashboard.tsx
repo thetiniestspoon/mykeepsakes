@@ -63,9 +63,9 @@ export function SwipeableDashboard({
   }, [registerPanelNavigator, scrollToPanel]);
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden bg-background">
+    <div className="h-dvh flex flex-col overflow-hidden bg-[var(--c-creme)]">
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-40">
+      <header className="border-b border-[var(--c-line)] bg-[var(--c-creme)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--c-creme)]/80 z-40">
         {header}
       </header>
       

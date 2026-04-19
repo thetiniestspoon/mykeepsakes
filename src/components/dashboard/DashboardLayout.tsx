@@ -26,29 +26,29 @@ export function DashboardLayout({
   className,
 }: DashboardLayoutProps) {
   return (
-    <div 
+    <div
       className={cn(
-        "dashboard-grid h-dvh overflow-hidden bg-background",
+        "dashboard-grid h-dvh overflow-hidden bg-[var(--c-creme)]",
         className
       )}
     >
       {/* Header - spans all columns */}
-      <header className="dashboard-header col-span-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-40">
+      <header className="dashboard-header col-span-full border-b border-[var(--c-line)] bg-[var(--c-creme)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--c-creme)]/80 z-40">
         {header}
       </header>
-      
+
       {/* Left Column - Itinerary */}
-      <aside className="left-column overflow-y-auto border-r border-border bg-card/50">
+      <aside className="left-column overflow-y-auto border-r border-[var(--c-line)] bg-[var(--c-paper)]">
         {leftColumn}
       </aside>
-      
+
       {/* Center Column - Detail Panel */}
-      <main className="center-column overflow-y-auto bg-background">
+      <main className="center-column overflow-y-auto bg-[var(--c-creme)]">
         {centerColumn}
       </main>
-      
+
       {/* Right Column - Map */}
-      <aside className="right-column flex flex-col bg-muted/30">
+      <aside className="right-column flex flex-col border-l border-[var(--c-line)] bg-[var(--c-paper)]">
         {rightColumn}
       </aside>
     </div>
