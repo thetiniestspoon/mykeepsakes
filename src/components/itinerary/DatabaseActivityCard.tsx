@@ -19,7 +19,7 @@ import {
   Trash2,
   CheckCircle2,
   GripVertical,
-  Star
+  Ticket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -131,8 +131,11 @@ export function DatabaseActivityCard({
       className={cn(
         "relative p-4 rounded-lg border border-border bg-card transition-all",
         isCompleted && "opacity-60 bg-muted/30",
-        isNextActivity && "ring-2 ring-primary ring-offset-2",
-        activity.isChosen && !isCompleted && "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/10",
+        // UX-04 / A11Y-05: when both next AND chosen, merge into a single amber
+        // ring instead of stacking primary ring + amber border.
+        isNextActivity && !(activity.isChosen && !isCompleted) && "ring-2 ring-primary ring-offset-2",
+        isNextActivity && activity.isChosen && !isCompleted && "ring-2 ring-amber-400 ring-offset-2",
+        !isNextActivity && activity.isChosen && !isCompleted && "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/10",
         isDragging && "shadow-lg"
       )}
       data-activity-id={activity.id}
@@ -170,12 +173,27 @@ export function DatabaseActivityCard({
             onSelect && "cursor-pointer hover:bg-muted/30 rounded-md -mx-1 px-1 py-0.5 transition-colors"
           )}
         >
+          {/* UX-06: Registered chip on its own line above the meta row so it
+              can't get wrapped by category + time + Done on narrow screens. */}
+          {activity.isChosen && (
+            <div className="mb-1">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400",
+                  isCompleted && "opacity-70"
+                )}
+              >
+                <Ticket className="w-3 h-3 fill-current" aria-hidden="true" />
+                Registered
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
               categoryColors[activity.category]
             )}>
-              <Icon className="w-3 h-3" />
+              <Icon className="w-3 h-3" aria-hidden="true" />
               {activity.category}
             </span>
             {/* Time display - shows preview time during drag */}
@@ -190,17 +208,8 @@ export function DatabaseActivityCard({
             )}
             {isCompleted && (
               <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                <CheckCircle2 className="w-3 h-3" />
+                <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
                 Done
-              </span>
-            )}
-            {activity.isChosen && !isCompleted && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"
-                title="Registered session"
-              >
-                <Star className="w-3 h-3 fill-current" />
-                Registered
               </span>
             )}
           </div>

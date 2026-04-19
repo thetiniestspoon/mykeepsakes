@@ -46,6 +46,8 @@ DECLARE
   v_day_23 uuid;
   v_day_24 uuid;
   v_venue_id uuid;
+  v_affected integer;
+  v_title text;
 BEGIN
   SELECT id INTO v_trip_id FROM trips WHERE title ILIKE '%Sankofa 2026%' LIMIT 1;
   IF v_trip_id IS NULL THEN
@@ -115,33 +117,105 @@ BEGIN
   RAISE NOTICE 'Part A complete — canonical reconciliation done.';
 
   -- ═══════════════════════════════════════════════════════════
+  -- BUG-08 PRE-FLIGHT — verify all 7 chosen-slot titles are where
+  -- we expect them BEFORE Part B lights is_chosen on those rows.
+  -- Guards against BCR drift landing the flag on the wrong workshop.
+  -- All 7 are expected in their post-Part-A state.
+  -- ═══════════════════════════════════════════════════════════
+
+  -- #1 Wed 10:00 AM Track B — Rest and Joy as a Resistance
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'B' AND start_time = '10:00'::time;
+  IF v_title IS DISTINCT FROM 'Rest and Joy as a Resistance' THEN
+    RAISE EXCEPTION 'Pre-flight: Wed 10 AM Track B expected "Rest and Joy as a Resistance", got "%"', v_title;
+  END IF;
+
+  -- #2 Wed 2:00 PM Track A — Dear Pastor, Do You Want To Be Made Well?
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'A' AND start_time = '14:00'::time;
+  IF v_title IS DISTINCT FROM 'Dear Pastor, Do You Want To Be Made Well?' THEN
+    RAISE EXCEPTION 'Pre-flight: Wed 2 PM Track A expected "Dear Pastor, Do You Want To Be Made Well?", got "%"', v_title;
+  END IF;
+
+  -- #3 Wed 3:10 PM Track B — Creating Space for Mental Wellness in Our Sacred Spaces
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'B' AND start_time = '15:10'::time;
+  IF v_title IS NULL OR v_title NOT ILIKE '%Mental Wellness%' THEN
+    RAISE EXCEPTION 'Pre-flight: Wed 3:10 PM Track B expected "Creating Space for Mental Wellness...", got "%"', v_title;
+  END IF;
+
+  -- #4 Thu 10:00 AM Track B — Ministry in the Mirror
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'B' AND start_time = '10:00'::time;
+  IF v_title IS NULL OR v_title NOT LIKE 'Ministry in the Mirror%' THEN
+    RAISE EXCEPTION 'Pre-flight: Thu 10 AM Track B expected "Ministry in the Mirror...", got "%"', v_title;
+  END IF;
+
+  -- #5 Thu 1:30 PM Track B — Clergy Boundary Training
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'B' AND start_time = '13:30'::time;
+  IF v_title IS NULL OR v_title NOT ILIKE '%Boundary%' THEN
+    RAISE EXCEPTION 'Pre-flight: Thu 1:30 PM Track B expected "Clergy Boundary Training", got "%"', v_title;
+  END IF;
+
+  -- #6 Thu 2:45 PM Track A — Spiritual Entrepreneurship: C.R.E.A.M.
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'A' AND start_time = '14:45'::time;
+  IF v_title IS NULL OR v_title NOT ILIKE '%Entrepreneurship%' THEN
+    RAISE EXCEPTION 'Pre-flight: Thu 2:45 PM Track A expected "Spiritual Entrepreneurship: C.R.E.A.M.", got "%"', v_title;
+  END IF;
+
+  -- #7 Wed 11:00 AM Track A — Transcendent Healing (renamed from "Combating Sexism...")
+  -- Accept either the original or the post-rename title.
+  SELECT title INTO v_title FROM itinerary_items
+    WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'A' AND start_time = '11:00'::time;
+  IF v_title IS NULL OR (v_title NOT ILIKE '%Transcendent Healing%' AND v_title NOT ILIKE '%Combating%') THEN
+    RAISE EXCEPTION 'Pre-flight: Wed 11 AM Track A expected "Transcendent Healing..." or "Combating Sexism...", got "%"', v_title;
+  END IF;
+
+  RAISE NOTICE 'Pre-flight: all 7 chosen-slot titles verified.';
+
+  -- ═══════════════════════════════════════════════════════════
   -- PART B — MARK SHAWN'S CHOSEN WORKSHOPS (is_chosen = true)
   -- Source: Chosen Sessions.pdf (Order #10034, Jan 16 2026)
+  -- Each UPDATE reports row count; 0 rows = RAISE WARNING (BUG-07).
   -- ═══════════════════════════════════════════════════════════
 
   -- Wed 10:00 AM — Workshop B: Rest and Joy as a Resistance
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'B' AND start_time = '10:00'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Wed 10 AM Track B'; END IF;
 
   -- Wed 2:00 PM — Workshop A: Dear Pastor, Do You Want To Be Made Well?
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'A' AND start_time = '14:00'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Wed 2 PM Track A'; END IF;
 
   -- Wed 3:10 PM — Workshop B: Creating Space for Mental Wellness in Our Sacred Spaces
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_22 AND track = 'B' AND start_time = '15:10'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Wed 3:10 PM Track B'; END IF;
 
   -- Thu 10:00 AM — Workshop B: Ministry in the Mirror
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'B' AND start_time = '10:00'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Thu 10 AM Track B'; END IF;
 
   -- Thu 1:30 PM — Workshop B: Clergy Boundary Training
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'B' AND start_time = '13:30'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Thu 1:30 PM Track B'; END IF;
 
   -- Thu 2:45 PM — Workshop A: Spiritual Entrepreneurship: C.R.E.A.M.
   UPDATE itinerary_items SET is_chosen = true
     WHERE trip_id = v_trip_id AND day_id = v_day_23 AND track = 'A' AND start_time = '14:45'::time;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN RAISE WARNING 'Part B: no row matched Thu 2:45 PM Track A'; END IF;
 
   -- Wed 11:00 AM — Workshop A: Transcendent Healing (Nala Simone Toussaint)
   -- Registered as "Combating Sexism, Homophobia, and Transphobia in Ministry"
@@ -156,7 +230,11 @@ BEGIN
   WHERE trip_id = v_trip_id
     AND day_id = v_day_22
     AND track = 'A'
-    AND start_time = '11:00'::time;
+    AND start_time = '11:00'::time
+    AND (notes IS NULL OR notes NOT LIKE '%Originally registered%');
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  -- 0 here is fine on re-runs (idempotency guard already stamped the note);
+  -- warn only if the row itself is missing (would fail pre-flight anyway).
 
   RAISE NOTICE 'Part B complete — 7 chosen workshops marked.';
 

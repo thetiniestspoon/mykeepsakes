@@ -81,6 +81,7 @@ describe('Trip Hook Tests', () => {
         start_date: '2030-01-01',
         end_date: '2030-01-10',
         timezone: 'America/New_York',
+        metadata: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -98,6 +99,7 @@ describe('Trip Hook Tests', () => {
         start_date: '2020-01-01',
         end_date: '2020-01-10',
         timezone: 'America/New_York',
+        metadata: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

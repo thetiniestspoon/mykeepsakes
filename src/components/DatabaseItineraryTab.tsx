@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { Loader2, Calendar, LayoutList, Clock, Star } from 'lucide-react';
+import { Loader2, Calendar, LayoutList, Clock, Ticket } from 'lucide-react';
 import { 
   DndContext, 
   DragOverlay, 
@@ -45,17 +45,6 @@ export function DatabaseItineraryTab() {
     [days]
   );
 
-  // Filter days when "Chosen only" is active:
-  // hide non-chosen rows that have a `track` (workshop siblings), keep everything
-  // else (plenaries, meals, worship, personal options, non-track activities).
-  const chosenFilteredDays = useMemo(() => {
-    if (!chosenOnly) return days;
-    return days.map(day => ({
-      ...day,
-      activities: day.activities.filter(a => a.isChosen || !a.track),
-    }));
-  }, [days, chosenOnly]);
-  
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeItem, setActiveItem] = useState<LegacyActivity | null>(null);
@@ -67,6 +56,14 @@ export function DatabaseItineraryTab() {
   const timeReorder = useTimeBasedReorder();
   const flattenedItems = useFlattenedItinerary(days);
 
+  // Count of chosen workshops for the aria-live status announcement.
+  const chosenCount = useMemo(
+    () => days.reduce((n, d) => n + d.activities.filter(a => a.isChosen).length, 0),
+    [days]
+  );
+
+  // BUG-06 fix: pass unfiltered `days` so nextPlannedActivity sees all workshops,
+  // not just the chosen ones. Chosen-only filter is applied below on the rendered output.
   const {
     isTodayMode,
     toggleTodayMode,
@@ -74,7 +71,18 @@ export function DatabaseItineraryTab() {
     nextPlannedActivity,
     isActiveTrip,
     hasTodayContent
-  } = useTodayMode(chosenFilteredDays);
+  } = useTodayMode(days);
+
+  // Apply chosen-only filter after today-mode filter for rendering only.
+  // Hides non-chosen rows that have a `track` (workshop siblings); keeps everything
+  // else (plenaries, meals, worship, personal options, non-track activities).
+  const daysToRender = useMemo(() => {
+    if (!chosenOnly) return filteredDays;
+    return filteredDays.map(day => ({
+      ...day,
+      activities: day.activities.filter(a => a.isChosen || !a.track),
+    }));
+  }, [filteredDays, chosenOnly]);
   
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -209,9 +217,6 @@ export function DatabaseItineraryTab() {
   const totalCount = allActivities.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Show days to render based on today mode
-  const daysToRender = filteredDays;
-
   return (
     <div className="space-y-4 pb-20">
       <div className="text-center py-4">
@@ -290,23 +295,48 @@ export function DatabaseItineraryTab() {
             </button>
           </div>
 
-          {/* Chosen Only Toggle — only shown when the trip has registered picks */}
+          {/* Chosen Only segmented toggle — only shown when the trip has registered picks */}
           {hasChosenItems && (
-            <button
-              onClick={() => setChosenOnly(v => !v)}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all border",
-                chosenOnly
-                  ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700"
-                  : "bg-background text-muted-foreground border-border hover:text-foreground"
-              )}
-              title="Hide workshop options you didn't register for"
-              aria-pressed={chosenOnly}
+            <div
+              className="flex items-center gap-1 p-1 bg-muted rounded-lg"
+              role="group"
+              aria-label="Filter workshop sessions"
             >
-              <Star className={cn("w-4 h-4", chosenOnly && "fill-current")} />
-              <span>{chosenOnly ? 'Showing registered only' : 'Registered only'}</span>
-            </button>
+              <button
+                onClick={() => setChosenOnly(false)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  !chosenOnly
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={!chosenOnly}
+              >
+                <span>All sessions</span>
+              </button>
+              <button
+                onClick={() => setChosenOnly(true)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  chosenOnly
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={chosenOnly}
+                title="Plenaries, meals, and worship still shown"
+              >
+                <Ticket className="w-4 h-4 fill-current" aria-hidden="true" />
+                <span>My picks</span>
+              </button>
+            </div>
           )}
+        </div>
+
+        {/* A11Y-03: announce filter state changes to assistive tech */}
+        <div role="status" aria-live="polite" className="sr-only">
+          {chosenOnly
+            ? `Showing ${chosenCount} registered workshop${chosenCount === 1 ? '' : 's'}; other workshop options hidden.`
+            : 'Showing all sessions.'}
         </div>
       </div>
       
@@ -325,7 +355,10 @@ export function DatabaseItineraryTab() {
       
       {/* Day cards or timeline view wrapped in unified DndContext */}
       <DndContext
-        sensors={sensors}
+        /* BUG-04: disable drag in chosen-only view — the filtered list hides
+           sibling items, so drop-position math would land items under hidden
+           rows. Chosen-only is a read view. */
+        sensors={chosenOnly ? [] : sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}

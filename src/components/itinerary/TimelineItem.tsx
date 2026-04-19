@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Utensils, Waves, Home, Car, PartyPopper, Activity, Star } from 'lucide-react';
+import { CheckCircle2, Circle, Utensils, Waves, Home, Car, PartyPopper, Activity, Ticket } from 'lucide-react';
 import type { LegacyActivity } from '@/hooks/use-database-itinerary';
 
 interface TimelineItemProps {
@@ -67,12 +67,14 @@ export function TimelineItem({ activity, isNext, onClick }: TimelineItemProps) {
               Up Next
             </span>
           )}
-          {activity.isChosen && !isCompleted && (
+          {activity.isChosen && (
             <span
-              className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"
-              title="Registered session"
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400",
+                isCompleted && "opacity-70"
+              )}
             >
-              <Star className="w-3 h-3 fill-current" />
+              <Ticket className="w-3 h-3 fill-current" aria-hidden="true" />
               Registered
             </span>
           )}
