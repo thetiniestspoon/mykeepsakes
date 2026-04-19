@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -10,11 +9,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, Eye, Send, Check } from 'lucide-react';
+import { Copy, Send, Check } from 'lucide-react';
 import { useMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
 import { useCreateDispatch } from '@/hooks/use-dispatches';
 import type { ItineraryDay, ItineraryItem, Memory } from '@/types/trip';
-import DispatchPreview from './DispatchPreview';
+import { DispatchPreviewContent } from './DispatchPreview';
+import { Stamp } from '@/preview/collage/ui/Stamp';
 
 interface DispatchEditorProps {
   open: boolean;
@@ -64,7 +64,6 @@ export default function DispatchEditor({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
   const [selectedReflectionIds, setSelectedReflectionIds] = useState<Set<string>>(new Set());
   const [closingNote, setClosingNote] = useState('');
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [autoSelectDone, setAutoSelectDone] = useState(false);
@@ -75,8 +74,10 @@ export default function DispatchEditor({
       const auto = new Set<string>();
       dayReflections.forEach((r) => {
         const tags = r.tags || [];
-        if (tags.some((t) => ['insight', 'quote', 'training-seed'].includes(t)) &&
-            !tags.includes('personal')) {
+        if (
+          tags.some((t) => AUTO_SELECT_TAGS.includes(t)) &&
+          !tags.includes('personal')
+        ) {
           auto.add(r.id);
         }
       });
@@ -161,31 +162,35 @@ export default function DispatchEditor({
   };
 
   const dayLabel = day.title ?? day.date;
+  const nothingPicked =
+    selectedPhotoIds.size === 0 &&
+    selectedReflectionIds.size === 0 &&
+    !closingNote.trim();
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[min(1200px,95vw)] w-full max-h-[95vh] overflow-y-auto p-0">
+        <div className="collage-root p-6 sm:p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="font-display text-xl text-[var(--c-ink)]">
               Create Dispatch — {dayLabel}
             </DialogTitle>
           </DialogHeader>
 
           {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">
+            <div className="py-12 text-center text-[var(--c-ink-muted)] text-sm">
               Loading memories…
             </div>
           ) : shareUrl ? (
             /* Success state */
-            <div className="space-y-4 py-4">
-              <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
-                <Check className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <p className="font-medium text-green-900 mb-1">Dispatch created!</p>
-                <p className="text-sm text-green-700">Share this link with your team:</p>
+            <div className="space-y-4 py-4 max-w-xl mx-auto">
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-center">
+                <Check className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="font-medium text-emerald-900 mb-1">Dispatch created!</p>
+                <p className="text-sm text-emerald-700">Share this link with your team:</p>
               </div>
               <div className="flex gap-2">
-                <code className="flex-1 text-xs bg-muted rounded px-3 py-2 overflow-x-auto select-all">
+                <code className="flex-1 text-xs bg-[var(--c-creme)] border border-[var(--c-line)] rounded px-3 py-2 overflow-x-auto select-all text-[var(--c-ink)]">
                   {shareUrl}
                 </code>
                 <Button
@@ -194,11 +199,7 @@ export default function DispatchEditor({
                   onClick={handleCopy}
                   className="shrink-0"
                 >
-                  {copied ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
               <Button
@@ -210,160 +211,185 @@ export default function DispatchEditor({
               </Button>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Section 1: Scene (photos) */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                  Scene — select photos
-                </h3>
-                {dayPhotos.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">
-                    No photos captured for this day yet.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {dayPhotos.map((photo) => {
-                      const firstMedia = photo.media?.[0];
-                      if (!firstMedia) return null;
-                      const url = getMemoryMediaUrl(firstMedia.storage_path);
-                      const selected = selectedPhotoIds.has(photo.id);
-                      return (
-                        <button
-                          key={photo.id}
-                          type="button"
-                          onClick={() => togglePhoto(photo.id)}
-                          className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                            selected
-                              ? 'border-primary shadow-md'
-                              : 'border-transparent opacity-70 hover:opacity-90'
-                          }`}
-                        >
-                          <img
-                            src={url}
-                            alt={photo.title ?? 'Photo'}
-                            className="w-full h-full object-cover"
-                          />
-                          {selected && (
-                            <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="w-3 h-3 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
+            /* Split workspace: editor left, live preview right */
+            <div
+              className="grid gap-6 md:gap-8"
+              style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
+            >
+              {/* LEFT — editor */}
+              <section
+                className="space-y-6"
+                style={{
+                  background: 'var(--c-paper)',
+                  boxShadow: 'var(--c-shadow)',
+                  padding: 'clamp(20px, 2.5vw, 28px)',
+                }}
+              >
+                <Stamp variant="outline" size="sm" rotate={-3}>
+                  source · select
+                </Stamp>
 
-              {/* Section 2: Insights (reflections, no personal) */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                  Insights — select reflections
-                </h3>
-                {dayReflections.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">
-                    No reflections captured for this day yet.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {dayReflections.map((reflection) => {
-                      const checked = selectedReflectionIds.has(reflection.id);
-                      return (
-                        <li
-                          key={reflection.id}
-                          className="flex items-start gap-3 rounded-lg border border-border p-3 hover:bg-muted/40 transition-colors"
-                        >
-                          <Checkbox
-                            id={`reflection-${reflection.id}`}
-                            checked={checked}
-                            onCheckedChange={() => toggleReflection(reflection.id)}
-                            className="mt-0.5 shrink-0"
-                          />
-                          <label
-                            htmlFor={`reflection-${reflection.id}`}
-                            className="flex-1 cursor-pointer"
+                {/* Scene (photos) */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--c-ink-muted)] mb-3">
+                    Scene — select photos
+                  </h3>
+                  {dayPhotos.length === 0 ? (
+                    <p className="text-sm text-[var(--c-ink-muted)] italic">
+                      No photos captured for this day yet.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {dayPhotos.map((photo) => {
+                        const firstMedia = photo.media?.[0];
+                        if (!firstMedia) return null;
+                        const url = getMemoryMediaUrl(firstMedia.storage_path);
+                        const selected = selectedPhotoIds.has(photo.id);
+                        return (
+                          <button
+                            key={photo.id}
+                            type="button"
+                            onClick={() => togglePhoto(photo.id)}
+                            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-pen)] ${
+                              selected
+                                ? 'border-[var(--c-pen)] shadow-md'
+                                : 'border-transparent opacity-70 hover:opacity-90'
+                            }`}
+                            aria-pressed={selected}
                           >
-                            <span className="text-sm text-foreground leading-relaxed">
-                              {reflection.note}
-                            </span>
-                            {reflection.speaker && (
-                              <span className="block text-xs text-muted-foreground mt-0.5">
-                                — {reflection.speaker}
-                                {reflection.session_title &&
-                                  `, ${reflection.session_title}`}
-                              </span>
+                            <img
+                              src={url}
+                              alt={photo.title ?? 'Photo'}
+                              className="w-full h-full object-cover"
+                            />
+                            {selected && (
+                              <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[var(--c-pen)] flex items-center justify-center">
+                                <Check className="w-3 h-3 text-[var(--c-creme)]" />
+                              </div>
                             )}
-                            {(reflection.tags ?? []).length > 0 && (
-                              <span className="flex flex-wrap gap-1 mt-1">
-                                {(reflection.tags ?? []).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-xs px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Insights (reflections) */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--c-ink-muted)] mb-3">
+                    Insights — select reflections
+                  </h3>
+                  {dayReflections.length === 0 ? (
+                    <p className="text-sm text-[var(--c-ink-muted)] italic">
+                      No reflections captured for this day yet.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {dayReflections.map((reflection) => {
+                        const checked = selectedReflectionIds.has(reflection.id);
+                        return (
+                          <li
+                            key={reflection.id}
+                            className="flex items-start gap-3 rounded-lg border border-[var(--c-line)] p-3 hover:bg-[var(--c-creme)] transition-colors"
+                          >
+                            <Checkbox
+                              id={`reflection-${reflection.id}`}
+                              checked={checked}
+                              onCheckedChange={() => toggleReflection(reflection.id)}
+                              className="mt-0.5 shrink-0"
+                            />
+                            <label
+                              htmlFor={`reflection-${reflection.id}`}
+                              className="flex-1 cursor-pointer"
+                            >
+                              <span className="text-sm text-[var(--c-ink)] leading-relaxed">
+                                {reflection.note}
                               </span>
-                            )}
-                          </label>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                              {reflection.speaker && (
+                                <span className="block text-xs text-[var(--c-ink-muted)] mt-0.5">
+                                  — {reflection.speaker}
+                                  {reflection.session_title &&
+                                    `, ${reflection.session_title}`}
+                                </span>
+                              )}
+                              {(reflection.tags ?? []).length > 0 && (
+                                <span className="flex flex-wrap gap-1 mt-1">
+                                  {(reflection.tags ?? []).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--c-tape)]/30 text-[var(--c-ink)]"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Closing note */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--c-ink-muted)] mb-3">
+                    Closing note (optional)
+                  </h3>
+                  <Textarea
+                    placeholder="Add a closing reflection for this dispatch…"
+                    value={closingNote}
+                    onChange={(e) => setClosingNote(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
               </section>
 
-              {/* Section 3: Closing note */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                  Closing note (optional)
-                </h3>
-                <Textarea
-                  placeholder="Add a closing reflection for this dispatch…"
-                  value={closingNote}
-                  onChange={(e) => setClosingNote(e.target.value)}
-                  rows={3}
-                  className="resize-none"
+              {/* RIGHT — live preview */}
+              <section
+                style={{
+                  background: 'var(--c-paper)',
+                  boxShadow: 'var(--c-shadow)',
+                  padding: 'clamp(20px, 2.5vw, 28px)',
+                }}
+              >
+                <Stamp variant="filled" size="sm" rotate={3} style={{ marginBottom: 18 }}>
+                  preview
+                </Stamp>
+                <DispatchPreviewContent
+                  dayTitle={dayLabel}
+                  selectedPhotos={selectedPhotos}
+                  selectedReflections={selectedReflections}
+                  closingNote={closingNote}
                 />
               </section>
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setPreviewOpen(true)}
-                  className="gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  Preview
-                </Button>
-                <Button
-                  onClick={handleCreate}
-                  disabled={
-                    createDispatch.isPending ||
-                    (selectedPhotoIds.size === 0 &&
-                      selectedReflectionIds.size === 0 &&
-                      !closingNote.trim())
-                  }
-                  className="flex-1 gap-2"
-                >
-                  <Send className="w-4 h-4" />
-                  {createDispatch.isPending ? 'Creating…' : 'Create Dispatch'}
-                </Button>
-              </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
 
-      <DispatchPreview
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        dayTitle={dayLabel}
-        selectedPhotos={selectedPhotos}
-        selectedReflections={selectedReflections}
-        closingNote={closingNote}
-      />
-    </>
+          {/* Actions — sit outside the split so they're always anchored */}
+          {!isLoading && !shareUrl && (
+            <div className="flex gap-2 pt-6 mt-6 border-t border-[var(--c-line)] max-w-xl mx-auto">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={createDispatch.isPending || nothingPicked}
+                className="flex-1 gap-2"
+              >
+                <Send className="w-4 h-4" />
+                {createDispatch.isPending ? 'Creating…' : 'Create Dispatch'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
