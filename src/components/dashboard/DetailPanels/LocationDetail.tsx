@@ -19,7 +19,7 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
 
   if (!location) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-[var(--c-ink-muted)]">
         <p>Select a location to see details</p>
       </div>
     );
@@ -55,16 +55,16 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
       {/* Header */}
       <div>
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-xl font-semibold text-foreground">{location.name}</h2>
+          <h2 className="text-xl font-semibold text-[var(--c-ink)]">{location.name}</h2>
           {location.category && (
             <Badge variant="secondary" className="capitalize">
               {isAccommodation ? 'Accommodation' : location.category}
             </Badge>
           )}
         </div>
-        
+
         {'address' in location && location.address && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+          <p className="text-sm text-[var(--c-ink-muted)] flex items-center gap-1 mt-1">
             <MapPin className="w-4 h-4 flex-shrink-0" />
             {location.address}
           </p>
@@ -87,8 +87,8 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
       {'phone' in location && location.phone && (
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <Phone className="w-4 h-4 text-muted-foreground" />
-            <a href={`tel:${location.phone}`} className="text-sm hover:underline">
+            <Phone className="w-4 h-4 text-[var(--c-ink-muted)]" />
+            <a href={`tel:${location.phone}`} className="text-sm text-[var(--c-ink)] hover:underline">
               {location.phone}
             </a>
           </CardContent>
@@ -99,12 +99,12 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
       {'url' in location && location.url && (
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <Globe className="w-4 h-4 text-muted-foreground" />
-            <a 
-              href={location.url} 
-              target="_blank" 
+            <Globe className="w-4 h-4 text-[var(--c-ink-muted)]" />
+            <a
+              href={location.url}
+              target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline truncate"
+              className="text-sm text-[var(--c-pen)] hover:underline truncate"
             >
               {location.url}
             </a>
@@ -122,7 +122,7 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            <p className="text-sm text-[var(--c-ink-muted)] whitespace-pre-wrap">
               {location.notes}
             </p>
           </CardContent>

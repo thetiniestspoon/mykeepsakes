@@ -42,7 +42,7 @@ export function PackingDetail() {
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-[var(--c-ink-muted)]">Loading...</div>
       </div>
     );
   }
@@ -52,12 +52,12 @@ export function PackingDetail() {
       <div className="p-4 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-            <Backpack className="w-6 h-6 text-secondary-foreground" />
+          <div className="w-12 h-12 rounded-full bg-[var(--c-tape)]/30 flex items-center justify-center">
+            <Backpack className="w-6 h-6 text-[var(--c-ink)]" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-semibold text-foreground">Packing List</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-xl font-semibold text-[var(--c-ink)]">Packing List</h2>
+            <p className="text-sm text-[var(--c-ink-muted)]">
               {packedCount} of {totalItems} items packed
             </p>
           </div>
@@ -66,8 +66,8 @@ export function PackingDetail() {
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium text-foreground">{Math.round(progressPercent)}%</span>
+            <span className="text-[var(--c-ink-muted)]">Progress</span>
+            <span className="font-medium text-[var(--c-ink)]">{Math.round(progressPercent)}%</span>
           </div>
           <Progress value={progressPercent} className="h-2" />
         </div>
@@ -82,7 +82,7 @@ export function PackingDetail() {
               <div key={category} className="space-y-2">
                 {/* Category Header */}
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-foreground">{category}</h3>
+                  <h3 className="font-medium text-[var(--c-ink)]">{category}</h3>
                   <Badge 
                     variant={isComplete ? 'default' : 'secondary'}
                     className="text-xs"
@@ -104,19 +104,19 @@ export function PackingDetail() {
                     const isCompleted = checklistItems[item.id] ?? false;
                     
                     return (
-                      <label 
-                        key={item.id} 
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/30 cursor-pointer transition-colors"
+                      <label
+                        key={item.id}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--c-creme)] cursor-pointer transition-colors"
                       >
                         <Checkbox
                           checked={isCompleted}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             toggleChecklist.mutate({ itemId: item.id, isCompleted: !!checked })
                           }
                         />
                         <span className={cn(
-                          "text-sm",
-                          isCompleted && "line-through text-muted-foreground"
+                          "text-sm text-[var(--c-ink)]",
+                          isCompleted && "line-through text-[var(--c-ink-muted)]"
                         )}>
                           {item.item}
                         </span>

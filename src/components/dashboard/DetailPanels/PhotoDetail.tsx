@@ -13,7 +13,7 @@ interface PhotoDetailProps {
 export function PhotoDetail({ memory }: PhotoDetailProps) {
   if (!memory) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-[var(--c-ink-muted)]">
         <p>Select a photo to see details</p>
       </div>
     );
@@ -31,9 +31,9 @@ export function PhotoDetail({ memory }: PhotoDetailProps) {
       {memory.media && memory.media.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {memory.media.map((media) => (
-            <div 
-              key={media.id} 
-              className="aspect-square bg-muted rounded-lg overflow-hidden"
+            <div
+              key={media.id}
+              className="aspect-square bg-[var(--c-creme)] rounded-lg overflow-hidden"
             >
               <img 
                 src={getMediaUrl(media)} 
@@ -47,11 +47,11 @@ export function PhotoDetail({ memory }: PhotoDetailProps) {
 
       {/* Title */}
       {memory.title && (
-        <h2 className="text-xl font-semibold text-foreground">{memory.title}</h2>
+        <h2 className="text-xl font-semibold text-[var(--c-ink)]">{memory.title}</h2>
       )}
 
       {/* Metadata */}
-      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap gap-4 text-sm text-[var(--c-ink-muted)]">
         {memory.day && (
           <div className="flex items-center gap-1">
             <Calendar className="w-4 h-4" />
@@ -71,8 +71,8 @@ export function PhotoDetail({ memory }: PhotoDetailProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-start gap-2">
-              <StickyNote className="w-4 h-4 text-muted-foreground mt-0.5" />
-              <p className="text-sm text-foreground whitespace-pre-wrap">{memory.note}</p>
+              <StickyNote className="w-4 h-4 text-[var(--c-ink-muted)] mt-0.5" />
+              <p className="text-sm text-[var(--c-ink)] whitespace-pre-wrap">{memory.note}</p>
             </div>
           </CardContent>
         </Card>

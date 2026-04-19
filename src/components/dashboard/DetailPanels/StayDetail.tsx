@@ -218,7 +218,7 @@ export function StayDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--c-pen)]" />
       </div>
     );
   }
@@ -226,9 +226,9 @@ export function StayDetail() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b">
-        <Home className="w-6 h-6 text-primary" />
-        <h2 className="font-display text-xl font-semibold">Stay</h2>
+      <div className="flex items-center gap-3 p-4 border-b border-[var(--c-line)]">
+        <Home className="w-6 h-6 text-[var(--c-pen)]" />
+        <h2 className="font-display text-xl font-semibold text-[var(--c-ink)]">Stay</h2>
       </div>
 
       <ScrollArea className="flex-1">
@@ -245,7 +245,7 @@ export function StayDetail() {
           >
             {/* Selected Drop Zone */}
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Selected</h3>
+              <h3 className="text-sm font-medium text-[var(--c-ink-muted)]">Selected</h3>
               <SelectedDropZone
                 selected={selected}
                 isOver={isOverDropZone}
@@ -258,7 +258,7 @@ export function StayDetail() {
 
             {/* Candidates */}
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
+              <h3 className="text-sm font-medium text-[var(--c-ink-muted)]">
                 Candidates ({candidates.length})
               </h3>
               <CandidateList
@@ -273,8 +273,8 @@ export function StayDetail() {
             {/* Drag Overlay */}
             <DragOverlay>
               {activeItem && (
-                <Card className="shadow-lg ring-2 ring-primary p-3">
-                  <p className="font-medium">{activeItem.title}</p>
+                <Card className="shadow-lg ring-2 ring-[var(--c-pen)] p-3">
+                  <p className="font-medium text-[var(--c-ink)]">{activeItem.title}</p>
                 </Card>
               )}
             </DragOverlay>

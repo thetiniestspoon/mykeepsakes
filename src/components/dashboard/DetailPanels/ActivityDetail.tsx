@@ -61,7 +61,7 @@ export function ActivityDetail({
     return locationMemories.flatMap(m => m.media || []);
   }, [locationMemories]);
   if (!activity) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground">
+    return <div className="flex items-center justify-center h-full text-[var(--c-ink-muted)]">
         <p>Select an activity to see details</p>
       </div>;
   }
@@ -179,11 +179,11 @@ export function ActivityDetail({
   return <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <h2 className={cn("text-xl font-semibold text-foreground flex-1", isCompleted && "line-through text-muted-foreground")}>
+        <h2 className={cn("text-xl font-semibold text-[var(--c-ink)] flex-1", isCompleted && "line-through text-[var(--c-ink-muted)]")}>
           {activity.title}
         </h2>
-        
-        {activity.start_time && <div className="text-right text-sm text-muted-foreground flex-shrink-0">
+
+        {activity.start_time && <div className="text-right text-sm text-[var(--c-ink-muted)] flex-shrink-0">
             <div className="flex items-center justify-end gap-1">
               <Clock className="w-3.5 h-3.5" />
               {formatTime(activity.start_time)}
@@ -194,13 +194,13 @@ export function ActivityDetail({
 
       {/* Speaker & Track */}
       {(activity.speaker || activity.track) && <div className="flex items-center gap-2 flex-wrap">
-          {activity.speaker && <span className="text-sm text-muted-foreground">{activity.speaker}</span>}
+          {activity.speaker && <span className="text-sm text-[var(--c-ink-muted)]">{activity.speaker}</span>}
           {activity.track && <Badge variant="outline" className="text-xs">Track {activity.track}</Badge>}
         </div>}
 
       {/* Icon Action Row */}
       <TooltipProvider>
-        <div className="flex items-center justify-center gap-1 py-3 border-y border-border">
+        <div className="flex items-center justify-center gap-1 py-3 border-y border-[var(--c-line)]">
           {/* Mark Visited */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -269,7 +269,7 @@ export function ActivityDetail({
 
       {/* Description */}
       {activity.description && <div className="space-y-1">
-          <p className="text-sm text-foreground leading-relaxed">{activity.description}</p>
+          <p className="text-sm text-[var(--c-ink)] leading-relaxed">{activity.description}</p>
         </div>}
 
       {/* Location */}
@@ -279,28 +279,28 @@ export function ActivityDetail({
 
       {/* Contact Row - Phone & Website inline */}
       {(activity.phone || activity.link) && <div className="flex flex-wrap gap-4 text-sm">
-          {activity.phone && <a href={`tel:${activity.phone}`} className="flex items-center gap-1.5 text-primary hover:underline">
+          {activity.phone && <a href={`tel:${activity.phone}`} className="flex items-center gap-1.5 text-[var(--c-pen)] hover:underline">
               <Phone className="w-4 h-4" />
               {activity.phone}
             </a>}
-          {activity.link && <a href={activity.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-primary hover:underline truncate max-w-[200px]">
+          {activity.link && <a href={activity.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[var(--c-pen)] hover:underline truncate max-w-[200px]">
               <Globe className="w-4 h-4 flex-shrink-0" />
               {activity.link_label || getLinkHostname(activity.link)}
             </a>}
         </div>}
 
       {/* Notes */}
-      {activity.notes && <div className="text-sm text-muted-foreground bg-secondary/50 rounded-md p-3">
+      {activity.notes && <div className="text-sm text-[var(--c-ink-muted)] bg-[var(--c-creme)] rounded-md p-3">
           <p className="whitespace-pre-wrap">{activity.notes}</p>
         </div>}
 
       {/* Photos Section */}
       {locationPhotos.length > 0 && <Collapsible open={photosOpen} onOpenChange={setPhotosOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:bg-accent/30 rounded-md px-2 -mx-2">
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-[var(--c-ink)] hover:bg-[var(--c-creme)] rounded-md px-2 -mx-2">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-4 h-4" />
               Photos
-              <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">
+              <span className="text-xs text-[var(--c-ink-muted)] bg-[var(--c-creme)] px-1.5 py-0.5 rounded-full">
                 {locationPhotos.length}
               </span>
             </div>
@@ -308,7 +308,7 @@ export function ActivityDetail({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="flex gap-2 overflow-x-auto py-2 scrollbar-hide">
-              {locationPhotos.map((media, index) => <button key={media.id} onClick={() => handleOpenPhoto(index)} className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden focus:ring-2 focus:ring-primary">
+              {locationPhotos.map((media, index) => <button key={media.id} onClick={() => handleOpenPhoto(index)} className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden focus:ring-2 focus:ring-[var(--c-pen)]">
                   <img src={getMemoryMediaUrl(media.storage_path)} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" loading="lazy" />
                 </button>)}
             </div>

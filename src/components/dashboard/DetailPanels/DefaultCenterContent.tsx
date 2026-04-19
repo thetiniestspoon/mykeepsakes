@@ -21,9 +21,9 @@ export function DefaultCenterContent({ focus }: DefaultCenterContentProps) {
     case 'guide':
       return (
         <div className="h-full">
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
-            <Book className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Destination Guide</h2>
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-[var(--c-line)]">
+            <Book className="w-5 h-5 text-[var(--c-pen)]" />
+            <h2 className="text-lg font-semibold text-[var(--c-ink)]">Destination Guide</h2>
           </div>
           <Suspense fallback={<GenericSkeleton />}>
             <GuideTab />
@@ -34,11 +34,11 @@ export function DefaultCenterContent({ focus }: DefaultCenterContentProps) {
     case 'current-activity':
       return (
         <div className="h-full flex flex-col items-center justify-center text-center p-6">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Calendar className="w-8 h-8 text-primary" />
+          <div className="w-16 h-16 bg-[var(--c-pen)]/10 rounded-full flex items-center justify-center mb-4">
+            <Calendar className="w-8 h-8 text-[var(--c-pen)]" />
           </div>
-          <h2 className="text-lg font-semibold mb-2">Today's Activities</h2>
-          <p className="text-sm text-muted-foreground max-w-sm">
+          <h2 className="text-lg font-semibold mb-2 text-[var(--c-ink)]">Today's Activities</h2>
+          <p className="text-sm text-[var(--c-ink-muted)] max-w-sm">
             Select an activity from the itinerary to see its details, or tap a location on the map.
           </p>
         </div>
@@ -47,9 +47,9 @@ export function DefaultCenterContent({ focus }: DefaultCenterContentProps) {
     case 'album':
       return (
         <div className="h-full">
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
-            <Camera className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Trip Memories</h2>
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-[var(--c-line)]">
+            <Camera className="w-5 h-5 text-[var(--c-pen)]" />
+            <h2 className="text-lg font-semibold text-[var(--c-ink)]">Trip Memories</h2>
           </div>
           <Suspense fallback={<AlbumSkeleton />}>
             <AlbumTab />
