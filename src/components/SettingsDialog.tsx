@@ -8,7 +8,8 @@ import { useActiveTrip, useDeleteTrip } from '@/hooks/use-trip';
 import { LogOut, Key, Download, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { ExportDialog } from '@/components/export/ExportDialog';
 import { TripSelector } from '@/components/trips/TripSelector';
-import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
+import { CollageEmojiPad } from '@/components/auth/CollageEmojiPad';
+import { CollageRoot } from '@/preview/collage/CollageRoot';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -160,11 +161,13 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
                   <p className="text-sm text-muted-foreground text-center">
                     Choose your new 4-emoji PIN
                   </p>
-                  <EmojiPinPad
-                    onSubmit={handleFirstPin}
-                    error={pinError}
-                    submitLabel="Next"
-                  />
+                  <CollageRoot>
+                    <CollageEmojiPad
+                      onSubmit={handleFirstPin}
+                      error={pinError}
+                      submitLabel="Next"
+                    />
+                  </CollageRoot>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -181,12 +184,14 @@ export function SettingsDialog({ open, onOpenChange, currentPin, onLogout }: Set
                   <p className="text-sm text-muted-foreground text-center">
                     Confirm your new PIN
                   </p>
-                  <EmojiPinPad
-                    onSubmit={handleConfirmPin}
-                    loading={updatePin.isPending}
-                    error={pinError}
-                    submitLabel="Update PIN"
-                  />
+                  <CollageRoot>
+                    <CollageEmojiPad
+                      onSubmit={handleConfirmPin}
+                      loading={updatePin.isPending}
+                      error={pinError}
+                      submitLabel="Update PIN"
+                    />
+                  </CollageRoot>
                   <Button
                     variant="ghost"
                     size="sm"

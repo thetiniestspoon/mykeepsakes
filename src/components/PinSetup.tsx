@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Waves, Sun, Shell, KeyRound } from 'lucide-react';
-import { EmojiPinPad } from '@/components/auth/emoji-pin-pad';
+import { CollageEmojiPad } from '@/components/auth/CollageEmojiPad';
+import { CollageRoot } from '@/preview/collage/CollageRoot';
 import { useCreatePin } from '@/hooks/use-trip-data';
 
 interface PinSetupProps {
@@ -72,18 +73,22 @@ export function PinSetup({ onComplete }: PinSetupProps) {
 
         <CardContent className="space-y-4">
           {step === 'create' ? (
-            <EmojiPinPad
-              onSubmit={handleFirstPin}
-              error={error}
-              submitLabel="Next"
-            />
+            <CollageRoot>
+              <CollageEmojiPad
+                onSubmit={handleFirstPin}
+                error={error}
+                submitLabel="Next"
+              />
+            </CollageRoot>
           ) : (
-            <EmojiPinPad
-              onSubmit={handleConfirmPin}
-              loading={createPin.isPending}
-              error={error}
-              submitLabel="Create PIN"
-            />
+            <CollageRoot>
+              <CollageEmojiPad
+                onSubmit={handleConfirmPin}
+                loading={createPin.isPending}
+                error={error}
+                submitLabel="Create PIN"
+              />
+            </CollageRoot>
           )}
 
           <p className="text-center text-sm text-muted-foreground">
