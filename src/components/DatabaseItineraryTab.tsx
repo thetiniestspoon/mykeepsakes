@@ -3,7 +3,6 @@ import { Loader2, Calendar, Ticket } from 'lucide-react';
 import { useDatabaseItinerary, type LegacyActivity } from '@/hooks/use-database-itinerary';
 import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCard';
 import { TodayModeToggle } from '@/components/itinerary/TodayModeToggle';
-import { QuickAddButton } from '@/components/itinerary/QuickAddButton';
 import { useTodayMode } from '@/hooks/use-today-mode';
 import { getTripMode } from '@/hooks/use-trip';
 import { Stamp } from '@/preview/collage/ui/Stamp';
@@ -360,8 +359,6 @@ export function DatabaseItineraryTab() {
           })}
         </div>
       )}
-
-      <QuickAddButton />
     </div>
   );
 }

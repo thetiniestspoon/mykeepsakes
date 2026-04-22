@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hashPin } from '@/lib/emoji-pin';
+import { useActiveTrip } from '@/hooks/use-trip';
 
 // PIN Management
 export function usePin() {
@@ -203,18 +204,24 @@ export function useDeleteNote() {
 }
 
 // Photos
+// Cache is scoped to the active trip so a future multi-trip world doesn't
+// serve stale cross-trip data. Today (single trip), this is preventive —
+// the photos table has no trip_id column, so the server still returns all
+// photos; render sites filter by item_id.
 export function usePhotos() {
+  const { data: trip } = useActiveTrip();
   return useQuery({
-    queryKey: ['photos'],
+    queryKey: ['photos', trip?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('photos')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!trip?.id
   });
 }
 
