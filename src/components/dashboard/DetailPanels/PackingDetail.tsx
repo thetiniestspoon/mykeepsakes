@@ -1,15 +1,18 @@
 import { useMemo } from 'react';
 import { Backpack, Check } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { PACKING_LIST, type PackingItem } from '@/lib/itinerary-data';
 import { useChecklistItems, useToggleChecklistItem } from '@/hooks/use-trip-data';
+import '@/preview/collage/collage.css';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { Tape } from '@/preview/collage/ui/Tape';
 
 /**
- * Full-page packing list view when Packing tab is selected
+ * Full-page packing list view when Packing tab is selected.
+ * Migrated to Collage direction — presentation only; hooks/state/handlers unchanged.
  */
 export function PackingDetail() {
   const { data: checklistItems = {}, isLoading } = useChecklistItems();
@@ -41,92 +44,204 @@ export function PackingDetail() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-pulse text-[var(--c-ink-muted)]">Loading...</div>
+      <div className="collage-root h-full flex items-center justify-center">
+        <div className="animate-pulse" style={{ color: 'var(--c-ink-muted)', fontFamily: 'var(--c-font-body)' }}>
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-4 space-y-6">
+    <ScrollArea className="collage-root h-full">
+      <div className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[var(--c-tape)]/30 flex items-center justify-center">
-            <Backpack className="w-6 h-6 text-[var(--c-ink)]" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              background: 'var(--c-tape)',
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: 'var(--c-r-sm)',
+              boxShadow: 'var(--c-shadow-sm)',
+              transform: 'rotate(-3deg)',
+              flexShrink: 0,
+            }}
+          >
+            <Backpack className="w-6 h-6" style={{ color: 'var(--c-ink)' }} />
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold text-[var(--c-ink)]">Packing List</h2>
-            <p className="text-sm text-[var(--c-ink-muted)]">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2
+              style={{
+                fontFamily: 'var(--c-font-display)',
+                fontSize: 18,
+                letterSpacing: '.14em',
+                textTransform: 'uppercase',
+                color: 'var(--c-ink)',
+                margin: 0,
+                lineHeight: 1.1,
+              }}
+            >
+              Packing List
+            </h2>
+            <p
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 13,
+                color: 'var(--c-ink-muted)',
+                margin: '4px 0 0',
+              }}
+            >
               {packedCount} of {totalItems} items packed
             </p>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--c-ink-muted)]">Progress</span>
-            <span className="font-medium text-[var(--c-ink)]">{Math.round(progressPercent)}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
+        {/* Card wrapper for progress + list */}
+        <div
+          style={{
+            position: 'relative',
+            background: 'var(--c-paper)',
+            border: '1px solid var(--c-line)',
+            boxShadow: 'var(--c-shadow)',
+            borderRadius: 'var(--c-r-sm)',
+            padding: '20px 16px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 24,
+          }}
+        >
+          <Tape position="top-left" rotate={-2} />
 
-        {/* Categories */}
-        <div className="space-y-6">
-          {Object.entries(packingByCategory).map(([category, items]) => {
-            const progress = categoryProgress[category];
-            const isComplete = progress.packed === progress.total;
-            
-            return (
-              <div key={category} className="space-y-2">
-                {/* Category Header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-[var(--c-ink)]">{category}</h3>
-                  <Badge 
-                    variant={isComplete ? 'default' : 'secondary'}
-                    className="text-xs"
+          {/* Progress Bar — flat */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: 'var(--c-ink-muted)' }}>Progress</span>
+              <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{Math.round(progressPercent)}%</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-valuenow={Math.round(progressPercent)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Packing progress"
+              style={{
+                width: '100%',
+                height: 4,
+                background: 'var(--c-line)',
+                borderRadius: 0,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${progressPercent}%`,
+                  height: '100%',
+                  background: 'var(--c-pen)',
+                  transition: 'width var(--c-t-med) var(--c-ease-out)',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {Object.entries(packingByCategory).map(([category, items]) => {
+              const progress = categoryProgress[category];
+              const isComplete = progress.packed === progress.total;
+
+              return (
+                <div key={category} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Category Header */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                    }}
                   >
+                    <Stamp variant="ink" size="sm">
+                      {category}
+                    </Stamp>
                     {isComplete ? (
-                      <>
-                        <Check className="w-3 h-3 mr-1" />
-                        Complete
-                      </>
-                    ) : (
-                      `${progress.packed}/${progress.total}`
-                    )}
-                  </Badge>
-                </div>
-                
-                {/* Items */}
-                <div className="space-y-1">
-                  {items.map((item) => {
-                    const isCompleted = checklistItems[item.id] ?? false;
-                    
-                    return (
-                      <label
-                        key={item.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--c-creme)] cursor-pointer transition-colors"
-                      >
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={(checked) =>
-                            toggleChecklist.mutate({ itemId: item.id, isCompleted: !!checked })
-                          }
-                        />
-                        <span className={cn(
-                          "text-sm text-[var(--c-ink)]",
-                          isCompleted && "line-through text-[var(--c-ink-muted)]"
-                        )}>
-                          {item.item}
+                      <StickerPill variant="pen">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Check className="w-3 h-3" />
+                          Complete
                         </span>
-                      </label>
-                    );
-                  })}
+                      </StickerPill>
+                    ) : (
+                      <StickerPill variant="pen">
+                        {progress.packed} of {progress.total}
+                      </StickerPill>
+                    )}
+                  </div>
+
+                  {/* Items */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {items.map((item) => {
+                      const isCompleted = checklistItems[item.id] ?? false;
+
+                      return (
+                        <label
+                          key={item.id}
+                          className={cn(
+                            'packing-row',
+                            'flex items-center gap-3 cursor-pointer'
+                          )}
+                          style={{
+                            padding: '8px 10px',
+                            background: 'var(--c-paper)',
+                            border: '1px solid transparent',
+                            borderRadius: 'var(--c-r-sm)',
+                            transition:
+                              'background var(--c-t-fast) var(--c-ease-out), border-color var(--c-t-fast) var(--c-ease-out)',
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--c-ink)';
+                            e.currentTarget.style.background = 'var(--c-creme)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.background = 'var(--c-paper)';
+                          }}
+                        >
+                          <Checkbox
+                            checked={isCompleted}
+                            onCheckedChange={(checked) =>
+                              toggleChecklist.mutate({ itemId: item.id, isCompleted: !!checked })
+                            }
+                            aria-label={item.item}
+                          />
+                          <span
+                            style={{
+                              fontFamily: 'var(--c-font-body)',
+                              fontSize: 14,
+                              color: isCompleted ? 'var(--c-ink-muted)' : 'var(--c-ink)',
+                              textDecoration: isCompleted ? 'line-through' : 'none',
+                            }}
+                          >
+                            {item.item}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </ScrollArea>
