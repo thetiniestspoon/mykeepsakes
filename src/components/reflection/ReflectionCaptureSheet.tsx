@@ -107,7 +107,7 @@ export function ReflectionCaptureSheet({
           memoryId: reflection.id,
           tripId,
           file: photoFile,
-          mediaType: 'image',
+          mediaType: photoFile.type.startsWith('video/') ? 'video' : 'image',
         });
       }
 
@@ -204,8 +204,7 @@ export function ReflectionCaptureSheet({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/*,video/*"
               className="hidden"
               onChange={handlePhotoSelect}
             />

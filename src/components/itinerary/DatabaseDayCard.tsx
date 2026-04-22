@@ -352,6 +352,7 @@ export function DatabaseDayCard({ day, nextActivityId, isReceivingDrag, previewT
         locations={locations || []}
         preselectedDayId={day.id}
         preselectedLocationId={memoryTargetActivity?.location?.id}
+        itineraryItemId={memoryTargetActivity?.id}
       />
       
       {/* Activity Editor */}

@@ -58,7 +58,7 @@ export function useLocationMemories(locationId: string | undefined) {
     queryKey: ['location-memories', locationId],
     queryFn: async () => {
       if (!locationId) return [];
-      
+
       const { data, error } = await supabase
         .from('memories')
         .select(`
@@ -67,11 +67,34 @@ export function useLocationMemories(locationId: string | undefined) {
         `)
         .eq('location_id', locationId)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data as Memory[];
     },
     enabled: !!locationId
+  });
+}
+
+// Fetch memories for a specific itinerary item (event)
+export function useItemMemories(itineraryItemId: string | undefined) {
+  return useQuery({
+    queryKey: ['item-memories', itineraryItemId],
+    queryFn: async () => {
+      if (!itineraryItemId) return [];
+
+      const { data, error } = await supabase
+        .from('memories')
+        .select(`
+          *,
+          media:memory_media(*)
+        `)
+        .eq('itinerary_item_id', itineraryItemId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Memory[];
+    },
+    enabled: !!itineraryItemId
   });
 }
 
@@ -97,6 +120,9 @@ export function useCreateMemory() {
       }
       if (data.location_id) {
         queryClient.invalidateQueries({ queryKey: ['location-memories', data.location_id] });
+      }
+      if (data.itinerary_item_id) {
+        queryClient.invalidateQueries({ queryKey: ['item-memories', data.itinerary_item_id] });
       }
       toast.success('Memory created!');
     },
@@ -146,7 +172,7 @@ export function useDeleteMemory() {
       // First get memory info and its media
       const { data: memory } = await supabase
         .from('memories')
-        .select('trip_id, day_id, location_id')
+        .select('trip_id, day_id, location_id, itinerary_item_id')
         .eq('id', memoryId)
         .single();
       
@@ -180,6 +206,9 @@ export function useDeleteMemory() {
         }
         if (memory.location_id) {
           queryClient.invalidateQueries({ queryKey: ['location-memories', memory.location_id] });
+        }
+        if (memory.itinerary_item_id) {
+          queryClient.invalidateQueries({ queryKey: ['item-memories', memory.itinerary_item_id] });
         }
       }
       toast.success('Memory deleted');
@@ -238,6 +267,7 @@ export function useUploadMemoryMedia() {
       queryClient.invalidateQueries({ queryKey: ['memories'] });
       queryClient.invalidateQueries({ queryKey: ['day-memories'] });
       queryClient.invalidateQueries({ queryKey: ['location-memories'] });
+      queryClient.invalidateQueries({ queryKey: ['item-memories'] });
       toast.success('Photo uploaded!');
     },
     onError: (error) => {

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, Route, ChevronDown, Image as ImageIcon, Pencil } from 'lucide-react';
+import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, ChevronDown, Image as ImageIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -15,7 +15,7 @@ import { useTripDays } from '@/hooks/use-trip';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useLocations } from '@/hooks/use-locations';
 import { useFavorites, useToggleFavorite } from '@/hooks/use-trip-data';
-import { useLocationMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
+import { useItemMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
 import { cn } from '@/lib/utils';
 interface ActivityDetailProps {
   activity: ItineraryItem | null;
@@ -48,18 +48,19 @@ export function ActivityDetail({
   } = useFavorites();
   const toggleFavorite = useToggleFavorite();
   const {
-    data: locationMemories = []
-  } = useLocationMemories(activity?.location_id || undefined);
+    data: itemMemories = []
+  } = useItemMemories(activity?.id);
   const [memoryDialogOpen, setMemoryDialogOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(true);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
 
-  // Flatten all media from location memories
+  // Flatten all media from this event's memories (item-scoped to prevent
+  // cross-event bleed — two events at the same location no longer share photos)
   const locationPhotos = useMemo(() => {
-    return locationMemories.flatMap(m => m.media || []);
-  }, [locationMemories]);
+    return itemMemories.flatMap(m => m.media || []);
+  }, [itemMemories]);
   if (!activity) {
     return <div className="flex items-center justify-center h-full text-[var(--c-ink-muted)]">
         <p>Select an activity to see details</p>
@@ -100,12 +101,6 @@ export function ActivityDetail({
   };
   const handleAddMemory = () => {
     setMemoryDialogOpen(true);
-  };
-  const handleGetDirections = () => {
-    if (activity.location?.lat && activity.location?.lng) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${activity.location.lat},${activity.location.lng}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
   };
   const handleToggleFavorite = () => {
     toggleFavorite.mutate({
@@ -245,16 +240,6 @@ export function ActivityDetail({
             <TooltipContent>Edit activity</TooltipContent>
           </Tooltip>
 
-          {/* Get Directions */}
-          {activity.location?.lat && activity.location?.lng && <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleGetDirections}>
-                  <Route className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Get directions</TooltipContent>
-            </Tooltip>}
-
           {/* Show on Map */}
           {activity.location && <Tooltip>
               <TooltipTrigger asChild>
@@ -316,7 +301,7 @@ export function ActivityDetail({
         </Collapsible>}
 
       {/* Memory Capture Dialog */}
-      <MemoryCaptureDialog open={memoryDialogOpen} onOpenChange={setMemoryDialogOpen} tripId={trip?.id} days={legacyDays} locations={locations || []} preselectedDayId={activity.day_id} preselectedLocationId={activity.location_id || undefined} />
+      <MemoryCaptureDialog open={memoryDialogOpen} onOpenChange={setMemoryDialogOpen} tripId={trip?.id} days={legacyDays} locations={locations || []} preselectedDayId={activity.day_id} preselectedLocationId={activity.location_id || undefined} itineraryItemId={activity.id} />
 
       {/* Photo Viewer */}
       {photoViewerData.length > 0 && <PhotoViewer photos={photoViewerData} initialIndex={photoViewerIndex} open={photoViewerOpen} onOpenChange={setPhotoViewerOpen} />}

@@ -26,6 +26,7 @@ interface MemoryCaptureDialogProps {
   locations: Location[];
   preselectedDayId?: string;
   preselectedLocationId?: string;
+  itineraryItemId?: string;
 }
 
 export function MemoryCaptureDialog({
@@ -35,7 +36,8 @@ export function MemoryCaptureDialog({
   days,
   locations,
   preselectedDayId,
-  preselectedLocationId
+  preselectedLocationId,
+  itineraryItemId
 }: MemoryCaptureDialogProps) {
   const [note, setNote] = useState('');
   const [selectedDayId, setSelectedDayId] = useState<string>(preselectedDayId || '');
@@ -107,7 +109,7 @@ export function MemoryCaptureDialog({
         title: null,
         day_id: selectedDayId || null,
         location_id: selectedLocationId || null,
-        itinerary_item_id: null,
+        itinerary_item_id: itineraryItemId ?? null,
         memory_type: 'photo',
         tags: tags.length > 0 ? tags : undefined
       });
@@ -175,7 +177,6 @@ export function MemoryCaptureDialog({
               ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
-              capture="environment"
               multiple
               className="hidden"
               onChange={handleFileSelect}
