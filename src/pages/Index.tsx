@@ -17,6 +17,7 @@ import { CompactHeader } from '@/components/dashboard/CompactHeader';
 import { ReflectionFAB } from '@/components/reflection/ReflectionFAB';
 import { ReflectionCaptureSheet } from '@/components/reflection/ReflectionCaptureSheet';
 import { ConnectionCaptureSheet } from '@/components/connections/ConnectionCaptureSheet';
+import { ItineraryEventCaptureSheet } from '@/components/itinerary/ItineraryEventCaptureSheet';
 import { useActiveTrip, getTripMode, useTripDays, getCurrentDayIndex } from '@/hooks/use-trip';
 import { CollageRoot } from '@/preview/collage/CollageRoot';
 
@@ -25,6 +26,7 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [connectionOpen, setConnectionOpen] = useState(false);
+  const [eventOpen, setEventOpen] = useState(false);
 
   const { data: pin, isLoading: pinLoading } = usePin();
   const { data: trip } = useActiveTrip();
@@ -119,6 +121,7 @@ const Index = () => {
             <ReflectionFAB
               onReflection={() => setReflectionOpen(true)}
               onConnection={() => setConnectionOpen(true)}
+              onEvent={() => setEventOpen(true)}
             />
             <ReflectionCaptureSheet
               open={reflectionOpen}
@@ -131,6 +134,13 @@ const Index = () => {
               open={connectionOpen}
               onOpenChange={setConnectionOpen}
               tripId={trip.id}
+              currentDayId={currentDayId}
+            />
+            <ItineraryEventCaptureSheet
+              open={eventOpen}
+              onOpenChange={setEventOpen}
+              tripId={trip.id}
+              days={days}
               currentDayId={currentDayId}
             />
           </>

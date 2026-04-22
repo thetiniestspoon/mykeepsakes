@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Plus, PenLine, UserPlus, X } from 'lucide-react';
+import { Plus, PenLine, UserPlus, CalendarPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ReflectionFABProps {
   onReflection: () => void;
   onConnection: () => void;
+  onEvent: () => void;
 }
 
-export function ReflectionFAB({ onReflection, onConnection }: ReflectionFABProps) {
+export function ReflectionFAB({ onReflection, onConnection, onEvent }: ReflectionFABProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -31,6 +32,15 @@ export function ReflectionFAB({ onReflection, onConnection }: ReflectionFABProps
           >
             <UserPlus className="h-5 w-5" />
             Connection
+          </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="rounded-full shadow-lg h-12 px-4 gap-2 animate-in fade-in slide-in-from-bottom-2"
+            onClick={() => { onEvent(); setExpanded(false); }}
+          >
+            <CalendarPlus className="h-5 w-5" />
+            Event
           </Button>
         </>
       )}
