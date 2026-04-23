@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '@/preview/collage/collage.css';
 import type { MapLocation } from '@/types/map';
 
 // Fix for default marker icons in Leaflet with bundlers
@@ -18,118 +19,102 @@ L.Icon.Default.mergeOptions({
 
 export type { MapLocation };
 
-// Custom colored marker icons with state indicators and animations
-const createColoredIcon = (color: string, pinState?: string, index?: number) => {
-  // Determine ring/badge based on state
-  let ringStyle = '';
+/**
+ * Collage-migrated OverviewMap (Phase 4 #6).
+ * Leaflet setup + bounds-fit + drag-to-move + long-press + click handlers are all preserved.
+ * Only the presentation changed: CartoDB Voyager base tiles with a sepia/saturation wash,
+ * and DivIcon-based Collage pins (ink body, pen-blue ring when highlighted, tape-yellow for
+ * favorited, sage for visited, pink for has-memories). Pointer-stem at the pin anchor keeps
+ * positional accuracy while the ink-bordered head reads as a hand-drawn marker.
+ */
+
+// Category colors — mapped to the Collage token palette so pins sit under the same palette
+// as the rest of the app. These are the body-fill of the pin head.
+const categoryColors: Record<string, string> = {
+  beach: '#5b7fa8',        // sky
+  dining: '#C27814',       // warn / ochre
+  restaurant: '#C27814',   // ochre
+  activity: '#1F3CC6',     // pen-blue
+  accommodation: '#4A4843',// ink-muted
+  transport: '#6B7280',    // neutral
+  event: '#F6D55C',        // tape-yellow
+  lodging: '#8ba66e',      // sage
+};
+
+// Category stamp labels (for the pin's small overline text)
+const categoryLabels: Record<string, string> = {
+  beach: 'beach',
+  dining: 'dining',
+  restaurant: 'dining',
+  activity: 'stop',
+  accommodation: 'stay',
+  transport: 'transit',
+  event: 'event',
+  lodging: 'lodging',
+};
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, ch =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string)
+  );
+}
+
+// Collage-styled DivIcon. Parameters:
+//  - color: body fill (category color)
+//  - pinState: affects the surrounding ring / badge
+//  - index: deterministic rotation seed so each pin tilts a little differently
+//  - name/categoryLabel: rendered as overline + handwritten script
+const createCollageIcon = (
+  color: string,
+  pinState: string | undefined,
+  index: number,
+  name: string,
+  catLabel: string,
+) => {
+  let ringColor = 'var(--c-ink)';
   let badgeHtml = '';
   let glowClass = '';
-  
+
   if (pinState === 'highlighted') {
-    ringStyle = 'border: 4px solid #3B82F6;'; // blue ring for highlighted
-    glowClass = 'marker-glow-highlight';
+    ringColor = 'var(--c-pen)';
+    glowClass = 'collage-pin-glow-pen';
   } else if (pinState === 'has-memories') {
-    ringStyle = 'border: 3px solid #EC4899;'; // pink ring for memories
-    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #EC4899; border-radius: 50%; border: 2px solid white;"></div>`;
-    glowClass = 'marker-glow-memory';
+    ringColor = '#A83232';
+    badgeHtml = `<span class="collage-pin-badge" style="background:#A83232;" aria-hidden="true"></span>`;
+    glowClass = 'collage-pin-glow-ink';
   } else if (pinState === 'favorited') {
-    ringStyle = 'border: 3px solid #F59E0B;'; // gold ring for favorites
-    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #F59E0B; border-radius: 50%; border: 2px solid white;"></div>`;
+    ringColor = 'var(--c-tape)';
+    badgeHtml = `<span class="collage-pin-badge" style="background:var(--c-tape);" aria-hidden="true"></span>`;
   } else if (pinState === 'visited') {
-    ringStyle = 'border: 3px solid #10B981;'; // green ring for visited
-    badgeHtml = `<div style="position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background: #10B981; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center;">
+    ringColor = '#3C7A4E';
+    badgeHtml = `<span class="collage-pin-badge" style="background:#3C7A4E; display:flex; align-items:center; justify-content:center;">
       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    </div>`;
-  } else {
-    ringStyle = 'border: 3px solid white;';
+    </span>`;
   }
 
-  // Add animation delay based on index for staggered drop-in
-  const animationDelay = index !== undefined ? `animation-delay: ${index * 50}ms;` : '';
+  const rotateSeed = ((name.charCodeAt(0) || 0) + name.length) % 10;
+  const rotate = (rotateSeed - 5) * 0.9; // -4.5..+4.5 degrees
+  const label = name.length > 22 ? name.slice(0, 21).trim() + '…' : name;
+
+  const html = `
+    <div class="collage-pin ${glowClass}" style="transform: rotate(${rotate}deg); --pin-color:${color}; --pin-ring:${ringColor}; animation-delay:${index * 40}ms;">
+      <div class="collage-pin-card">
+        <div class="collage-pin-cat">${escapeHtml(catLabel)}</div>
+        <div class="collage-pin-name">${escapeHtml(label)}</div>
+      </div>
+      <div class="collage-pin-stem" aria-hidden="true"></div>
+      ${badgeHtml}
+    </div>
+  `;
 
   return L.divIcon({
-    className: `custom-marker ${glowClass}`,
-    html: `
-      <div style="position: relative;" class="marker-container">
-        <div class="marker-pin" style="
-          background-color: ${color};
-          width: 28px;
-          height: 28px;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          ${ringStyle}
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          animation: markerDropIn 0.5s ease-out forwards;
-          opacity: 0;
-          ${animationDelay}
-        ">
-          <div style="
-            width: 10px;
-            height: 10px;
-            background: white;
-            border-radius: 50%;
-            transform: rotate(45deg);
-          "></div>
-        </div>
-        ${badgeHtml}
-      </div>
-      <style>
-        @keyframes markerDropIn {
-          0% { transform: translateY(-40px) rotate(-45deg); opacity: 0; }
-          60% { transform: translateY(5px) rotate(-45deg); opacity: 1; }
-          80% { transform: translateY(-3px) rotate(-45deg); }
-          100% { transform: translateY(0) rotate(-45deg); opacity: 1; }
-        }
-        .marker-container:hover .marker-pin {
-          transform: translateY(-4px) rotate(-45deg);
-          box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-          transition: all 0.15s ease-out;
-        }
-        .marker-glow-memory .marker-pin {
-          animation: markerDropIn 0.5s ease-out forwards, glowPulse 2s ease-in-out infinite 0.5s;
-        }
-        .marker-glow-highlight .marker-pin {
-          animation: markerDropIn 0.3s ease-out forwards, highlightPulse 1s ease-in-out infinite 0.3s;
-          transform: scale(1.15) rotate(-45deg) !important;
-        }
-        @keyframes glowPulse {
-          0%, 100% { box-shadow: 0 0 5px 2px rgba(236, 72, 153, 0.3), 0 2px 6px rgba(0,0,0,0.3); }
-          50% { box-shadow: 0 0 15px 5px rgba(236, 72, 153, 0.5), 0 2px 6px rgba(0,0,0,0.3); }
-        }
-        @keyframes highlightPulse {
-          0%, 100% { box-shadow: 0 0 8px 3px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0,0,0,0.3); }
-          50% { box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.6), 0 2px 6px rgba(0,0,0,0.3); }
-        }
-        .marker-dragging .marker-pin {
-          transform: scale(1.2) rotate(-45deg) translateY(-8px) !important;
-          box-shadow: 0 12px 24px rgba(0,0,0,0.4) !important;
-          filter: brightness(1.1);
-          transition: all 0.15s ease-out;
-        }
-      </style>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
+    className: 'collage-pin-wrap',
+    html,
+    iconSize: [170, 74],
+    iconAnchor: [85, 74],
+    popupAnchor: [0, -74],
   });
 };
-
-// Category colors
-const categoryColors: Record<string, string> = {
-  beach: '#47D3CB',     // seafoam
-  dining: '#FF8366',    // coral
-  restaurant: '#FF8366', // coral
-  activity: '#3B82F6',  // blue
-  accommodation: '#A855F7', // purple
-  transport: '#6B7280', // gray
-  event: '#F59E0B',     // gold
-  lodging: '#EC4899',   // pink
-};
-
-// MapLocation interface is now imported from @/types/map
 
 interface OverviewMapProps {
   locations: MapLocation[];
@@ -147,8 +132,8 @@ interface OverviewMapProps {
   onLocationDrag?: (locationId: string, newLat: number, newLng: number) => void;
 }
 
-export function OverviewMap({ 
-  locations, 
+export function OverviewMap({
+  locations,
   onMarkerClick,
   highlightedPinIds = [],
   className = '',
@@ -183,9 +168,11 @@ export function OverviewMap({
     const map = L.map(mapRef.current).setView(defaultCenter, zoom);
     mapInstanceRef.current = map;
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // CartoDB Voyager tiles — the Collage "field notebook" base layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      subdomains: ['a', 'b', 'c', 'd'],
       maxZoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -196,7 +183,7 @@ export function OverviewMap({
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
+        mapInstanceRef.current = null;
         markersLayerRef.current = null;
       }
     };
@@ -212,12 +199,12 @@ export function OverviewMap({
     const idsChanged = newIds !== prevLocationIdsRef.current;
     const newHighlightIds = highlightedPinIds.sort().join(',');
     const highlightChanged = newHighlightIds !== prevHighlightedPinsRef.current;
-    
+
     // Skip if nothing actually changed
     if (!idsChanged && !highlightChanged) {
       return;
     }
-    
+
     prevLocationIdsRef.current = newIds;
     prevHighlightedPinsRef.current = newHighlightIds;
 
@@ -228,18 +215,19 @@ export function OverviewMap({
     locations.forEach((location, index) => {
       const isHighlighted = highlightedPinIds.includes(location.id);
       const color = categoryColors[location.category] || categoryColors.activity;
+      const catLabel = categoryLabels[location.category] || 'stop';
       const pinState = isHighlighted ? 'highlighted' : location.pinState;
-      const icon = createColoredIcon(color, pinState, index);
-      
+      const icon = createCollageIcon(color, pinState, index, location.name, catLabel);
+
       // Create marker (starts as non-draggable)
-      const marker = L.marker([location.lat, location.lng], { 
+      const marker = L.marker([location.lat, location.lng], {
         icon,
-        draggable: false 
+        draggable: false
       }).bindPopup(`
-          <div style="min-width: 150px;">
-            <strong>${location.name}</strong>
-            ${location.dayLabel ? `<br/><span style="color: #666; font-size: 0.85em;">${location.dayLabel}</span>` : ''}
-            ${location.address ? `<br/><span style="color: #888; font-size: 0.85em;">${location.address}</span>` : ''}
+          <div style="min-width: 150px; font-family: 'IBM Plex Serif', Georgia, serif;">
+            <strong style="font-family: 'IBM Plex Serif', Georgia, serif;">${escapeHtml(location.name)}</strong>
+            ${location.dayLabel ? `<br/><span style="color: #4A4843; font-size: 0.85em;">${escapeHtml(location.dayLabel)}</span>` : ''}
+            ${location.address ? `<br/><span style="color: #4A4843; font-size: 0.85em;">${escapeHtml(location.address)}</span>` : ''}
           </div>
         `);
 
@@ -252,11 +240,11 @@ export function OverviewMap({
           // Enable dragging after 500ms hold
           marker.dragging?.enable();
           isDragging = true;
-          
+
           // Visual feedback - add "dragging" class
           const el = marker.getElement();
-          el?.classList.add('marker-dragging');
-          
+          el?.classList.add('collage-pin-dragging');
+
           // Disable map dragging while moving pin
           mapInstanceRef.current?.dragging.disable();
           mapInstanceRef.current?.touchZoom.disable();
@@ -290,21 +278,21 @@ export function OverviewMap({
       // Handle drag end - save new position
       marker.on('dragend', () => {
         if (!isDragging) return;
-        
+
         const newLatLng = marker.getLatLng();
-        
+
         // Disable dragging again
         marker.dragging?.disable();
         isDragging = false;
-        
+
         // Re-enable map dragging
         mapInstanceRef.current?.dragging.enable();
         mapInstanceRef.current?.touchZoom.enable();
-        
+
         // Remove visual feedback
         const el = marker.getElement();
-        el?.classList.remove('marker-dragging');
-        
+        el?.classList.remove('collage-pin-dragging');
+
         // Call callback with new position
         onLocationDrag?.(location.id, newLatLng.lat, newLatLng.lng);
       });
@@ -330,10 +318,142 @@ export function OverviewMap({
   }, [locations, bounds, onMarkerClick, highlightedPinIds, skipBoundsFit, onLocationDrag]);
 
   return (
-    <div 
-      ref={mapRef} 
-      className={`w-full ${className}`}
+    <div
+      ref={mapRef}
+      className={`collage-mapframe w-full ${className}`}
       style={{ minHeight: '300px' }}
     />
   );
+}
+
+// Scoped Collage pin + map styles. Injected once at module import.
+// Keeps all presentational rules colocated with the component.
+if (typeof document !== 'undefined' && !document.getElementById('collage-mapframe-styles')) {
+  const style = document.createElement('style');
+  style.id = 'collage-mapframe-styles';
+  style.textContent = `
+    /* Sepia wash on tiles so the map reads as part of the Collage palette */
+    .collage-mapframe .leaflet-tile-pane {
+      filter: sepia(0.18) saturate(0.88) contrast(1.02);
+    }
+    .collage-mapframe .leaflet-control-attribution {
+      background: rgba(247, 243, 233, 0.85) !important;
+      font-family: 'IBM Plex Serif', Georgia, serif;
+      font-size: 10px;
+      color: #4A4843;
+    }
+    .collage-mapframe .leaflet-control-attribution a { color: #1F3CC6; }
+    .collage-mapframe .leaflet-bar a {
+      background: #FFFFFF;
+      color: #1D1D1B;
+      border-color: #1D1D1B;
+      font-family: 'Rubik Mono One', system-ui, sans-serif;
+    }
+    .collage-mapframe .leaflet-bar a:hover { background: #F6D55C; }
+    .collage-mapframe .leaflet-popup-content-wrapper {
+      background: #FFFFFF;
+      border: 1.5px solid #1D1D1B;
+      border-radius: 2px;
+      box-shadow: 0 8px 24px -6px rgba(29,29,27,.22);
+    }
+    .collage-mapframe .leaflet-popup-tip { background: #FFFFFF; border: 1.5px solid #1D1D1B; }
+
+    /* Collage DivIcon pins */
+    .collage-pin-wrap { background: transparent !important; border: 0 !important; }
+    .collage-pin {
+      position: relative;
+      width: 170px;
+      transform-origin: bottom center;
+      font-family: 'IBM Plex Serif', Georgia, serif;
+      animation: collagePinDropIn 0.45s ease-out both;
+      opacity: 0;
+    }
+    .collage-pin-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--pin-ring, #1D1D1B);
+      border-left: 4px solid var(--pin-color, #1D1D1B);
+      padding: 5px 9px 6px;
+      box-shadow: 0 6px 12px -6px rgba(29,29,27,.4);
+    }
+    .collage-pin-cat {
+      font-family: 'Rubik Mono One', system-ui, sans-serif;
+      font-size: 8px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #4A4843;
+      margin-bottom: 2px;
+    }
+    .collage-pin-name {
+      font-family: 'Caveat', cursive;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1.1;
+      color: #1D1D1B;
+    }
+    .collage-pin-stem {
+      width: 2px;
+      height: 12px;
+      background: var(--pin-color, #1D1D1B);
+      margin: 0 auto;
+    }
+    .collage-pin-stem::after {
+      content: "";
+      display: block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--pin-color, #1D1D1B);
+      border: 2px solid #FFFFFF;
+      margin: 2px auto 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,.35);
+    }
+    .collage-pin-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    }
+    .collage-pin-wrap:hover .collage-pin-card {
+      transform: translateY(-3px);
+      transition: transform 140ms ease-out;
+    }
+    .collage-pin-glow-pen .collage-pin-card {
+      animation: collagePinGlowPen 1.4s ease-in-out infinite;
+    }
+    .collage-pin-glow-ink .collage-pin-card {
+      animation: collagePinGlowInk 2s ease-in-out infinite;
+    }
+    .collage-pin-dragging .collage-pin {
+      transform: scale(1.08) translateY(-4px) rotate(0deg) !important;
+    }
+    .collage-pin-dragging .collage-pin-card {
+      box-shadow: 0 12px 24px rgba(0,0,0,.35) !important;
+    }
+    @keyframes collagePinDropIn {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes collagePinGlowPen {
+      0%, 100% { box-shadow: 0 6px 12px -6px rgba(29,29,27,.4), 0 0 0 0 rgba(31,60,198,0.35); }
+      50% { box-shadow: 0 6px 12px -6px rgba(29,29,27,.4), 0 0 14px 4px rgba(31,60,198,0.45); }
+    }
+    @keyframes collagePinGlowInk {
+      0%, 100% { box-shadow: 0 6px 12px -6px rgba(29,29,27,.4), 0 0 0 0 rgba(168,50,50,0.3); }
+      50% { box-shadow: 0 6px 12px -6px rgba(29,29,27,.4), 0 0 14px 4px rgba(168,50,50,0.4); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .collage-pin {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: rotate(0deg) !important;
+      }
+      .collage-pin-glow-pen .collage-pin-card,
+      .collage-pin-glow-ink .collage-pin-card { animation: none !important; }
+    }
+  `;
+  document.head.appendChild(style);
 }
