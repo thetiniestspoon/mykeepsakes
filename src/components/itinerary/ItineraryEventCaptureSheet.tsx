@@ -1,15 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -21,6 +11,10 @@ import { useCreateItem } from '@/hooks/use-itinerary';
 import { useLocations } from '@/hooks/use-locations';
 import type { ItemCategory } from '@/types/trip';
 import type { ItineraryDay } from '@/types/trip';
+import { Loader2 } from 'lucide-react';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import '@/preview/collage/collage.css';
 
 const CATEGORIES: { value: ItemCategory; label: string }[] = [
   { value: 'activity', label: 'Activity' },
@@ -41,6 +35,13 @@ interface ItineraryEventCaptureSheetProps {
   currentDayId?: string;
 }
 
+/**
+ * ItineraryEventCaptureSheet — migrated to Collage direction (Phase 4 #2 support).
+ * Sheet primitive preserved; content slot wrapped with collage-root. "Capture
+ * an event" vocabulary (outline Stamp + tape StickerPill). Plex Serif inputs
+ * with hairline underline + pen-blue focus. createItem mutation, auto-focus,
+ * day selection default, and form-reset-on-close all unchanged.
+ */
 export function ItineraryEventCaptureSheet({
   open,
   onOpenChange,
@@ -111,173 +112,366 @@ export function ItineraryEventCaptureSheet({
     onOpenChange(false);
   };
 
+  // Styling helpers
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontFamily: 'var(--c-font-display)',
+    fontSize: 10,
+    letterSpacing: '.22em',
+    textTransform: 'uppercase',
+    color: 'var(--c-ink-muted)',
+    marginBottom: 6,
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    fontFamily: 'var(--c-font-body)',
+    fontSize: 15,
+    color: 'var(--c-ink)',
+    background: 'var(--c-paper)',
+    border: 0,
+    borderBottom: '1.5px solid var(--c-ink)',
+    borderRadius: 0,
+    padding: '8px 2px',
+    outline: 'none',
+    transition: 'border-color var(--c-t-fast) var(--c-ease-out)',
+    boxSizing: 'border-box',
+  };
+
+  const selectTriggerStyle: React.CSSProperties = {
+    background: 'var(--c-paper)',
+    border: 0,
+    borderBottom: '1.5px solid var(--c-ink)',
+    borderRadius: 0,
+    fontFamily: 'var(--c-font-body)',
+    fontSize: 15,
+    color: 'var(--c-ink)',
+    padding: '8px 2px',
+    height: 'auto',
+  };
+
+  const focusOn = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.borderBottomColor = 'var(--c-pen)';
+  };
+  const focusOff = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.borderBottomColor = 'var(--c-ink)';
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Add Event</SheetTitle>
-          <SheetDescription>
-            Add an event to your itinerary
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none"
+      >
+        <div
+          className="collage-root"
+          style={{
+            position: 'relative',
+            background: 'var(--c-paper)',
+            padding: '24px 20px 28px',
+            borderTop: '1px solid var(--c-line)',
+            boxShadow: 'var(--c-shadow)',
+            minHeight: '100%',
+          }}
+        >
+          <SheetHeader className="text-left space-y-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <Stamp variant="outline" size="sm" rotate={-3}>
+                capture an event
+              </Stamp>
+              <StickerPill variant="tape" rotate={-2}>
+                itinerary
+              </StickerPill>
+            </div>
+            <SheetTitle asChild>
+              <h2
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontSize: 22,
+                  fontWeight: 500,
+                  letterSpacing: '-.005em',
+                  margin: '10px 0 0',
+                  color: 'var(--c-ink)',
+                }}
+              >
+                Add Event
+              </h2>
+            </SheetTitle>
+            <SheetDescription asChild>
+              <p
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontStyle: 'italic',
+                  fontSize: 14,
+                  color: 'var(--c-ink-muted)',
+                  margin: '2px 0 0',
+                }}
+              >
+                Add an event to your itinerary
+              </p>
+            </SheetDescription>
+          </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2 sm:col-span-1">
-              <Label htmlFor="event-title">Title *</Label>
-              <Input
-                ref={titleRef}
-                id="event-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Evening plenary"
-                required
-              />
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 22 }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <label htmlFor="event-title" style={{ gridColumn: 'span 2', display: 'block' }}>
+                <span style={labelStyle}>Title *</span>
+                <input
+                  ref={titleRef}
+                  id="event-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Evening plenary"
+                  required
+                  style={inputStyle}
+                  onFocus={focusOn}
+                  onBlur={focusOff}
+                />
+              </label>
+
+              <label htmlFor="event-time" style={{ gridColumn: 'span 2', display: 'block' }}>
+                <span style={labelStyle}>Time</span>
+                <input
+                  id="event-time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  style={inputStyle}
+                  onFocus={focusOn}
+                  onBlur={focusOff}
+                />
+              </label>
             </div>
 
-            <div className="space-y-2 col-span-2 sm:col-span-1">
-              <Label htmlFor="event-time">Time</Label>
-              <Input
-                id="event-time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </div>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label htmlFor="event-day" style={labelStyle}>
+                  Day
+                </label>
+                <Select value={selectedDayId} onValueChange={setSelectedDayId}>
+                  <SelectTrigger id="event-day" style={selectTriggerStyle}>
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {days.map((day, index) => (
+                      <SelectItem key={day.id} value={day.id}>
+                        Day {index + 1}:{' '}
+                        {day.title ||
+                          new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="event-day">Day</Label>
-              <Select value={selectedDayId} onValueChange={setSelectedDayId}>
-                <SelectTrigger id="event-day">
-                  <SelectValue placeholder="Select day" />
+              <div>
+                <label htmlFor="event-category" style={labelStyle}>
+                  Category
+                </label>
+                <Select value={category} onValueChange={(v) => setCategory(v as ItemCategory)}>
+                  <SelectTrigger id="event-category" style={selectTriggerStyle}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="event-location" style={labelStyle}>
+                Location
+              </label>
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger id="event-location" style={selectTriggerStyle}>
+                  <SelectValue placeholder="No location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {days.map((day, index) => (
-                    <SelectItem key={day.id} value={day.id}>
-                      Day {index + 1}:{' '}
-                      {day.title ||
-                        new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                  <SelectItem value={NO_LOCATION_VALUE}>No location</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                      {loc.address ? ` — ${loc.address}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="event-category">Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as ItemCategory)}>
-                <SelectTrigger id="event-category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="event-location">Location</Label>
-            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-              <SelectTrigger id="event-location">
-                <SelectValue placeholder="No location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_LOCATION_VALUE}>No location</SelectItem>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {loc.name}
-                    {loc.address ? ` — ${loc.address}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="event-description">Description</Label>
-            <Textarea
-              id="event-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What's planned?"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="event-link">Website URL</Label>
-              <Input
-                id="event-link"
-                type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="https://..."
+            <label htmlFor="event-description" style={{ display: 'block' }}>
+              <span style={labelStyle}>Description</span>
+              <textarea
+                id="event-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What's planned?"
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  borderBottom: 0,
+                  border: '1.5px solid var(--c-ink)',
+                  borderRadius: 'var(--c-r-sm)',
+                  padding: '10px 12px',
+                  minHeight: 76,
+                  lineHeight: '22px',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--c-pen)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--c-ink)';
+                }}
               />
+            </label>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <label htmlFor="event-link" style={{ display: 'block' }}>
+                <span style={labelStyle}>Website URL</span>
+                <input
+                  id="event-link"
+                  type="url"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="https://…"
+                  style={inputStyle}
+                  onFocus={focusOn}
+                  onBlur={focusOff}
+                />
+              </label>
+
+              <label htmlFor="event-link-label" style={{ display: 'block' }}>
+                <span style={labelStyle}>Link Label</span>
+                <input
+                  id="event-link-label"
+                  value={linkLabel}
+                  onChange={(e) => setLinkLabel(e.target.value)}
+                  placeholder="e.g., Register"
+                  style={inputStyle}
+                  onFocus={focusOn}
+                  onBlur={focusOff}
+                />
+              </label>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="event-link-label">Link Label</Label>
-              <Input
-                id="event-link-label"
-                value={linkLabel}
-                onChange={(e) => setLinkLabel(e.target.value)}
-                placeholder="e.g., Register"
+            <label htmlFor="event-phone" style={{ display: 'block' }}>
+              <span style={labelStyle}>Phone Number</span>
+              <input
+                id="event-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g., 312-555-1234"
+                style={inputStyle}
+                onFocus={focusOn}
+                onBlur={focusOff}
               />
+            </label>
+
+            <label htmlFor="event-notes" style={{ display: 'block' }}>
+              <span style={labelStyle}>Notes</span>
+              <textarea
+                id="event-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anything helpful to remember…"
+                rows={2}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  borderBottom: 0,
+                  border: '1.5px solid var(--c-ink)',
+                  borderRadius: 'var(--c-r-sm)',
+                  padding: '10px 12px',
+                  minHeight: 56,
+                  lineHeight: '22px',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--c-pen)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--c-ink)';
+                }}
+              />
+            </label>
+
+            <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                style={{
+                  flex: 1,
+                  appearance: 'none',
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  background: 'transparent',
+                  color: 'var(--c-ink)',
+                  border: '1.5px solid var(--c-ink)',
+                  borderRadius: 'var(--c-r-sm)',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 11,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!title.trim() || !selectedDayId || createItem.isPending}
+                style={{
+                  flex: 1,
+                  appearance: 'none',
+                  cursor:
+                    !title.trim() || !selectedDayId || createItem.isPending ? 'not-allowed' : 'pointer',
+                  padding: '12px 16px',
+                  background:
+                    !title.trim() || !selectedDayId || createItem.isPending
+                      ? 'var(--c-ink-muted)'
+                      : 'var(--c-ink)',
+                  color: 'var(--c-creme)',
+                  border: 0,
+                  borderRadius: 'var(--c-r-sm)',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 11,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                  boxShadow:
+                    !title.trim() || !selectedDayId || createItem.isPending
+                      ? 'none'
+                      : 'var(--c-shadow-sm)',
+                  opacity:
+                    !title.trim() || !selectedDayId || createItem.isPending ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                {createItem.isPending ? (
+                  <>
+                    <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" aria-hidden />
+                    Adding…
+                  </>
+                ) : (
+                  'Add Event'
+                )}
+              </button>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="event-phone">Phone Number</Label>
-            <Input
-              id="event-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g., 312-555-1234"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="event-notes">Notes</Label>
-            <Textarea
-              id="event-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything helpful to remember..."
-              rows={2}
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4 pb-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!title.trim() || !selectedDayId || createItem.isPending}
-              className="flex-1"
-            >
-              {createItem.isPending ? 'Adding...' : 'Add Event'}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
       </SheetContent>
     </Sheet>
   );

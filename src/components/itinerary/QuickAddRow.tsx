@@ -1,25 +1,31 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useCreateItem } from '@/hooks/use-itinerary';
 import { useActiveTrip } from '@/hooks/use-trip';
+import '@/preview/collage/collage.css';
 
 interface QuickAddRowProps {
   dayId: string;
 }
 
+/**
+ * QuickAddRow — migrated to Collage direction (Phase 4 #2 support).
+ * Collapsed: outline Stamp-styled "+ ADD" chip on dashed hairline border.
+ * Expanded: hairline-bordered IBM Plex Serif input + Rubik Mono save/cancel.
+ * Logic unchanged (createItem mutation, Escape-to-collapse). Respects
+ * prefers-reduced-motion via CSS (no animated entry).
+ */
 export function QuickAddRow({ dayId }: QuickAddRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [title, setTitle] = useState('');
   const { data: trip } = useActiveTrip();
   const createItem = useCreateItem();
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !trip) return;
-    
+
     await createItem.mutateAsync({
       trip_id: trip.id,
       day_id: dayId,
@@ -38,60 +44,145 @@ export function QuickAddRow({ dayId }: QuickAddRowProps) {
       link: null,
       link_label: null,
       phone: null,
-      notes: null
+      notes: null,
     });
-    
+
     setTitle('');
     setIsExpanded(false);
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsExpanded(false);
       setTitle('');
     }
   };
-  
+
   if (!isExpanded) {
     return (
-      <button
-        onClick={() => setIsExpanded(true)}
-        className="w-full flex items-center gap-2 p-3 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors border border-dashed border-muted-foreground/30"
-      >
-        <Plus className="w-4 h-4" />
-        <span className="text-sm">Add activity...</span>
-      </button>
+      <div className="collage-root" style={{ display: 'block' }}>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          className="mk-quickadd-collapsed"
+          style={{
+            appearance: 'none',
+            width: '100%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '12px 14px',
+            background: 'var(--c-creme)',
+            color: 'var(--c-ink-muted)',
+            border: '1.5px dashed var(--c-line)',
+            borderRadius: 'var(--c-r-sm)',
+            cursor: 'pointer',
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 10,
+            letterSpacing: '.22em',
+            textTransform: 'uppercase',
+            transition:
+              'border-color var(--c-t-fast) var(--c-ease-out), color var(--c-t-fast) var(--c-ease-out)',
+          }}
+        >
+          <Plus style={{ width: 14, height: 14 }} aria-hidden />
+          <span>+ add activity</span>
+        </button>
+        <style>{`
+          .mk-quickadd-collapsed:hover {
+            border-color: var(--c-pen);
+            color: var(--c-pen);
+          }
+          .mk-quickadd-collapsed:focus-visible {
+            outline: 2px solid var(--c-pen);
+            outline-offset: 2px;
+          }
+        `}</style>
+      </div>
     );
   }
-  
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <Input
+    <form
+      onSubmit={handleSubmit}
+      className="collage-root"
+      style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}
+    >
+      <label htmlFor="quickadd-title" style={{ position: 'absolute', left: -9999, top: 'auto' }}>
+        New activity
+      </label>
+      <input
+        id="quickadd-title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="What's the activity?"
         autoFocus
-        className="flex-1"
+        className="mk-quickadd-input"
+        style={{
+          flex: 1,
+          fontFamily: 'var(--c-font-body)',
+          fontSize: 15,
+          color: 'var(--c-ink)',
+          background: 'var(--c-paper)',
+          border: 0,
+          borderBottom: '1.5px solid var(--c-ink)',
+          borderRadius: 0,
+          padding: '8px 2px',
+          outline: 'none',
+          transition: 'border-color var(--c-t-fast) var(--c-ease-out)',
+        }}
       />
-      <Button 
-        type="submit" 
-        size="sm"
+      <button
+        type="submit"
         disabled={!title.trim() || createItem.isPending}
+        className="mk-quickadd-save"
+        style={{
+          appearance: 'none',
+          cursor: !title.trim() || createItem.isPending ? 'not-allowed' : 'pointer',
+          padding: '8px 14px',
+          background: !title.trim() || createItem.isPending ? 'var(--c-ink-muted)' : 'var(--c-ink)',
+          color: 'var(--c-creme)',
+          border: 0,
+          borderRadius: 'var(--c-r-sm)',
+          fontFamily: 'var(--c-font-display)',
+          fontSize: 10,
+          letterSpacing: '.22em',
+          textTransform: 'uppercase',
+          opacity: !title.trim() || createItem.isPending ? 0.6 : 1,
+          boxShadow: 'var(--c-shadow-sm)',
+        }}
       >
-        {createItem.isPending ? '...' : 'Add'}
-      </Button>
-      <Button 
-        type="button" 
-        size="sm" 
-        variant="ghost"
+        {createItem.isPending ? '…' : 'add'}
+      </button>
+      <button
+        type="button"
         onClick={() => {
           setIsExpanded(false);
           setTitle('');
         }}
+        style={{
+          appearance: 'none',
+          cursor: 'pointer',
+          padding: '8px 14px',
+          background: 'transparent',
+          color: 'var(--c-ink-muted)',
+          border: '1.5px solid var(--c-line)',
+          borderRadius: 'var(--c-r-sm)',
+          fontFamily: 'var(--c-font-display)',
+          fontSize: 10,
+          letterSpacing: '.22em',
+          textTransform: 'uppercase',
+        }}
       >
-        Cancel
-      </Button>
+        cancel
+      </button>
+      <style>{`
+        .mk-quickadd-input:focus {
+          border-bottom-color: var(--c-pen);
+        }
+      `}</style>
     </form>
   );
 }
