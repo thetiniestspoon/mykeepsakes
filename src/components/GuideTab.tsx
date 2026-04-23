@@ -48,6 +48,20 @@ import { useCreateLocation } from '@/hooks/use-locations';
 import { MapModal } from '@/components/map/MapModal';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import type { ItemCategory } from '@/types/trip';
+import '@/preview/collage/collage.css';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { Tape } from '@/preview/collage/ui/Tape';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+
+/**
+ * Guide tab — Collage direction (Curator's Folio).
+ * Migrated 2026-04-23 (Phase 4 #8). Presentation only — all section ordering,
+ * data sources (CHICAGO_HIGHLIGHTS / RESTAURANTS / ACTIVITIES / EVENTS),
+ * accordion value IDs, favorite/note/photo mutations, and navigation helpers
+ * preserved. Outer wrapper scopes tokens via className="collage-root"; each
+ * section reads as a tape-accented paper card under a Rubik Mono One stamp,
+ * with hairline rules between sections and Caveat asides in the margin.
+ */
 
 interface SelectedLocation {
   lat: number;
@@ -69,21 +83,21 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: Guide
   const [noteContent, setNoteContent] = useState('');
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { data: favorites } = useFavorites();
   const { data: notes } = useNotes();
   const { data: photos } = usePhotos();
-  
+
   const toggleFavorite = useToggleFavorite();
   const addNote = useAddNote();
   const deleteNote = useDeleteNote();
   const uploadPhoto = useUploadPhoto();
   const deletePhoto = useDeletePhoto();
-  
+
   const isFavorite = favorites?.[item.id] ?? false;
   const itemNotes = notes?.filter(n => n.item_id === item.id) ?? [];
   const itemPhotos = photos?.filter(p => p.item_id === item.id) ?? [];
-  
+
   const handleAddNote = () => {
     if (noteContent.trim()) {
       addNote.mutate({ itemId: item.id, content: noteContent });
@@ -91,7 +105,7 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: Guide
       setShowNoteInput(false);
     }
   };
-  
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -100,129 +114,295 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: Guide
   };
 
   return (
-    <div className="p-4 rounded-lg border border-border bg-card">
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <h4 className="font-semibold text-foreground">{item.name}</h4>
-          <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-          
-          <div className="flex flex-wrap items-center gap-2 mt-3">
+    <div
+      style={{
+        position: 'relative',
+        background: 'var(--c-paper)',
+        boxShadow: 'var(--c-shadow-sm)',
+        padding: '16px 18px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h4
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 16,
+              fontWeight: 500,
+              color: 'var(--c-ink)',
+              margin: 0,
+              lineHeight: 1.3,
+            }}
+          >
+            {item.name}
+          </h4>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 14,
+              color: 'var(--c-ink-muted)',
+              margin: '6px 0 0',
+              lineHeight: 1.5,
+            }}
+          >
+            {item.description}
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 12,
+              fontSize: 13,
+            }}
+          >
             {item.link && (
               <a
                 href={item.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: 'var(--c-pen)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--c-font-body)',
+                  borderBottom: '1px dashed var(--c-pen)',
+                  paddingBottom: 1,
+                }}
               >
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink style={{ width: 12, height: 12 }} aria-hidden />
                 Website
               </a>
             )}
             {item.phone && (
               <a
                 href={`tel:${item.phone}`}
-                className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: 'var(--c-pen)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--c-font-body)',
+                  borderBottom: '1px dashed var(--c-pen)',
+                  paddingBottom: 1,
+                }}
               >
-                <Phone className="w-3 h-3" />
+                <Phone style={{ width: 12, height: 12 }} aria-hidden />
                 {item.phone}
               </a>
             )}
             {item.location && onOpenMap && (
               <button
-                onClick={() => onOpenMap({ 
-                  lat: item.location!.lat, 
-                  lng: item.location!.lng, 
-                  name: item.name 
+                onClick={() => onOpenMap({
+                  lat: item.location!.lat,
+                  lng: item.location!.lng,
+                  name: item.name
                 })}
-                className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: 'var(--c-pen)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--c-font-body)',
+                  fontSize: 13,
+                  borderBottom: '1px dashed var(--c-pen)',
+                  paddingBottom: 1,
+                }}
               >
-                <MapPin className="w-3 h-3" />
+                <MapPin style={{ width: 12, height: 12 }} aria-hidden />
                 Map
               </button>
             )}
           </div>
-          
+
           {/* User notes */}
           {itemNotes.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {itemNotes.map((note) => (
-                <div key={note.id} className="flex items-start gap-2 p-2 bg-beach-sand/30 rounded">
-                  <StickyNote className="w-4 h-4 text-beach-driftwood mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm">{note.content}</p>
-                    <span className="text-xs text-muted-foreground">
+                <div
+                  key={note.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    padding: '8px 10px',
+                    background: 'var(--c-paper)',
+                    borderLeft: '3px solid var(--c-pen)',
+                    boxShadow: 'var(--c-shadow-sm)',
+                  }}
+                >
+                  <StickyNote
+                    style={{
+                      width: 14,
+                      height: 14,
+                      color: 'var(--c-ink-muted)',
+                      marginTop: 2,
+                      flexShrink: 0,
+                    }}
+                    aria-hidden
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        fontFamily: 'var(--c-font-body)',
+                        fontSize: 14,
+                        color: 'var(--c-ink)',
+                        margin: 0,
+                        lineHeight: 1.45,
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {note.content}
+                    </p>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        marginTop: 4,
+                        fontFamily: 'var(--c-font-body)',
+                        fontStyle: 'italic',
+                        fontSize: 12,
+                        color: 'var(--c-ink-muted)',
+                      }}
+                    >
                       {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                     </span>
                   </div>
                   <button
                     onClick={() => deleteNote.mutate(note.id)}
-                    className="text-muted-foreground hover:text-destructive"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 2,
+                      cursor: 'pointer',
+                      color: 'var(--c-ink-muted)',
+                    }}
+                    aria-label="Delete note"
                   >
-                    <X className="w-4 h-4" />
+                    <X style={{ width: 14, height: 14 }} />
                   </button>
                 </div>
               ))}
             </div>
           )}
-          
+
           {showNoteInput && (
-            <div className="mt-3 space-y-2">
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Textarea
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 placeholder="Add a note..."
                 rows={2}
+                style={{ fontFamily: 'var(--c-font-body)' }}
               />
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 8 }}>
                 <Button size="sm" onClick={handleAddNote}>Save Note</Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowNoteInput(false)}>Cancel</Button>
               </div>
             </div>
           )}
-          
-          {/* Photos */}
+
+          {/* Photos — polaroid-stack affordance */}
           {itemPhotos.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {itemPhotos.map((photo, index) => (
-                <div key={photo.id} className="relative group">
-                  <button
-                    onClick={() => onOpenPhoto?.(itemPhotos, index)}
-                    className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
-                  >
-                    <img
-                      src={getPhotoUrl(photo.storage_path)}
-                      alt={photo.caption || 'Photo'}
-                      className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path });
-                    }}
-                    className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {itemPhotos.map((photo, index) => {
+                const rot = (index % 3) - 1; // -1, 0, 1 cycling
+                return (
+                  <div key={photo.id} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => onOpenPhoto?.(itemPhotos, index)}
+                      style={{
+                        background: 'var(--c-paper)',
+                        padding: 3,
+                        boxShadow: 'var(--c-shadow-sm)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transform: `rotate(${rot * 2}deg)`,
+                        transition: 'transform var(--c-t-fast) var(--c-ease-out)',
+                      }}
+                      aria-label={`Open photo ${index + 1}`}
+                    >
+                      <img
+                        src={getPhotoUrl(photo.storage_path)}
+                        alt={photo.caption || ''}
+                        style={{
+                          display: 'block',
+                          width: 60,
+                          height: 60,
+                          objectFit: 'cover',
+                        }}
+                      />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path });
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        right: -6,
+                        padding: 3,
+                        background: 'var(--c-danger)',
+                        color: 'var(--c-creme)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        opacity: 0.9,
+                      }}
+                      aria-label="Delete photo"
+                    >
+                      <Trash2 style={{ width: 10, height: 10 }} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
-        
-        <div className="flex flex-col gap-1">
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
           {onAddToDay && days && days.length > 0 && (
             <Popover open={dayPickerOpen} onOpenChange={setDayPickerOpen}>
               <PopoverTrigger asChild>
                 <button
-                  className="p-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
+                  style={{
+                    padding: 6,
+                    borderRadius: 999,
+                    color: 'var(--c-ink-muted)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'color var(--c-t-fast) var(--c-ease-out)',
+                  }}
                   title="Add to itinerary"
+                  aria-label="Add to itinerary"
                 >
-                  <CalendarPlus className="w-4 h-4" />
+                  <CalendarPlus style={{ width: 16, height: 16 }} />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-2" align="end">
-                <p className="text-xs font-medium text-muted-foreground px-2 pb-2">Add to day:</p>
+                <p
+                  style={{
+                    fontFamily: 'var(--c-font-display)',
+                    fontSize: 10,
+                    letterSpacing: '.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--c-ink-muted)',
+                    padding: '0 8px 8px',
+                    margin: 0,
+                  }}
+                >
+                  Add to day
+                </p>
                 {days.map((day) => (
                   <button
                     key={day.id}
@@ -230,7 +410,18 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: Guide
                       onAddToDay(item, day.id);
                       setDayPickerOpen(false);
                     }}
-                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px',
+                      fontFamily: 'var(--c-font-body)',
+                      fontSize: 14,
+                      color: 'var(--c-ink)',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: 'var(--c-r-sm)',
+                      cursor: 'pointer',
+                    }}
                   >
                     {day.title || day.date}
                   </button>
@@ -244,26 +435,49 @@ function GuideItemCard({ item, onOpenMap, onOpenPhoto, onAddToDay, days }: Guide
               itemType: item.category,
               isFavorite: !isFavorite
             })}
-            className={cn(
-              "p-1.5 rounded-full transition-colors",
-              isFavorite
-                ? "text-beach-sunset-gold bg-beach-sunset-gold/20"
-                : "text-muted-foreground hover:text-beach-sunset-gold"
-            )}
+            style={{
+              padding: 6,
+              borderRadius: 999,
+              color: isFavorite ? 'var(--c-ink)' : 'var(--c-ink-muted)',
+              background: isFavorite ? 'var(--c-tape)' : 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all var(--c-t-fast) var(--c-ease-out)',
+            }}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            <Star className={cn("w-4 h-4", isFavorite && "fill-current")} />
+            <Star
+              className={cn(isFavorite && 'fill-current')}
+              style={{ width: 16, height: 16 }}
+            />
           </button>
           <button
             onClick={() => setShowNoteInput(!showNoteInput)}
-            className="p-1.5 rounded-full text-muted-foreground hover:text-accent transition-colors"
+            style={{
+              padding: 6,
+              borderRadius: 999,
+              color: 'var(--c-ink-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            aria-label="Add note"
           >
-            <StickyNote className="w-4 h-4" />
+            <StickyNote style={{ width: 16, height: 16 }} />
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-full text-muted-foreground hover:text-accent transition-colors"
+            style={{
+              padding: 6,
+              borderRadius: 999,
+              color: 'var(--c-ink-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            aria-label="Add photo"
           >
-            <Camera className="w-4 h-4" />
+            <Camera style={{ width: 16, height: 16 }} />
           </button>
           <input
             ref={fileInputRef}
@@ -290,6 +504,115 @@ function guideToItemCategory(guideCategory: GuideItem['category']): ItemCategory
     case 'transport': return 'transport';
     default: return 'activity';
   }
+}
+
+/**
+ * One folio section. Stamped header, paper-card content, tape accent, inline
+ * MarginNote aside. Preserves the accordion value/expand-collapse contract
+ * through the shadcn AccordionItem primitive.
+ */
+function FolioSection({
+  value,
+  stampLabel,
+  title,
+  subtitle,
+  marginNote,
+  tapePosition,
+  tapeRotate,
+  icon,
+  children,
+}: {
+  value: string;
+  stampLabel: string;
+  title: string;
+  subtitle: string;
+  marginNote: string;
+  tapePosition: 'top-left' | 'top-right';
+  tapeRotate: number;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <AccordionItem
+      value={value}
+      className="border-0"
+      style={{
+        position: 'relative',
+        background: 'var(--c-paper)',
+        boxShadow: 'var(--c-shadow)',
+        marginTop: 18, // room for tape overhang
+      }}
+    >
+      <Tape position={tapePosition} rotate={tapeRotate} width={82} />
+
+      <AccordionTrigger
+        className="hover:no-underline"
+        style={{
+          padding: '20px 22px 18px',
+          fontFamily: 'var(--c-font-body)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left' }}>
+          <div
+            aria-hidden
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              background: 'var(--c-creme)',
+              border: '1.5px solid var(--c-ink)',
+              color: 'var(--c-ink)',
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ marginBottom: 4 }}>
+              <Stamp variant="ink" size="sm" rotate={-1}>{stampLabel}</Stamp>
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 17,
+                fontWeight: 500,
+                color: 'var(--c-ink)',
+                lineHeight: 1.2,
+              }}
+            >
+              {title}
+            </div>
+            <p
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontStyle: 'italic',
+                fontSize: 13,
+                color: 'var(--c-ink-muted)',
+                margin: '4px 0 0',
+                lineHeight: 1.4,
+              }}
+            >
+              {subtitle}
+            </p>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent style={{ padding: '0 22px 22px' }}>
+        <div style={{ borderTop: '1px dashed var(--c-line)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
+          <MarginNote
+            rotate={-3}
+            size={19}
+            style={{ position: 'absolute', top: -12, right: 4, background: 'var(--c-paper)', padding: '0 6px' }}
+          >
+            {marginNote}
+          </MarginNote>
+          {children}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
 }
 
 export function GuideTab() {
@@ -367,92 +690,158 @@ export function GuideTab() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="text-center py-4">
-        <h2 className="font-display text-2xl text-foreground">Trip Guide</h2>
-        <p className="text-muted-foreground">Everything you need to know</p>
-      </div>
-      
-      <Accordion type="single" collapsible className="space-y-4">
+    <div
+      className="collage-root"
+      style={{
+        paddingBottom: 80,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}
+    >
+      {/* Header — Curator's Folio */}
+      <header
+        style={{
+          position: 'relative',
+          textAlign: 'center',
+          paddingTop: 28,
+          paddingBottom: 12,
+        }}
+      >
+        <div style={{ display: 'inline-block', marginBottom: 10 }}>
+          <Stamp variant="outline" size="sm" rotate={-3}>curator's folio</Stamp>
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 'clamp(28px, 6vw, 44px)',
+            letterSpacing: '.02em',
+            lineHeight: 0.95,
+            margin: 0,
+            color: 'var(--c-ink)',
+          }}
+        >
+          TRIP GUIDE
+        </h2>
+        <p
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontStyle: 'italic',
+            fontSize: 15,
+            color: 'var(--c-ink-muted)',
+            margin: '10px auto 0',
+            maxWidth: '40ch',
+          }}
+        >
+          Everything you need to know — pinned, stamped, within reach.
+        </p>
+      </header>
+
+      {/* Hairline rule under the masthead */}
+      <div
+        aria-hidden
+        style={{
+          borderTop: '2px dashed var(--c-ink)',
+          width: '100%',
+        }}
+      />
+
+      <Accordion
+        type="single"
+        collapsible
+        style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+      >
         {/* Getting Around & Essentials */}
-        <AccordionItem value="essentials" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <Info className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Getting Around & Essentials</span>
-                <p className="text-sm text-muted-foreground">Transport, weather, pharmacy</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {ACTIVITIES.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
+        <FolioSection
+          value="essentials"
+          stampLabel="essentials"
+          title="Getting Around & Essentials"
+          subtitle="Transport, weather, pharmacy"
+          marginNote="before you set out"
+          tapePosition="top-left"
+          tapeRotate={-5}
+          icon={<Info style={{ width: 20, height: 20 }} />}
+        >
+          {ACTIVITIES.map((item) => (
+            <GuideItemCard
+              key={item.id}
+              item={item}
+              onOpenMap={openMapModal}
+              onOpenPhoto={openPhotoViewer}
+              onAddToDay={handleAddToDay}
+              days={days}
+            />
+          ))}
+        </FolioSection>
 
         {/* Dining Near Hotel */}
-        <AccordionItem value="restaurants" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                <Utensils className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Dining Near Hotel</span>
-                <p className="text-sm text-muted-foreground">{RESTAURANTS.length} places to eat</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {RESTAURANTS.map((restaurant) => (
-              <GuideItemCard key={restaurant.id} item={restaurant} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
+        <FolioSection
+          value="restaurants"
+          stampLabel="dining"
+          title="Dining Near Hotel"
+          subtitle={`${RESTAURANTS.length} places to eat`}
+          marginNote="hungry? look here"
+          tapePosition="top-right"
+          tapeRotate={4}
+          icon={<Utensils style={{ width: 20, height: 20 }} />}
+        >
+          {RESTAURANTS.map((restaurant) => (
+            <GuideItemCard
+              key={restaurant.id}
+              item={restaurant}
+              onOpenMap={openMapModal}
+              onOpenPhoto={openPhotoViewer}
+              onAddToDay={handleAddToDay}
+              days={days}
+            />
+          ))}
+        </FolioSection>
 
         {/* Chicago Highlights */}
-        <AccordionItem value="highlights" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                <Landmark className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Chicago Highlights</span>
-                <p className="text-sm text-muted-foreground">{CHICAGO_HIGHLIGHTS.length} must-see attractions</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {CHICAGO_HIGHLIGHTS.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
+        <FolioSection
+          value="highlights"
+          stampLabel="highlights"
+          title="Chicago Highlights"
+          subtitle={`${CHICAGO_HIGHLIGHTS.length} must-see attractions`}
+          marginNote="the city, abridged"
+          tapePosition="top-left"
+          tapeRotate={-4}
+          icon={<Landmark style={{ width: 20, height: 20 }} />}
+        >
+          {CHICAGO_HIGHLIGHTS.map((item) => (
+            <GuideItemCard
+              key={item.id}
+              item={item}
+              onOpenMap={openMapModal}
+              onOpenPhoto={openPhotoViewer}
+              onAddToDay={handleAddToDay}
+              days={days}
+            />
+          ))}
+        </FolioSection>
 
         {/* Cultural Sites */}
-        <AccordionItem value="cultural" className="border rounded-lg shadow-warm overflow-hidden">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <Heart className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="text-left">
-                <span className="font-semibold">Cultural Sites</span>
-                <p className="text-sm text-muted-foreground">Relevant to Sankofa's mission</p>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 space-y-3">
-            {EVENTS.map((item) => (
-              <GuideItemCard key={item.id} item={item} onOpenMap={openMapModal} onOpenPhoto={openPhotoViewer} onAddToDay={handleAddToDay} days={days} />
-            ))}
-          </AccordionContent>
-        </AccordionItem>
+        <FolioSection
+          value="cultural"
+          stampLabel="cultural"
+          title="Cultural Sites"
+          subtitle="Relevant to Sankofa's mission"
+          marginNote="sit with these"
+          tapePosition="top-right"
+          tapeRotate={5}
+          icon={<Heart style={{ width: 20, height: 20 }} />}
+        >
+          {EVENTS.map((item) => (
+            <GuideItemCard
+              key={item.id}
+              item={item}
+              onOpenMap={openMapModal}
+              onOpenPhoto={openPhotoViewer}
+              onAddToDay={handleAddToDay}
+              days={days}
+            />
+          ))}
+        </FolioSection>
       </Accordion>
 
       {/* Map Modal */}
@@ -475,6 +864,19 @@ export function GuideTab() {
         open={photoViewerOpen}
         onOpenChange={setPhotoViewerOpen}
       />
+
+      {/* Respect reduced-motion for all tilt/hover effects inside this scope */}
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .collage-root button,
+          .collage-root a,
+          .collage-root [class*="collage-"] {
+            transition: none !important;
+            transform: none !important;
+            animation: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
