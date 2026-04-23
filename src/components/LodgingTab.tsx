@@ -1,140 +1,405 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Home, Archive, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, Archive, Loader2, CheckCircle2, Home } from 'lucide-react';
 import { useAccommodations, useSelectedAccommodation } from '@/hooks/use-accommodations';
 import { LodgingLinkTile } from '@/components/lodging/LodgingLinkTile';
 import { AddLodgingLinkDialog } from '@/components/lodging/AddLodgingLinkDialog';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { Tape } from '@/preview/collage/ui/Tape';
+import '@/preview/collage/collage.css';
 
+type TabKey = 'active' | 'archived';
+
+/**
+ * Lodging tab migrated to Collage (Phase 4 #9) — "Concierge Card" vocabulary.
+ * The chosen-stay banner gets a special paper-card honor (mirroring LodgingV1);
+ * active/archived link tiles render as small paper tiles with tape + ±1.5°
+ * rotation cycle. Active hooks/mutations/state unchanged — presentation only.
+ * DetailPanels/stay/* is H3 scope and stays untouched here.
+ */
 export function LodgingTab() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>('active');
 
   const { data: accommodations, isLoading, error } = useAccommodations();
   const { data: selectedAccommodation } = useSelectedAccommodation();
 
-  const activeOptions = accommodations?.filter(a => !a.is_deprioritized && !a.is_selected) || [];
-  const archivedOptions = accommodations?.filter(a => a.is_deprioritized) || [];
+  const activeOptions =
+    accommodations?.filter((a) => !a.is_deprioritized && !a.is_selected) || [];
+  const archivedOptions = accommodations?.filter((a) => a.is_deprioritized) || [];
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div
+        className="collage-root"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 0',
+          background: 'transparent',
+          minHeight: 0,
+        }}
+      >
+        <Loader2
+          className="w-8 h-8 animate-spin"
+          style={{ color: 'var(--c-pen)' }}
+        />
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="mx-4 mt-4">
-        <CardContent className="py-6 text-center text-destructive">
+      <div
+        className="collage-root"
+        style={{
+          padding: '24px 16px',
+          background: 'transparent',
+          minHeight: 0,
+        }}
+      >
+        <div
+          style={{
+            background: 'var(--c-paper)',
+            border: '1px solid var(--c-danger)',
+            boxShadow: 'var(--c-shadow-sm)',
+            padding: '18px 20px',
+            textAlign: 'center',
+            fontFamily: 'var(--c-font-body)',
+            color: 'var(--c-danger)',
+          }}
+        >
           Failed to load lodging options. Please try again.
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
-  return (
-    <div className="space-y-4 pb-20">
-      <div className="text-center py-4">
-        <h2 className="font-display text-2xl text-foreground">Lodging Options</h2>
-        <p className="text-muted-foreground">Save and compare rental listings</p>
-      </div>
+  const currentList = activeTab === 'active' ? activeOptions : archivedOptions;
+  const currentEmpty = currentList.length === 0;
 
-      {/* Selected Lodging Banner */}
+  const tabButton = (key: TabKey, label: string, count: number, Icon: typeof Home) => {
+    const selected = activeTab === key;
+    return (
+      <button
+        type="button"
+        role="tab"
+        aria-selected={selected}
+        onClick={() => setActiveTab(key)}
+        style={{
+          flex: 1,
+          appearance: 'none',
+          cursor: 'pointer',
+          padding: '10px 12px',
+          fontFamily: 'var(--c-font-display)',
+          fontSize: 10,
+          letterSpacing: '.22em',
+          textTransform: 'uppercase',
+          background: selected ? 'var(--c-ink)' : 'transparent',
+          color: selected ? 'var(--c-creme)' : 'var(--c-ink-muted)',
+          border: '1.5px solid var(--c-ink)',
+          borderRadius: 'var(--c-r-sm)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          lineHeight: 1,
+          transition: 'background var(--c-t-fast) var(--c-ease-out)',
+        }}
+      >
+        <Icon className="w-3.5 h-3.5" />
+        <span>{label}</span>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            height: 18,
+            padding: '0 6px',
+            background: selected ? 'var(--c-creme)' : 'var(--c-ink)',
+            color: selected ? 'var(--c-ink)' : 'var(--c-creme)',
+            fontFamily: 'var(--c-font-body)',
+            fontSize: 11,
+            letterSpacing: 0,
+            borderRadius: 'var(--c-r-sm)',
+          }}
+        >
+          {count}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div
+      className="collage-root"
+      style={{
+        background: 'transparent',
+        minHeight: 0,
+        paddingBottom: 80,
+      }}
+    >
+      {/* HEADER — stamped title + Caveat subtitle */}
+      <header
+        style={{
+          textAlign: 'center',
+          padding: '20px 16px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Stamp variant="ink" size="md" rotate={-2}>
+          lodging
+        </Stamp>
+        <h2
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontSize: 24,
+            fontWeight: 500,
+            color: 'var(--c-ink)',
+            margin: '4px 0 0',
+            letterSpacing: '-.005em',
+          }}
+        >
+          Rooms to come back to
+        </h2>
+        <MarginNote rotate={-3} size={20}>
+          save &amp; compare rental listings
+        </MarginNote>
+      </header>
+
+      {/* SELECTED — concierge card for the chosen stay (if any) */}
       {selectedAccommodation && (
-        <Card className="mx-4 bg-primary/10 border-primary">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-primary font-medium">Booked Accommodation</p>
-                <p className="font-semibold truncate">{selectedAccommodation.title}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <section
+          style={{
+            position: 'relative',
+            margin: '4px 16px 8px',
+            padding: '16px 18px',
+            background: 'var(--c-paper)',
+            border: '1px solid var(--c-line)',
+            boxShadow: 'var(--c-shadow)',
+          }}
+        >
+          <Tape position="top-left" rotate={-6} width={96} />
+          <Tape position="top-right" rotate={5} width={84} />
+
+          <div
+            style={{
+              fontFamily: 'var(--c-font-display)',
+              fontSize: 11,
+              letterSpacing: '.26em',
+              textTransform: 'uppercase',
+              color: 'var(--c-pen)',
+              marginBottom: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--c-pen)' }} />
+            your stay
+          </div>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 20,
+              fontWeight: 500,
+              color: 'var(--c-ink)',
+              margin: 0,
+              lineHeight: 1.15,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {selectedAccommodation.title}
+          </p>
+          <MarginNote rotate={-2} size={20} color="ink" style={{ marginTop: 6 }}>
+            booked · the one to come back to
+          </MarginNote>
+        </section>
       )}
 
-      {/* Add Button */}
-      <div className="px-4">
-        <Button onClick={() => setAddDialogOpen(true)} className="w-full gap-2">
+      {/* ADD BUTTON — ink Stamp-style */}
+      <div style={{ padding: '8px 16px 4px' }}>
+        <button
+          type="button"
+          onClick={() => setAddDialogOpen(true)}
+          style={{
+            width: '100%',
+            appearance: 'none',
+            cursor: 'pointer',
+            padding: '12px 16px',
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 11,
+            letterSpacing: '.22em',
+            textTransform: 'uppercase',
+            background: 'var(--c-ink)',
+            color: 'var(--c-creme)',
+            border: 0,
+            borderRadius: 'var(--c-r-sm)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            boxShadow: 'var(--c-shadow-sm)',
+            transition: 'transform var(--c-t-fast) var(--c-ease-out)',
+          }}
+        >
           <Plus className="w-4 h-4" />
-          Add Listing Link
-        </Button>
+          Add a link
+        </button>
       </div>
 
-      {/* Tabs for Active/Archived */}
-      <Tabs defaultValue="active" className="px-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="active" className="gap-2">
-            <Home className="w-4 h-4" />
-            Active
-            <Badge variant="secondary" className="ml-1">{activeOptions.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="archived" className="gap-2" onClick={() => setShowArchived(true)}>
-            <Archive className="w-4 h-4" />
-            Archived
-            <Badge variant="secondary" className="ml-1">{archivedOptions.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
+      {/* TABS */}
+      <div role="tablist" style={{ padding: '12px 16px 4px', display: 'flex', gap: 10 }}>
+        {tabButton('active', 'active', activeOptions.length, Home)}
+        {tabButton('archived', 'archived', archivedOptions.length, Archive)}
+      </div>
 
-        <TabsContent value="active" className="mt-4 space-y-3">
-          {activeOptions.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Home className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="font-semibold mb-1">No Listings Yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add links to rental listings to compare and vote on options.
+      {/* LIST */}
+      <div
+        role="tabpanel"
+        style={{
+          padding: '12px 16px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        {currentEmpty ? (
+          <div
+            style={{
+              position: 'relative',
+              background: 'var(--c-paper)',
+              border: '1px dashed var(--c-ink)',
+              padding: '28px 20px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <Tape position="top" rotate={-3} width={90} />
+            {activeTab === 'active' ? (
+              <Home
+                className="w-8 h-8"
+                style={{ color: 'var(--c-ink-muted)', opacity: 0.65 }}
+              />
+            ) : (
+              <Archive
+                className="w-8 h-8"
+                style={{ color: 'var(--c-ink-muted)', opacity: 0.65 }}
+              />
+            )}
+            <MarginNote rotate={-2} size={22}>
+              no rooms pinned yet
+            </MarginNote>
+            {activeTab === 'active' ? (
+              <>
+                <p
+                  style={{
+                    fontFamily: 'var(--c-font-body)',
+                    fontSize: 14,
+                    fontStyle: 'italic',
+                    color: 'var(--c-ink-muted)',
+                    margin: '0 0 6px',
+                    maxWidth: '36ch',
+                  }}
+                >
+                  Add links to listings so you can compare the places you&rsquo;re
+                  choosing between.
                 </p>
-                <Button onClick={() => setAddDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Listing
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            activeOptions.map((accommodation) => (
-              <LodgingLinkTile key={accommodation.id} accommodation={accommodation} />
-            ))
-          )}
-        </TabsContent>
+                <button
+                  type="button"
+                  onClick={() => setAddDialogOpen(true)}
+                  style={{
+                    appearance: 'none',
+                    cursor: 'pointer',
+                    padding: '10px 16px',
+                    fontFamily: 'var(--c-font-display)',
+                    fontSize: 11,
+                    letterSpacing: '.22em',
+                    textTransform: 'uppercase',
+                    background: 'transparent',
+                    color: 'var(--c-pen)',
+                    border: '1.5px dashed currentColor',
+                    borderRadius: 'var(--c-r-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add a link
+                </button>
+              </>
+            ) : (
+              <p
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontSize: 14,
+                  fontStyle: 'italic',
+                  color: 'var(--c-ink-muted)',
+                  margin: 0,
+                  maxWidth: '36ch',
+                }}
+              >
+                Archived listings land here. Set any active link aside and it will
+                show up in this stack.
+              </p>
+            )}
+          </div>
+        ) : (
+          currentList.map((accommodation, i) => (
+            <LodgingLinkTile
+              key={accommodation.id}
+              accommodation={accommodation}
+              index={i}
+            />
+          ))
+        )}
+      </div>
 
-        <TabsContent value="archived" className="mt-4 space-y-3">
-          {archivedOptions.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Archive className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  No archived listings. Archived listings will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            archivedOptions.map((accommodation) => (
-              <LodgingLinkTile key={accommodation.id} accommodation={accommodation} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Tip Card */}
-      <Card className="shadow-warm mx-4 bg-beach-sand/30">
-        <CardContent className="py-4">
-          <p className="text-sm text-muted-foreground text-center">
-            💡 <strong>Tip:</strong> Drag accommodations to the drop zone in the Stay tab to select them!
-          </p>
-        </CardContent>
-      </Card>
+      {/* TIP */}
+      <div
+        style={{
+          margin: '22px 16px 0',
+          padding: '14px 16px',
+          background: 'var(--c-paper)',
+          border: '1px dashed var(--c-line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <StickerPill variant="tape" rotate={-2}>
+          tip
+        </StickerPill>
+        <p
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontStyle: 'italic',
+            fontSize: 13,
+            color: 'var(--c-ink-muted)',
+            margin: 0,
+            textAlign: 'center',
+          }}
+        >
+          Drag an option onto the Stay tab to make it your chosen stay.
+        </p>
+      </div>
 
       {/* Add Dialog */}
-      <AddLodgingLinkDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-      />
+      <AddLodgingLinkDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </div>
   );
 }
