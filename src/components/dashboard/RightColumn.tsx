@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, X, Filter } from 'lucide-react';
 import L from 'leaflet';
+import '@/preview/collage/collage.css';
 
 const FILTER_COLLAPSED_KEY = 'map-filter-collapsed';
 
@@ -24,7 +25,15 @@ interface RightColumnProps {
 
 /**
  * Right column containing the persistent Overview Map
- * with filter header and synchronized selection
+ * with filter header and synchronized selection.
+ *
+ * Migrated to the Collage direction 2026-04-23 (Phase 4 #1 step 4c).
+ * Data hooks, Leaflet wiring, selection context, drag-to-update,
+ * filter-collapse persistence, and pin-state logic are UNCHANGED.
+ * Presentation swapped to Collage tokens — ink typography for the
+ * highlight banner, pen-blue accent for active states, crème surface
+ * for the collapsed filter chip. MapFilterHeader itself is on a
+ * parallel migration branch (W3.1b).
  */
 export function RightColumn({ className }: RightColumnProps) {
   const { days } = useDatabaseItinerary();
@@ -279,27 +288,58 @@ export function RightColumn({ className }: RightColumnProps) {
   const hasActiveFilters = activeFilterCount > 0;
 
   return (
-    <div ref={mapContainerRef} className={cn("flex flex-col h-full relative", className)}>
-      {/* Collapsed filter button - floats over map */}
+    <div
+      ref={mapContainerRef}
+      className={cn('flex flex-col h-full relative', className)}
+      style={{ fontFamily: 'var(--c-font-body)', color: 'var(--c-ink)' }}
+    >
+      {/* Collapsed filter button - floats over map; Collage crème chip with ink hairline */}
       {isFilterCollapsed && (
         <div className="absolute top-3 right-3 z-[1001]">
           <Button
             variant="secondary"
             size="sm"
             onClick={toggleFilterCollapsed}
-            className="shadow-md gap-1.5"
+            className="gap-1.5"
+            style={{
+              background: 'var(--c-creme)',
+              color: 'var(--c-ink)',
+              border: '1px solid var(--c-line)',
+              borderRadius: 'var(--c-r-sm)',
+              boxShadow: 'var(--c-shadow-sm)',
+              fontFamily: 'var(--c-font-display)',
+              fontSize: 10,
+              letterSpacing: '.22em',
+              textTransform: 'uppercase',
+              padding: '6px 10px',
+              height: 'auto',
+            }}
           >
-            <Filter className="w-4 h-4" />
-            <span className="text-xs font-medium">Filters</span>
+            <Filter className="w-4 h-4" strokeWidth={1.75} />
+            <span>Filters</span>
             {hasActiveFilters && (
-              <Badge variant="default" className="h-5 px-1.5 text-xs ml-1">
+              <Badge
+                variant="default"
+                className="ml-1"
+                style={{
+                  background: 'var(--c-pen)',
+                  color: 'var(--c-creme)',
+                  borderRadius: 'var(--c-r-sm)',
+                  padding: '2px 6px',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 10,
+                  letterSpacing: '.12em',
+                  lineHeight: 1,
+                  border: 'none',
+                }}
+              >
                 {activeFilterCount}
               </Badge>
             )}
           </Button>
         </div>
       )}
-      
+
       {/* Filter Header - only renders when expanded */}
       {!isFilterCollapsed && (
         <MapFilterHeader
@@ -311,24 +351,45 @@ export function RightColumn({ className }: RightColumnProps) {
           onToggleCollapse={toggleFilterCollapsed}
         />
       )}
-      
+
       {/* Highlight banner - shown when pins are highlighted with a label (and not collapsed) */}
       {highlightedMapPins.length > 0 && highlightLabel && !isFilterCollapsed && (
-        <div className="flex items-center justify-between px-3 py-2 bg-[var(--c-pen)]/10 border-b border-[var(--c-pen)]/20">
-          <div className="flex items-center gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-[var(--c-pen)]" />
-            <span className="font-medium text-[var(--c-pen)]">
+        <div
+          className="flex items-center justify-between px-3 py-2"
+          style={{
+            background: 'color-mix(in srgb, var(--c-pen) 10%, var(--c-paper))',
+            borderBottom: '1px solid color-mix(in srgb, var(--c-pen) 25%, transparent)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" style={{ color: 'var(--c-pen)' }} strokeWidth={1.75} />
+            <span
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--c-pen)',
+              }}
+            >
               {highlightLabel}
               {highlightedMapPins.length > 1 && ` (${highlightedMapPins.length} locations)`}
             </span>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={clearHighlightedPins}
-            className="h-6 px-2 text-xs"
+            className="h-6 px-2"
+            style={{
+              color: 'var(--c-ink-muted)',
+              fontFamily: 'var(--c-font-display)',
+              fontSize: 10,
+              letterSpacing: '.22em',
+              textTransform: 'uppercase',
+              borderRadius: 'var(--c-r-sm)',
+            }}
           >
-            <X className="w-3 h-3 mr-1" />
+            <X className="w-3 h-3 mr-1" strokeWidth={1.75} />
             Show All
           </Button>
         </div>

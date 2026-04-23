@@ -11,14 +11,21 @@ import { PeopleTab } from '@/components/PeopleTab';
 import { useActiveTrip } from '@/hooks/use-trip';
 import type { ItineraryItem, Location, Memory } from '@/types/trip';
 import type { MapLocation } from '@/types/map';
+import '@/preview/collage/collage.css';
 
 interface CenterColumnProps {
   className?: string;
 }
 
 /**
- * Center column of the dashboard showing context-aware detail panels
- * 
+ * Center column of the dashboard showing context-aware detail panels.
+ *
+ * Migrated to the Collage direction 2026-04-23 (Phase 4 #1 step 4c).
+ * Shell only: crème workbench surface inherits from DashboardLayout /
+ * SwipeableDashboard; each DetailPanel owns its own Collage presentation
+ * (ActivityDetail migrated on 4d, others landing on parallel branches).
+ * Routing/selection logic UNCHANGED.
+ *
  * Content determined by:
  * 1. Current selection from left or right columns
  * 2. Trip mode defaults (pre → guide, active → current activity, post → album)
@@ -59,8 +66,14 @@ export function CenterColumn({ className }: CenterColumnProps) {
   };
 
   return (
-    <div className={className}>
-      <div className="p-4 h-full">
+    <div
+      className={className}
+      style={{ fontFamily: 'var(--c-font-body)', color: 'var(--c-ink)' }}
+    >
+      <div
+        className="h-full"
+        style={{ padding: 16 }}
+      >
         {renderContent()}
       </div>
     </div>
