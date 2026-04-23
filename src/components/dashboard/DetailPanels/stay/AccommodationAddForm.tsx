@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Plus, Loader2 } from 'lucide-react';
 import { useAddAccommodation } from '@/hooks/use-accommodations';
 import { toast } from 'sonner';
+import '@/preview/collage/collage.css';
 
+/**
+ * AccommodationAddForm — migrated to Collage direction (Phase 4d, StayDetail inner).
+ * Parent (StayDetail) already wraps in `.collage-root`, so tokens cascade.
+ * Presentation only; state + mutation handler unchanged.
+ */
 export function AccommodationAddForm() {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
-  
+
   const addMutation = useAddAccommodation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       toast.error('Please enter a title');
@@ -41,27 +45,68 @@ export function AccommodationAddForm() {
     );
   };
 
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: 'var(--c-font-body)',
+    fontSize: 14,
+    color: 'var(--c-ink)',
+    background: 'var(--c-paper)',
+    border: '1px solid var(--c-line)',
+    borderRadius: 'var(--c-r-sm)',
+    padding: '8px 10px',
+    outline: 'none',
+    transition: 'border-color var(--c-t-fast) var(--c-ease-out)',
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <Input
+    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
+      <input
+        type="text"
         placeholder="Title *"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="flex-1"
+        style={inputStyle}
+        onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--c-pen)')}
+        onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-line)')}
       />
-      <Input
+      <input
+        type="text"
         placeholder="URL (optional)"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        className="flex-1"
+        style={inputStyle}
+        onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--c-pen)')}
+        onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-line)')}
       />
-      <Button type="submit" size="icon" disabled={addMutation.isPending}>
+      <button
+        type="submit"
+        disabled={addMutation.isPending}
+        aria-label="Add accommodation"
+        style={{
+          appearance: 'none',
+          width: 40,
+          height: 40,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--c-ink)',
+          color: 'var(--c-creme)',
+          border: 0,
+          borderRadius: 'var(--c-r-sm)',
+          cursor: addMutation.isPending ? 'not-allowed' : 'pointer',
+          opacity: addMutation.isPending ? 0.6 : 1,
+          boxShadow: 'var(--c-shadow-sm)',
+          transition: 'transform var(--c-t-fast) var(--c-ease-out)',
+          flexShrink: 0,
+        }}
+      >
         {addMutation.isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <Plus className="w-4 h-4" />
         )}
-      </Button>
+      </button>
     </form>
   );
 }

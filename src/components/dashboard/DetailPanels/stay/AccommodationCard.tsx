@@ -1,6 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +10,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { GripVertical, MoreVertical, ExternalLink, Pencil, EyeOff, Eye, Trash2 } from 'lucide-react';
 import type { Accommodation } from '@/types/accommodation';
-import { cn } from '@/lib/utils';
+import '@/preview/collage/collage.css';
+
+/**
+ * AccommodationCard — migrated to Collage direction (Phase 4d, StayDetail inner).
+ * Parent wraps in `.collage-root`; tokens cascade. Sortable hooks + dropdown
+ * menu logic unchanged. Shadcn Card swapped for paper div with ink hairline
+ * border + sharp corners; active/dragging state = pen-blue border; deprioritized
+ * = muted opacity.
+ */
 
 interface AccommodationCardProps {
   accommodation: Accommodation;
@@ -32,6 +39,39 @@ function getDomainFromUrl(url: string): string {
   }
 }
 
+const cardBase: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: 12,
+  background: 'var(--c-paper)',
+  border: '1px solid var(--c-line)',
+  borderRadius: 'var(--c-r-sm)',
+  boxShadow: 'var(--c-shadow-sm)',
+  transition: 'border-color var(--c-t-fast) var(--c-ease-out), box-shadow var(--c-t-fast) var(--c-ease-out)',
+};
+
+const titleStyle: React.CSSProperties = {
+  fontFamily: 'var(--c-font-body)',
+  fontWeight: 500,
+  fontSize: 15,
+  color: 'var(--c-ink)',
+  margin: 0,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+
+const domainStyle: React.CSSProperties = {
+  fontFamily: 'var(--c-font-body)',
+  fontSize: 12,
+  color: 'var(--c-ink-muted)',
+  margin: '2px 0 0',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+};
+
 export function AccommodationCard({
   accommodation,
   onEdit,
@@ -49,38 +89,60 @@ export function AccommodationCard({
     transition,
   } = useSortable({ id: accommodation.id, disabled: isDeprioritized });
 
-  const style = {
+  const sortStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
   const domain = accommodation.url ? getDomainFromUrl(accommodation.url) : null;
 
+  const mergedStyle: React.CSSProperties = {
+    ...cardBase,
+    ...sortStyle,
+    ...(isDeprioritized ? { opacity: 0.5, background: 'rgba(29,29,27,.04)' } : null),
+    ...(isDragging
+      ? {
+          borderColor: 'var(--c-pen)',
+          boxShadow: 'var(--c-shadow)',
+        }
+      : null),
+  };
+
   return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'flex items-center gap-2 p-3 transition-colors',
-        isDeprioritized && 'opacity-50 bg-muted',
-        isDragging && 'shadow-lg ring-2 ring-primary'
-      )}
-    >
+    <div ref={setNodeRef} style={mergedStyle}>
       {!isDeprioritized && (
         <button
+          type="button"
           {...attributes}
           {...listeners}
-          className="touch-none cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground hover:text-foreground"
+          aria-label="Drag to reorder"
+          className="touch-none"
+          style={{
+            cursor: 'grab',
+            background: 'transparent',
+            border: 0,
+            padding: 4,
+            marginLeft: -4,
+            color: 'var(--c-ink-muted)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      
-      <div 
-        className={cn(
-          "flex-1 min-w-0",
-          accommodation.url && "cursor-pointer hover:bg-accent/50 rounded-md -my-1 py-1 -mx-1 px-1 transition-colors"
-        )}
+
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          cursor: accommodation.url ? 'pointer' : 'default',
+          padding: accommodation.url ? '2px 4px' : 0,
+          margin: accommodation.url ? '-2px -4px' : 0,
+          borderRadius: 'var(--c-r-sm)',
+          transition: 'background-color var(--c-t-fast) var(--c-ease-out)',
+        }}
         onClick={(e) => {
           if (accommodation.url) {
             e.stopPropagation();
@@ -88,17 +150,25 @@ export function AccommodationCard({
           }
         }}
       >
-        <p className={cn('font-medium truncate', isDeprioritized && 'text-muted-foreground')}>
+        <p
+          style={{
+            ...titleStyle,
+            ...(isDeprioritized ? { color: 'var(--c-ink-muted)' } : null),
+          }}
+        >
           {accommodation.title}
         </p>
-        {domain && (
-          <p className="text-xs text-muted-foreground truncate">{domain}</p>
-        )}
+        {domain && <p style={domainStyle}>{domain}</p>}
       </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            style={{ color: 'var(--c-ink-muted)' }}
+          >
             <MoreVertical className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -113,7 +183,7 @@ export function AccommodationCard({
             <Pencil className="w-4 h-4 mr-2" />
             Edit
           </DropdownMenuItem>
-          
+
           {isDeprioritized ? (
             <DropdownMenuItem onClick={onUnhide}>
               <Eye className="w-4 h-4 mr-2" />
@@ -125,15 +195,18 @@ export function AccommodationCard({
               Hide
             </DropdownMenuItem>
           )}
-          
+
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <DropdownMenuItem
+            onClick={onDelete}
+            style={{ color: 'var(--c-danger, #A83232)' }}
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </Card>
+    </div>
   );
 }
 
@@ -150,14 +223,24 @@ export function StaticAccommodationCard({
   const domain = accommodation.url ? getDomainFromUrl(accommodation.url) : null;
 
   return (
-    <Card className="flex items-center gap-2 p-3 opacity-50 bg-muted">
-      <div className="w-6" /> {/* Spacer for alignment */}
-      
-      <div 
-        className={cn(
-          "flex-1 min-w-0",
-          accommodation.url && "cursor-pointer hover:bg-accent/50 rounded-md -my-1 py-1 -mx-1 px-1 transition-colors"
-        )}
+    <div
+      style={{
+        ...cardBase,
+        opacity: 0.5,
+        background: 'rgba(29,29,27,.04)',
+      }}
+    >
+      <div style={{ width: 24 }} /> {/* Spacer for alignment */}
+
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          cursor: accommodation.url ? 'pointer' : 'default',
+          padding: accommodation.url ? '2px 4px' : 0,
+          margin: accommodation.url ? '-2px -4px' : 0,
+          borderRadius: 'var(--c-r-sm)',
+        }}
         onClick={(e) => {
           if (accommodation.url) {
             e.stopPropagation();
@@ -165,17 +248,20 @@ export function StaticAccommodationCard({
           }
         }}
       >
-        <p className="font-medium truncate text-muted-foreground">
+        <p style={{ ...titleStyle, color: 'var(--c-ink-muted)' }}>
           {accommodation.title}
         </p>
-        {domain && (
-          <p className="text-xs text-muted-foreground truncate">{domain}</p>
-        )}
+        {domain && <p style={domainStyle}>{domain}</p>}
       </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            style={{ color: 'var(--c-ink-muted)' }}
+          >
             <MoreVertical className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -191,12 +277,15 @@ export function StaticAccommodationCard({
             Unhide
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <DropdownMenuItem
+            onClick={onDelete}
+            style={{ color: 'var(--c-danger, #A83232)' }}
+          >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </Card>
+    </div>
   );
 }
