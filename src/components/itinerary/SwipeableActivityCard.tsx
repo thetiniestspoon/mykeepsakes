@@ -2,16 +2,6 @@ import { useState, useRef, useCallback, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Check, Edit, SkipForward, Trash2, Camera } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 interface SwipeableActivityCardProps {
   children: ReactNode;
@@ -26,8 +16,6 @@ interface SwipeableActivityCardProps {
 
 const SWIPE_THRESHOLD = 60;
 const MAX_SWIPE = 120;
-const LONG_PRESS_MS = 650;
-const LONG_PRESS_MOVE_THRESHOLD = 8;
 
 export function SwipeableActivityCard({
   children,
@@ -41,74 +29,11 @@ export function SwipeableActivityCard({
 }: SwipeableActivityCardProps) {
   const [swipeX, setSwipeX] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [isLongPressing, setIsLongPressing] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isHorizontalSwipe = useRef(false);
-  const longPressTimer = useRef<number | null>(null);
-  const longPressOrigin = useRef<{ x: number; y: number } | null>(null);
   const isMobile = useIsMobile();
 
-  const cancelLongPress = useCallback(() => {
-    if (longPressTimer.current !== null) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    longPressOrigin.current = null;
-    setIsLongPressing(false);
-  }, []);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (!onDelete) return;
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('button, a, input, textarea, select, [role="button"]')) return;
-    longPressOrigin.current = { x: e.clientX, y: e.clientY };
-    setIsLongPressing(true);
-    longPressTimer.current = window.setTimeout(() => {
-      longPressTimer.current = null;
-      setIsLongPressing(false);
-      setConfirmDeleteOpen(true);
-    }, LONG_PRESS_MS);
-  }, [onDelete]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!longPressOrigin.current) return;
-    const dx = e.clientX - longPressOrigin.current.x;
-    const dy = e.clientY - longPressOrigin.current.y;
-    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_THRESHOLD) {
-      cancelLongPress();
-    }
-  }, [cancelLongPress]);
-
-  const handleConfirmDelete = useCallback(() => {
-    onDelete?.();
-    setConfirmDeleteOpen(false);
-  }, [onDelete]);
-
-  const deleteConfirmDialog = (
-    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this event?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will remove the item from your itinerary. This can't be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirmDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-  
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (!isMobile) return;
     touchStartX.current = e.touches[0].clientX;
@@ -174,31 +99,16 @@ export function SwipeableActivityCard({
   const rightProgress = Math.min(swipeX / SWIPE_THRESHOLD, 1);
   const leftProgress = Math.min(-swipeX / SWIPE_THRESHOLD, 1);
   
-  // If not on mobile, just render children directly (with long-press support)
+  // If not on mobile, just render children directly
   if (!isMobile) {
     return (
-      <>
-        <div
-          data-activity-id={activityId}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={cancelLongPress}
-          onPointerCancel={cancelLongPress}
-          onPointerLeave={cancelLongPress}
-          className={cn(
-            "transition-[transform,opacity]",
-            isLongPressing && "opacity-80 scale-[.985]"
-          )}
-        >
-          {children}
-        </div>
-        {deleteConfirmDialog}
-      </>
+      <div data-activity-id={activityId}>
+        {children}
+      </div>
     );
   }
 
   return (
-    <>
     <div
       className="relative overflow-hidden rounded-lg"
       data-activity-id={activityId}
@@ -274,10 +184,7 @@ export function SwipeableActivityCard({
       
       {/* Main card content */}
       <div
-        className={cn(
-          "relative z-10 transition-transform touch-pan-y",
-          isLongPressing && "opacity-80 scale-[.985]"
-        )}
+        className="relative z-10 transition-transform touch-pan-y"
         style={{
           transform: `translateX(${swipeX}px)`,
           transition: swipeX === 0 ? 'transform 0.2s ease-out' : 'none'
@@ -285,11 +192,6 @@ export function SwipeableActivityCard({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={cancelLongPress}
-        onPointerCancel={cancelLongPress}
-        onPointerLeave={cancelLongPress}
       >
         {children}
       </div>
@@ -302,7 +204,5 @@ export function SwipeableActivityCard({
         />
       )}
     </div>
-    {deleteConfirmDialog}
-    </>
   );
 }

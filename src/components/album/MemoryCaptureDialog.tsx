@@ -57,12 +57,13 @@ export function MemoryCaptureDialog({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Reset input value so picking the same file again (or picking any file in
+    // a subsequent "Add" tap) reliably fires onChange. Important on iOS Safari
+    // where `multiple` behavior can be flaky — sequential picks must keep working.
+    e.target.value = '';
     if (files.length === 0) return;
-    
-    // Add new files
+
     setSelectedFiles(prev => [...prev, ...files]);
-    
-    // Create preview URLs
     const newUrls = files.map(file => URL.createObjectURL(file));
     setPreviewUrls(prev => [...prev, ...newUrls]);
   };
@@ -137,7 +138,7 @@ export function MemoryCaptureDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-beach-sunset-coral" />

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, ChevronDown, Image as ImageIcon, Pencil } from 'lucide-react';
+import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, ChevronDown, Image as ImageIcon, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -16,6 +16,17 @@ import { useActiveTrip } from '@/hooks/use-trip';
 import { useLocations } from '@/hooks/use-locations';
 import { useFavorites, useToggleFavorite } from '@/hooks/use-trip-data';
 import { useItemMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
+import { useDeleteItem } from '@/hooks/use-itinerary';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 interface ActivityDetailProps {
   activity: ItineraryItem | null;
@@ -52,6 +63,8 @@ export function ActivityDetail({
   } = useItemMemories(activity?.id);
   const [memoryDialogOpen, setMemoryDialogOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const deleteItem = useDeleteItem();
   const [photosOpen, setPhotosOpen] = useState(true);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
@@ -116,6 +129,14 @@ export function ActivityDetail({
   
   const handleEdit = () => {
     setEditorOpen(true);
+  };
+  const handleDelete = () => {
+    setDeleteConfirmOpen(true);
+  };
+  const handleConfirmDelete = () => {
+    if (!activity) return;
+    deleteItem.mutate(activity.id);
+    setDeleteConfirmOpen(false);
   };
   
   // Convert ItineraryItem to LegacyActivity format for editor
@@ -240,6 +261,21 @@ export function ActivityDetail({
             <TooltipContent>Edit activity</TooltipContent>
           </Tooltip>
 
+          {/* Delete Activity */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete activity</TooltipContent>
+          </Tooltip>
+
           {/* Show on Map */}
           {activity.location && <Tooltip>
               <TooltipTrigger asChild>
@@ -316,5 +352,26 @@ export function ActivityDetail({
           activity={legacyActivity}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{activity.title}" will be removed from your itinerary. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>;
 }
