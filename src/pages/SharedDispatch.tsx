@@ -1,13 +1,30 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Lock, Clock, ExternalLink } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { getMemoryMediaUrl } from '@/hooks/use-memories';
+import { CollageRoot } from '@/preview/collage/CollageRoot';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+import { Tape } from '@/preview/collage/ui/Tape';
 import type { Memory, ItineraryDay } from '@/types/trip';
 import type { DispatchItem } from '@/types/conference';
 
-// ── types ─────────────────────────────────────────────────────────────────────
+/**
+ * SharedDispatch — public dispatch/digest page at /shared-dispatch/:token/:id
+ *
+ * Phase 4 #11: the PAGE CHROME around the dispatch is migrated to Collage
+ * (header, meta strip, loading/error/empty states, print styles, footer).
+ * The inner dispatch body (Scene / Insights / Closing) is restyled with
+ * Collage tokens only — a fuller composition-surface restyle of the
+ * dispatch body itself is tracked under Phase 4 #3.
+ *
+ * Token-based data fetching preserved. No useActiveTrip — all data comes
+ * from the `useSharedDispatch(token, dispatchId)` query below.
+ *
+ * Print-friendly: FAB-less, header + footer collapse to plain text,
+ * ink-on-crème contrast retained. Respects prefers-reduced-motion.
+ */
 
 interface DispatchData {
   dispatch: Memory & { day: ItineraryDay | null };
@@ -18,7 +35,7 @@ interface DispatchData {
   tripShareToken: string | null;
 }
 
-// ── data hook ─────────────────────────────────────────────────────────────────
+// ── data hook (token-scoped, no auth) ─────────────────────────────────────────
 
 function useSharedDispatch(token: string | undefined, dispatchId: string | undefined) {
   return useQuery<DispatchData>({
@@ -26,7 +43,7 @@ function useSharedDispatch(token: string | undefined, dispatchId: string | undef
     queryFn: async () => {
       if (!token || !dispatchId) throw new Error('Missing token or dispatch id');
 
-      // 1. Validate token – must match dispatch_id
+      // 1. Validate token — must match dispatch_id
       const { data: link, error: linkError } = await supabase
         .from('trip_share_links')
         .select('*')
@@ -109,7 +126,7 @@ function useSharedDispatch(token: string | undefined, dispatchId: string | undef
         .eq('id', link.trip_id)
         .single();
 
-      // 7. Check if a trip-level share link exists (no dispatch_id = trip-level)
+      // 7. Check for a trip-level share link (no dispatch_id = trip-level)
       const { data: tripShareLink } = await supabase
         .from('trip_share_links')
         .select('token')
@@ -137,41 +154,91 @@ export default function SharedDispatch() {
   const { token, id } = useParams<{ token: string; id: string }>();
   const { data, isLoading, error } = useSharedDispatch(token, id);
 
-  // Loading
+  // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">Loading dispatch…</p>
+      <CollageRoot>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 40,
+            fontFamily: 'var(--c-font-body)',
+            color: 'var(--c-ink-muted)',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 14 }}>
+              loading dispatch
+            </Stamp>
+            <MarginNote rotate={-2} size={26} style={{ display: 'block' }}>
+              one moment{'…'}
+            </MarginNote>
+          </div>
         </div>
-      </div>
+      </CollageRoot>
     );
   }
 
-  // Error / invalid
+  // ── error / invalid ───────────────────────────────────────────────────────
   if (error || !data) {
-    const isExpired = (error as Error)?.message?.includes('expired');
+    const isExpired = (error as Error | undefined)?.message?.includes('expired');
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-              {isExpired ? (
-                <Clock className="w-6 h-6 text-destructive" />
-              ) : (
-                <Lock className="w-6 h-6 text-destructive" />
-              )}
-            </div>
-            <h2 className="text-lg font-semibold mb-2">Unable to Access Dispatch</h2>
-            <p className="text-muted-foreground text-sm">
+      <CollageRoot>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 24,
+            fontFamily: 'var(--c-font-body)',
+          }}
+        >
+          <article
+            style={{
+              width: '100%',
+              maxWidth: 420,
+              background: 'var(--c-paper)',
+              boxShadow: 'var(--c-shadow)',
+              padding: '36px 28px 32px',
+              position: 'relative',
+              textAlign: 'center',
+            }}
+          >
+            <Tape position="top-left" rotate={-6} width={64} />
+            <Tape position="top-right" rotate={5} width={64} />
+            <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 18 }}>
+              {isExpired ? 'link expired' : 'link not available'}
+            </Stamp>
+            <h2
+              style={{
+                fontFamily: 'var(--c-font-display)',
+                fontSize: 20,
+                letterSpacing: '-.01em',
+                margin: '0 0 12px',
+                color: 'var(--c-ink)',
+              }}
+            >
+              Unable to open this dispatch
+            </h2>
+            <p
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontStyle: 'italic',
+                fontSize: 16,
+                color: 'var(--c-ink-muted)',
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
               {isExpired
-                ? 'This share link has expired. Ask the sender for a new link.'
+                ? 'This share link has expired. Ask the sender for a new one.'
                 : 'This dispatch link is invalid or no longer available.'}
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          </article>
+        </div>
+      </CollageRoot>
     );
   }
 
@@ -179,117 +246,374 @@ export default function SharedDispatch() {
   const day = dispatch.day;
   const dayLabel = day?.title ?? day?.date ?? 'Day';
   const closingNote = dispatch.note;
+  const hasContent =
+    photos.length > 0 || reflections.length > 0 || (closingNote && closingNote.trim().length > 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div>
-            <h1 className="font-display text-lg font-semibold text-foreground leading-tight">
+    <CollageRoot>
+      <main
+        className="shared-dispatch"
+        style={{
+          minHeight: '100vh',
+          padding: 'clamp(24px, 4vw, 56px) clamp(16px, 4vw, 40px) 96px',
+          display: 'grid',
+          placeItems: 'start center',
+          fontFamily: 'var(--c-font-body)',
+        }}
+      >
+        {/* Attribution / meta strip */}
+        <div
+          className="shared-dispatch-meta"
+          style={{
+            width: '100%',
+            maxWidth: 640,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 10,
+            letterSpacing: '.24em',
+            textTransform: 'uppercase',
+            color: 'var(--c-ink-muted)',
+            marginBottom: 24,
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <span>a dispatch from</span>
+          <span aria-hidden>{'·'}</span>
+          <span>{tripTitle.toLowerCase()}</span>
+          <span aria-hidden>{'·'}</span>
+          <span>read-only</span>
+        </div>
+
+        <article
+          className="shared-dispatch-article"
+          style={{
+            width: '100%',
+            maxWidth: 640,
+            background: 'var(--c-paper)',
+            boxShadow: 'var(--c-shadow)',
+            padding:
+              'clamp(24px, 4vw, 56px) clamp(20px, 4vw, 48px) clamp(28px, 4vw, 56px)',
+            position: 'relative',
+          }}
+        >
+          <Tape position="top-left" rotate={-7} width={72} />
+          <Tape position="top-right" rotate={5} width={72} />
+
+          {/* HEADER / PAGE CHROME */}
+          <header style={{ marginBottom: 32 }}>
+            <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 16 }}>
+              dispatch
+            </Stamp>
+
+            <h1
+              style={{
+                fontFamily: 'var(--c-font-display)',
+                fontSize: 'clamp(26px, 4vw, 40px)',
+                lineHeight: 1,
+                letterSpacing: '-.01em',
+                margin: 0,
+                color: 'var(--c-ink)',
+              }}
+            >
               {dayLabel}
             </h1>
-            <p className="text-xs text-muted-foreground">{tripTitle}</p>
-          </div>
-          <span className="text-xs text-muted-foreground bg-secondary rounded-full px-3 py-1 flex items-center gap-1">
-            <Lock className="w-3 h-3" />
-            Read-only
-          </span>
-        </div>
-      </header>
 
-      <main className="container px-4 py-8 max-w-2xl mx-auto space-y-8 pb-24">
-        {/* Scene: photos */}
-        {photos.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Scene
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {photos.map((photo) => {
-                const firstMedia = photo.media?.[0];
-                if (!firstMedia) return null;
-                const url = getMemoryMediaUrl(firstMedia.storage_path);
-                return (
-                  <div
-                    key={photo.id}
-                    className="aspect-square rounded-lg overflow-hidden bg-muted"
-                  >
-                    <img
-                      src={url}
-                      alt={photo.title ?? 'Photo'}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                );
-              })}
+            <p
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontStyle: 'italic',
+                fontSize: 16,
+                color: 'var(--c-ink-muted)',
+                margin: '10px 0 0',
+                lineHeight: 1.5,
+              }}
+            >
+              {tripTitle}
+            </p>
+
+            {/* Print/save affordance — only visible on-screen */}
+            <div
+              className="shared-dispatch-actions"
+              style={{
+                marginTop: 18,
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={{
+                  display: 'inline-block',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 10,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--c-r-sm)',
+                  border: '1.5px dashed var(--c-pen)',
+                  background: 'transparent',
+                  color: 'var(--c-pen)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                print / save
+              </button>
             </div>
-          </section>
-        )}
+          </header>
 
-        {/* Insights */}
-        {reflections.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Insights
-            </h2>
-            <ul className="space-y-4">
-              {reflections.map((reflection) => (
-                <li key={reflection.id} className="flex gap-3">
-                  <span className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                  <div>
-                    <p className="text-foreground text-sm leading-relaxed">
+          {/* BODY: Scene / Insights / Closing — Collage-token restyle only */}
+
+          {photos.length > 0 && (
+            <section style={{ marginBottom: 40 }}>
+              <Stamp variant="ink" size="sm" rotate={-1} style={{ marginBottom: 14 }}>
+                scene
+              </Stamp>
+              <div
+                className="shared-dispatch-photos"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                  gap: 10,
+                }}
+              >
+                {photos.map((photo) => {
+                  const firstMedia = photo.media?.[0];
+                  if (!firstMedia) return null;
+                  const url = getMemoryMediaUrl(firstMedia.storage_path);
+                  return (
+                    <div
+                      key={photo.id}
+                      style={{
+                        aspectRatio: '1 / 1',
+                        background: 'var(--c-paper)',
+                        padding: 8,
+                        boxShadow: 'var(--c-shadow)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <img
+                        src={url}
+                        alt={photo.title ?? 'Photo'}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {reflections.length > 0 && (
+            <section style={{ marginBottom: 40 }}>
+              <Stamp variant="outline" size="sm" rotate={-1} style={{ marginBottom: 14 }}>
+                insights
+              </Stamp>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px dashed var(--c-line)',
+                }}
+              >
+                {reflections.map((reflection) => (
+                  <li
+                    key={reflection.id}
+                    style={{
+                      padding: '14px 0',
+                      borderBottom: '1px dashed var(--c-line)',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: 'var(--c-font-body)',
+                        fontSize: 16,
+                        lineHeight: 1.65,
+                        color: 'var(--c-ink)',
+                        margin: 0,
+                      }}
+                    >
                       {reflection.note}
                     </p>
                     {reflection.speaker && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        — {reflection.speaker}
-                        {reflection.session_title && `, ${reflection.session_title}`}
+                      <p
+                        style={{
+                          fontFamily: 'var(--c-font-display)',
+                          fontSize: 10,
+                          letterSpacing: '.22em',
+                          textTransform: 'uppercase',
+                          color: 'var(--c-ink-muted)',
+                          margin: '8px 0 0',
+                        }}
+                      >
+                        {'—'} {reflection.speaker}
+                        {reflection.session_title ? ` · ${reflection.session_title}` : ''}
                       </p>
                     )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {closingNote && (
+            <section
+              style={{
+                marginBottom: 12,
+                padding: '24px 24px 20px',
+                borderLeft: '3px solid var(--c-pen)',
+                background: 'rgba(31, 60, 198, 0.04)',
+                position: 'relative',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  left: 20,
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 10,
+                  letterSpacing: '.24em',
+                  textTransform: 'uppercase',
+                  padding: '4px 10px',
+                  background: 'var(--c-paper)',
+                  color: 'var(--c-pen)',
+                }}
+              >
+                closing
+              </span>
+              <p
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontStyle: 'italic',
+                  fontSize: 17,
+                  lineHeight: 1.7,
+                  color: 'var(--c-ink)',
+                  margin: 0,
+                  maxWidth: '52ch',
+                }}
+              >
+                {closingNote}
+              </p>
+            </section>
+          )}
+
+          {!hasContent && (
+            <section style={{ marginTop: 24 }}>
+              <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 14 }}>
+                not yet
+              </Stamp>
+              <p
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontStyle: 'italic',
+                  fontSize: 17,
+                  lineHeight: 1.7,
+                  color: 'var(--c-ink-muted)',
+                  margin: 0,
+                }}
+              >
+                This dispatch is still being composed. Come back in a bit.
+              </p>
+            </section>
+          )}
+
+          {/* CLOSING SIGN-OFF */}
+          <section
+            style={{
+              marginTop: 32,
+              paddingTop: 24,
+              borderTop: '1px solid var(--c-line)',
+            }}
+          >
+            <MarginNote rotate={-1} size={24} style={{ display: 'block', marginBottom: 12 }}>
+              {'—'} thanks for reading
+            </MarginNote>
+            <StickerPill variant="tape" rotate={-1}>
+              a dispatch from the road
+            </StickerPill>
           </section>
-        )}
+        </article>
 
-        {/* Closing note */}
-        {closingNote && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              Closing
-            </h2>
-            <blockquote className="border-l-4 border-primary pl-4 italic text-foreground text-sm leading-relaxed">
-              {closingNote}
-            </blockquote>
-          </section>
-        )}
-
-        {photos.length === 0 && reflections.length === 0 && !closingNote && (
-          <p className="text-center text-muted-foreground text-sm py-12">
-            This dispatch has no content.
-          </p>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur border-t border-border py-3">
-        <div className="container px-4 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Shared with you · Powered by MyKeepsakes
-          </p>
+        {/* FOOTER */}
+        <footer
+          className="shared-dispatch-footer"
+          style={{
+            width: '100%',
+            maxWidth: 640,
+            marginTop: 32,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 10,
+            letterSpacing: '.24em',
+            textTransform: 'uppercase',
+            color: 'var(--c-ink-muted)',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <span>made with mykeepsakes</span>
           {tripShareToken && (
             <Link
               to={`/shared/${tripShareToken}`}
-              className="text-xs text-primary flex items-center gap-1 hover:underline"
+              style={{
+                color: 'var(--c-pen)',
+                textDecoration: 'none',
+                borderBottom: '1px solid currentColor',
+                paddingBottom: 1,
+              }}
             >
-              View full trip
-              <ExternalLink className="w-3 h-3" />
+              view full trip {'→'}
             </Link>
           )}
-        </div>
-      </footer>
-    </div>
+        </footer>
+
+        <style>{`
+          @media print {
+            .shared-dispatch {
+              padding: 0 !important;
+              background: #fff !important;
+            }
+            .shared-dispatch-meta,
+            .shared-dispatch-footer,
+            .shared-dispatch-actions {
+              display: none !important;
+            }
+            .shared-dispatch-article {
+              box-shadow: none !important;
+              max-width: 100% !important;
+              padding: 16pt 8pt !important;
+              background: #fff !important;
+            }
+            .shared-dispatch-article > span[aria-hidden="true"] {
+              display: none !important;
+            }
+            .shared-dispatch-photos {
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            .shared-dispatch-photos > div {
+              box-shadow: none !important;
+              border: 1px solid #ccc;
+            }
+          }
+        `}</style>
+      </main>
+    </CollageRoot>
   );
 }
