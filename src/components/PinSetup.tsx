@@ -1,14 +1,21 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Waves, Sun, Shell, KeyRound } from 'lucide-react';
 import { CollageEmojiPad } from '@/components/auth/CollageEmojiPad';
 import { CollageRoot } from '@/preview/collage/CollageRoot';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+import { Tape } from '@/preview/collage/ui/Tape';
 import { useCreatePin } from '@/hooks/use-trip-data';
+import '@/preview/collage/collage.css';
 
 interface PinSetupProps {
   onComplete: () => void;
 }
 
+/**
+ * First-run PIN setup — migrated to Collage direction (Phase 4 #12).
+ * Presentation only: createPin hook + two-step confirm flow unchanged.
+ */
 export function PinSetup({ onComplete }: PinSetupProps) {
   const [step, setStep] = useState<'create' | 'confirm'>('create');
   const [firstPin, setFirstPin] = useState<string[]>([]);
@@ -24,7 +31,7 @@ export function PinSetup({ onComplete }: PinSetupProps) {
 
   const handleConfirmPin = async (emojiPin: string[]) => {
     if (emojiPin.join('') !== firstPin.join('')) {
-      setError('PINs do not match. Starting over...');
+      setError('PINs do not match. Starting over…');
       setTimeout(() => {
         setStep('create');
         setFirstPin([]);
@@ -44,60 +51,86 @@ export function PinSetup({ onComplete }: PinSetupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-beach-gradient flex flex-col items-center justify-center p-4">
-      {/* Decorative elements */}
-      <div className="absolute top-8 left-8 text-beach-sunset-coral opacity-50">
-        <Sun className="w-12 h-12" />
-      </div>
-      <div className="absolute top-12 right-12 text-beach-ocean-light opacity-40">
-        <Waves className="w-16 h-16" />
-      </div>
-      <div className="absolute bottom-16 left-16 text-beach-sand opacity-60">
-        <Shell className="w-10 h-10" />
-      </div>
+    <CollageRoot>
+      <main
+        style={{
+          minHeight: '100dvh',
+          display: 'grid',
+          placeItems: 'center',
+          padding: '48px 20px',
+        }}
+      >
+        <section
+          style={{
+            background: 'var(--c-paper)',
+            position: 'relative',
+            padding: '44px 36px 40px',
+            boxShadow: 'var(--c-shadow)',
+            width: 'min(440px, 100%)',
+            textAlign: 'center',
+          }}
+        >
+          <Tape position="top-left" rotate={-6} />
+          <Tape position="top-right" rotate={8} />
 
-      <Card className="w-full max-w-sm shadow-warm-lg">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-warm">
-            <KeyRound className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl font-display text-foreground">
+          <Stamp variant="outline" size="sm" rotate={-3} style={{ marginBottom: 20 }}>
+            {step === 'create' ? 'set your four' : 'confirm your four'}
+          </Stamp>
+
+          <h1
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 28,
+              fontWeight: 500,
+              letterSpacing: '-.005em',
+              margin: '0 0 6px',
+              color: 'var(--c-ink)',
+            }}
+          >
             {step === 'create' ? 'Welcome to MyKeepsakes' : 'Confirm Your PIN'}
-          </CardTitle>
-          <CardDescription className="text-body text-muted-foreground">
+          </h1>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontStyle: 'italic',
+              color: 'var(--c-ink-muted)',
+              margin: '0 0 28px',
+              fontSize: 15,
+            }}
+          >
             {step === 'create'
-              ? 'Choose 4 emojis as your PIN. Share it with your family!'
+              ? 'Choose 4 emojis as your PIN. Share it with your family.'
               : 'Tap the same 4 emojis again to confirm.'}
-          </CardDescription>
-        </CardHeader>
+          </p>
 
-        <CardContent className="space-y-4">
           {step === 'create' ? (
-            <CollageRoot>
-              <CollageEmojiPad
-                onSubmit={handleFirstPin}
-                error={error}
-                submitLabel="Next"
-              />
-            </CollageRoot>
+            <CollageEmojiPad
+              onSubmit={handleFirstPin}
+              error={error}
+              submitLabel="Next"
+            />
           ) : (
-            <CollageRoot>
-              <CollageEmojiPad
-                onSubmit={handleConfirmPin}
-                loading={createPin.isPending}
-                error={error}
-                submitLabel="Create PIN"
-              />
-            </CollageRoot>
+            <CollageEmojiPad
+              onSubmit={handleConfirmPin}
+              loading={createPin.isPending}
+              error={error}
+              submitLabel="Create PIN"
+            />
           )}
 
-          <p className="text-center text-sm text-muted-foreground">
+          <MarginNote rotate={1} size={18} style={{ marginTop: 22, display: 'block' }}>
             {step === 'create'
-              ? 'Remember this PIN! You\'ll need it to access your trip.'
-              : 'Tap the dots to correct mistakes.'}
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+              ? '— remember this; you’ll need it'
+              : '— tap the dots to correct'}
+          </MarginNote>
+
+          <div style={{ marginTop: 24 }}>
+            <StickerPill variant="pen" style={{ opacity: 0.75 }}>
+              first run · welcome
+            </StickerPill>
+          </div>
+        </section>
+      </main>
+    </CollageRoot>
   );
 }
