@@ -5,6 +5,7 @@ import { DatabaseActivityCard } from '@/components/itinerary/DatabaseActivityCar
 import { TodayModeToggle } from '@/components/itinerary/TodayModeToggle';
 import { useTodayMode } from '@/hooks/use-today-mode';
 import { getTripMode } from '@/hooks/use-trip';
+import '@/preview/collage/collage.css';
 import { Stamp } from '@/preview/collage/ui/Stamp';
 import { StickerPill } from '@/preview/collage/ui/StickerPill';
 import { Tape } from '@/preview/collage/ui/Tape';
@@ -26,6 +27,9 @@ import { cn } from '@/lib/utils';
  * would appear to teleport back to their original block after drop when
  * their start_time didn't change. Drag-reorder stays available in the
  * compact sidebar (DashboardItinerary).
+ *
+ * 2026-04-23 (W3.3a): polished mode badges + filter pills to use Collage
+ * tokens (ink / pen / tape) instead of the leftover bg-muted / emerald slate.
  */
 
 type BlockName = 'morning' | 'midday' | 'afternoon' | 'evening';
@@ -114,18 +118,28 @@ export function DatabaseItineraryTab() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--c-ink-muted)]" />
+      <div className="collage-root flex justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--c-ink-muted)' }} />
       </div>
     );
   }
 
   if (isError || !trip) {
     return (
-      <div className="text-center py-12">
-        <Calendar className="w-12 h-12 text-[var(--c-ink-muted)] mx-auto mb-4" />
-        <p className="text-[var(--c-ink-muted)]">No trip itinerary found.</p>
-        <p className="text-sm text-[var(--c-ink-muted)] mt-1">
+      <div className="collage-root text-center py-12">
+        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--c-ink-muted)' }} />
+        <p style={{ fontFamily: 'var(--c-font-body)', color: 'var(--c-ink-muted)', margin: 0 }}>
+          No trip itinerary found.
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontStyle: 'italic',
+            fontSize: 13,
+            color: 'var(--c-ink-muted)',
+            marginTop: 4,
+          }}
+        >
           Create a trip to get started!
         </p>
       </div>
@@ -155,39 +169,80 @@ export function DatabaseItineraryTab() {
       {/* Trip header */}
       <header className="text-center space-y-2">
         <Stamp variant="outline" size="sm" rotate={-2}>the day · by block</Stamp>
-        <h2 className="font-display text-2xl text-[var(--c-ink)]">{trip.title}</h2>
-        <p className="text-[var(--c-ink-muted)]">{dateRange}</p>
+        <h2
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontSize: 'clamp(22px, 3vw, 30px)',
+            fontWeight: 500,
+            color: 'var(--c-ink)',
+            margin: '6px 0 0',
+            lineHeight: 1.1,
+          }}
+        >
+          {trip.title}
+        </h2>
+        <p
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontStyle: 'italic',
+            color: 'var(--c-ink-muted)',
+            margin: 0,
+          }}
+        >
+          {dateRange}
+        </p>
 
         {totalCount > 0 && (
           <div className="mt-3 max-w-xs mx-auto">
-            <div className="flex justify-between text-xs text-[var(--c-ink-muted)] mb-1">
-              <span>Overall Progress</span>
-              <span>{completedCount}/{totalCount} activities ({progressPercent}%)</span>
+            <div
+              className="flex justify-between mb-1"
+              style={{
+                fontFamily: 'var(--c-font-display)',
+                fontSize: 9,
+                letterSpacing: '.2em',
+                textTransform: 'uppercase',
+                color: 'var(--c-ink-muted)',
+              }}
+            >
+              <span>Progress</span>
+              <span>{completedCount}/{totalCount} · {progressPercent}%</span>
             </div>
-            <div className="w-full h-2 bg-[var(--c-line)] rounded-full overflow-hidden">
+            <div
+              style={{
+                width: '100%',
+                height: 2,
+                background: 'var(--c-line)',
+                overflow: 'hidden',
+              }}
+            >
               <div
-                className="h-full bg-[var(--c-pen)] transition-all duration-300 rounded-full"
-                style={{ width: `${progressPercent}%` }}
+                style={{
+                  height: '100%',
+                  background: 'var(--c-pen)',
+                  width: `${progressPercent}%`,
+                  transition: 'width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1)',
+                }}
               />
             </div>
           </div>
         )}
 
-        <div className="mt-2">
+        {/* Mode badge — Collage tokens instead of emerald / blue semantic pills */}
+        <div className="mt-2 flex justify-center">
           {mode === 'pre' && (
-            <span className="text-xs px-2 py-1 bg-[var(--c-pen)]/10 text-[var(--c-pen)] rounded-full">
-              Upcoming Trip
-            </span>
+            <StickerPill variant="pen" rotate={-1} style={{ fontSize: 9, padding: '6px 10px' }}>
+              Upcoming
+            </StickerPill>
           )}
           {mode === 'active' && (
-            <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
-              Trip in Progress
-            </span>
+            <StickerPill variant="ink" rotate={1} style={{ fontSize: 9, padding: '6px 10px' }}>
+              In Progress
+            </StickerPill>
           )}
           {mode === 'post' && (
-            <span className="text-xs px-2 py-1 bg-[var(--c-tape)]/30 text-[var(--c-ink)] rounded-full">
-              Trip Complete
-            </span>
+            <StickerPill variant="tape" rotate={-1} style={{ fontSize: 9, padding: '6px 10px' }}>
+              Complete
+            </StickerPill>
           )}
         </div>
 
@@ -200,34 +255,53 @@ export function DatabaseItineraryTab() {
 
           {hasChosenItems && (
             <div
-              className="flex items-center gap-1 p-1 bg-muted rounded-lg"
+              className="flex items-center gap-0 rounded-[var(--c-r-sm)]"
               role="group"
               aria-label="Filter workshop sessions"
+              style={{
+                padding: 3,
+                background: 'var(--c-creme)',
+                border: '1px solid var(--c-line)',
+              }}
             >
               <button
                 onClick={() => setChosenOnly(false)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  !chosenOnly
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                className={cn("inline-flex items-center gap-1.5 transition-all")}
+                style={{
+                  padding: '6px 12px',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 9,
+                  letterSpacing: '.2em',
+                  textTransform: 'uppercase',
+                  background: !chosenOnly ? 'var(--c-ink)' : 'transparent',
+                  color: !chosenOnly ? 'var(--c-creme)' : 'var(--c-ink-muted)',
+                  border: 'none',
+                  borderRadius: 'var(--c-r-sm)',
+                  cursor: 'pointer',
+                }}
                 aria-pressed={!chosenOnly}
               >
                 <span>All sessions</span>
               </button>
               <button
                 onClick={() => setChosenOnly(true)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  chosenOnly
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                className={cn("inline-flex items-center gap-1.5 transition-all")}
+                style={{
+                  padding: '6px 12px',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 9,
+                  letterSpacing: '.2em',
+                  textTransform: 'uppercase',
+                  background: chosenOnly ? 'var(--c-ink)' : 'transparent',
+                  color: chosenOnly ? 'var(--c-creme)' : 'var(--c-ink-muted)',
+                  border: 'none',
+                  borderRadius: 'var(--c-r-sm)',
+                  cursor: 'pointer',
+                }}
                 aria-pressed={chosenOnly}
                 title="Plenaries, meals, and worship still shown"
               >
-                <Ticket className="w-4 h-4 fill-current" aria-hidden="true" />
+                <Ticket className="w-3 h-3 fill-current" aria-hidden="true" />
                 <span>My picks</span>
               </button>
             </div>
@@ -257,7 +331,13 @@ export function DatabaseItineraryTab() {
                 role="tab"
                 aria-selected={isSelected}
                 className="transition-opacity"
-                style={{ opacity: isSelected ? 1 : 0.55 }}
+                style={{
+                  opacity: isSelected ? 1 : 0.55,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
               >
                 <StickerPill variant={isSelected ? 'ink' : 'pen'} style={{ fontSize: 9, padding: '8px 10px' }}>
                   Day {i + 1}
@@ -271,10 +351,26 @@ export function DatabaseItineraryTab() {
       {/* Selected day label */}
       {selectedDay && (
         <div className="text-center">
-          <h3 className="font-display text-xl text-[var(--c-ink)]">
+          <h3
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 18,
+              fontWeight: 500,
+              color: 'var(--c-ink)',
+              margin: 0,
+            }}
+          >
             {selectedDay.title ?? `Day ${selectedDayIndex + 1}`}
           </h3>
-          <p className="text-sm italic text-[var(--c-ink-muted)]">
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontStyle: 'italic',
+              fontSize: 14,
+              color: 'var(--c-ink-muted)',
+              margin: '2px 0 0',
+            }}
+          >
             {selectedDayDateLabel}
             {trip.location_name ? ` · ${trip.location_name}` : ''}
           </p>
@@ -284,10 +380,29 @@ export function DatabaseItineraryTab() {
       {/* No-content fallback for today mode */}
       {isTodayMode && !hasTodayContent && (
         <div className="text-center py-8">
-          <p className="text-[var(--c-ink-muted)]">No activities scheduled for today.</p>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontStyle: 'italic',
+              color: 'var(--c-ink-muted)',
+              margin: 0,
+            }}
+          >
+            No activities scheduled for today.
+          </p>
           <button
             onClick={toggleTodayMode}
-            className="mt-2 text-sm text-[var(--c-pen)] hover:underline"
+            style={{
+              marginTop: 8,
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 13,
+              color: 'var(--c-pen)',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: '1px dashed var(--c-pen)',
+              cursor: 'pointer',
+              paddingBottom: 1,
+            }}
           >
             View full timeline
           </button>
@@ -346,12 +461,20 @@ export function DatabaseItineraryTab() {
                 )}
 
                 <div className="space-y-3">
-                  {blockItems.map(activity => (
-                    <DatabaseActivityCard
+                  {blockItems.map((activity, idx) => (
+                    <div
                       key={activity.id}
-                      activity={activity}
-                      isNextActivity={activity.id === nextPlannedActivity?.activityId}
-                    />
+                      style={{
+                        paddingBottom: idx === blockItems.length - 1 ? 0 : 10,
+                        borderBottom: idx === blockItems.length - 1 ? 'none' : '1px dashed var(--c-line)',
+                      }}
+                    >
+                      <DatabaseActivityCard
+                        activity={activity}
+                        isNextActivity={activity.id === nextPlannedActivity?.activityId}
+                        cardIndex={idx}
+                      />
+                    </div>
                   ))}
                 </div>
               </section>
