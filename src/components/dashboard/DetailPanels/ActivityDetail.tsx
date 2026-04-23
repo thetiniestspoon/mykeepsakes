@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Clock, MapPin, Phone, Globe, Check, Camera, Undo2, ChevronDown, Image as ImageIcon, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FavoriteHeart } from '@/components/ui/favorite-heart';
@@ -30,13 +29,35 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import '@/preview/collage/collage.css';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
+import { Tape } from '@/preview/collage/ui/Tape';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
+
 interface ActivityDetailProps {
   activity: ItineraryItem | null;
 }
 
 /**
- * Detailed view of a single activity for the center column
+ * Detailed view of a single activity for the center column.
+ * Migrated to Collage direction 2026-04-23 (Phase 4d). Presentation only —
+ * state/hooks/handlers/data logic unchanged. Outer wrapper scopes tokens via
+ * className="collage-root"; body restyled with Stamp/StickerPill/Tape/MarginNote
+ * per DayV2 / DashboardV2 vocabulary (session-block feel — stamped heading,
+ * ink-and-pen typography, taped hero, index-card notes, polaroid photo grid).
  */
+
+function timeOfDayStamp(start?: string | null): string {
+  if (!start) return '◈ MOMENT';
+  const h = parseInt(start.slice(0, 2), 10);
+  if (Number.isNaN(h)) return '◈ MOMENT';
+  if (h < 11) return '☀ MORNING';
+  if (h < 14) return '✦ MIDDAY';
+  if (h < 17) return '◈ AFTERNOON';
+  return '◐ EVENING';
+}
+
 export function ActivityDetail({
   activity
 }: ActivityDetailProps) {
@@ -79,11 +100,40 @@ export function ActivityDetail({
   const locationPhotos = useMemo(() => {
     return itemMemories.flatMap(m => m.media || []);
   }, [itemMemories]);
+
   if (!activity) {
-    return <div className="flex items-center justify-center h-full text-[var(--c-ink-muted)]">
-        <p>Select an activity to see details</p>
-      </div>;
+    return (
+      <div
+        className="collage-root"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          minHeight: 240,
+          padding: 32,
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 14 }}>
+            pick a moment
+          </Stamp>
+          <p
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontStyle: 'italic',
+              color: 'var(--c-ink-muted)',
+              margin: 0,
+              fontSize: 15,
+            }}
+          >
+            Select an activity to see details
+          </p>
+        </div>
+      </div>
+    );
   }
+
   const formatTime = (time: string | null) => {
     if (!time) return null;
     // Remove any existing AM/PM suffix from the time string
@@ -94,8 +144,11 @@ export function ActivityDetail({
     const hour12 = h % 12 || 12;
     return `${hour12}:${minutes} ${ampm}`;
   };
+
   const isCompleted = activity.status === 'done';
   const isFavorite = favorites?.[activity.id] ?? false;
+  const todStamp = timeOfDayStamp(activity.start_time);
+
   const handleShowOnMap = () => {
     if (activity.location?.lat && activity.location?.lng) {
       if (activity.location_id) {
@@ -131,7 +184,7 @@ export function ActivityDetail({
     setPhotoViewerIndex(index);
     setPhotoViewerOpen(true);
   };
-  
+
   const handleEdit = () => {
     setEditorOpen(true);
   };
@@ -143,7 +196,7 @@ export function ActivityDetail({
     deleteItem.mutate(activity.id);
     setDeleteConfirmOpen(false);
   };
-  
+
   // Convert ItineraryItem to LegacyActivity format for editor
   const legacyActivity: LegacyActivity | null = activity ? {
     id: activity.id,
@@ -216,35 +269,133 @@ export function ActivityDetail({
       thumbnailPath: media.thumbnail_path,
     });
   };
-  return <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <h2 className={cn("text-xl font-semibold text-[var(--c-ink)] flex-1", isCompleted && "line-through text-[var(--c-ink-muted)]")}>
+
+  return (
+    <div
+      className="collage-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        background: 'transparent', // defer to parent shell background
+      }}
+    >
+      {/* Hero — taped session block */}
+      <header
+        style={{
+          position: 'relative',
+          background: 'var(--c-paper)',
+          boxShadow: 'var(--c-shadow)',
+          padding: '24px 20px 18px',
+          marginTop: 14, // room for the tape to overhang
+        }}
+      >
+        <Tape position="top-left" rotate={-5} width={78} />
+
+        {/* Time-of-day stamp */}
+        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontFamily: 'var(--c-font-display)',
+              fontSize: 11,
+              letterSpacing: '.22em',
+              color: 'var(--c-ink)',
+              lineHeight: 1,
+            }}
+          >
+            {todStamp}
+          </span>
+
+          {activity.start_time && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 13,
+                color: 'var(--c-ink-muted)',
+                fontStyle: 'italic',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Clock style={{ width: 13, height: 13 }} aria-hidden />
+              <span>
+                {formatTime(activity.start_time)}
+                {activity.end_time && <> — {formatTime(activity.end_time)}</>}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <h2
+          className={cn(isCompleted && "line-through")}
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontSize: 22,
+            fontWeight: 500,
+            lineHeight: 1.2,
+            margin: 0,
+            color: isCompleted ? 'var(--c-ink-muted)' : 'var(--c-ink)',
+          }}
+        >
           {activity.title}
         </h2>
 
-        {activity.start_time && <div className="text-right text-sm text-[var(--c-ink-muted)] flex-shrink-0">
-            <div className="flex items-center justify-end gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {formatTime(activity.start_time)}
-            </div>
-            {activity.end_time && <div className="text-xs">to {formatTime(activity.end_time)}</div>}
-          </div>}
-      </div>
+        {/* Speaker + Track */}
+        {(activity.speaker || activity.track) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+            {activity.track && (
+              <StickerPill variant="pen" rotate={-2} style={{ fontSize: 9, padding: '6px 10px' }}>
+                Track {activity.track}
+              </StickerPill>
+            )}
+            {activity.speaker && (
+              <span
+                style={{
+                  fontFamily: 'var(--c-font-body)',
+                  fontStyle: 'italic',
+                  fontSize: 14,
+                  color: 'var(--c-ink-muted)',
+                }}
+              >
+                {activity.speaker}
+              </span>
+            )}
+          </div>
+        )}
 
-      {/* Speaker & Track */}
-      {(activity.speaker || activity.track) && <div className="flex items-center gap-2 flex-wrap">
-          {activity.speaker && <span className="text-sm text-[var(--c-ink-muted)]">{activity.speaker}</span>}
-          {activity.track && <Badge variant="outline" className="text-xs">Track {activity.track}</Badge>}
-        </div>}
+        {isCompleted && (
+          <MarginNote rotate={-3} size={20} style={{ position: 'absolute', top: 10, right: 14 }}>
+            visited ✓
+          </MarginNote>
+        )}
+      </header>
 
       {/* Icon Action Row */}
       <TooltipProvider>
-        <div className="flex items-center justify-center gap-1 py-3 border-y border-[var(--c-line)]">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            padding: '10px 8px',
+            borderTop: '1px dashed var(--c-line)',
+            borderBottom: '1px dashed var(--c-line)',
+          }}
+        >
           {/* Mark Visited */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant={isCompleted ? 'default' : 'ghost'} size="icon" onClick={handleToggleComplete} disabled={updateStatus.isPending} className={cn("h-10 w-10 rounded-full", isCompleted && "bg-green-600 hover:bg-green-700 text-white")}>
+              <Button
+                variant={isCompleted ? 'default' : 'ghost'}
+                size="icon"
+                onClick={handleToggleComplete}
+                disabled={updateStatus.isPending}
+                className={cn("h-10 w-10 rounded-full", isCompleted && "bg-[var(--c-success)] hover:bg-[var(--c-success)]/90 text-[var(--c-creme)]")}
+                aria-label={isCompleted ? 'Mark as not visited' : 'Mark as visited'}
+              >
                 {isCompleted ? <Undo2 className="h-5 w-5" /> : <Check className="h-5 w-5" />}
               </Button>
             </TooltipTrigger>
@@ -268,7 +419,7 @@ export function ActivityDetail({
           {/* Add Memory */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleAddMemory}>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleAddMemory} aria-label="Add memory">
                 <Camera className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
@@ -278,7 +429,7 @@ export function ActivityDetail({
           {/* Edit Activity */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleEdit}>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleEdit} aria-label="Edit activity">
                 <Pencil className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
@@ -291,8 +442,9 @@ export function ActivityDetail({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-10 w-10 rounded-full text-[var(--c-danger)] hover:bg-[var(--c-danger)]/10 hover:text-[var(--c-danger)]"
                 onClick={handleDelete}
+                aria-label="Delete activity"
               >
                 <Trash2 className="h-5 w-5" />
               </Button>
@@ -301,64 +453,221 @@ export function ActivityDetail({
           </Tooltip>
 
           {/* Show on Map */}
-          {activity.location && <Tooltip>
+          {activity.location && (
+            <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleShowOnMap}>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={handleShowOnMap} aria-label="Show on map">
                   <MapPin className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Show on map</TooltipContent>
-            </Tooltip>}
+            </Tooltip>
+          )}
         </div>
       </TooltipProvider>
 
       {/* Description */}
-      {activity.description && <div className="space-y-1">
-          <p className="text-sm text-[var(--c-ink)] leading-relaxed">{activity.description}</p>
-        </div>}
-
-      {/* Location */}
-      {activity.location && <div className="space-y-1">
-          
-        </div>}
+      {activity.description && (
+        <p
+          style={{
+            fontFamily: 'var(--c-font-body)',
+            fontSize: 15,
+            lineHeight: 1.55,
+            color: 'var(--c-ink)',
+            margin: 0,
+          }}
+        >
+          {activity.description}
+        </p>
+      )}
 
       {/* Contact Row - Phone & Website inline */}
-      {(activity.phone || activity.link) && <div className="flex flex-wrap gap-4 text-sm">
-          {activity.phone && <a href={`tel:${activity.phone}`} className="flex items-center gap-1.5 text-[var(--c-pen)] hover:underline">
-              <Phone className="w-4 h-4" />
+      {(activity.phone || activity.link) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 14 }}>
+          {activity.phone && (
+            <a
+              href={`tel:${activity.phone}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--c-pen)',
+                textDecoration: 'none',
+                fontFamily: 'var(--c-font-body)',
+                borderBottom: '1px dashed var(--c-pen)',
+                paddingBottom: 1,
+              }}
+            >
+              <Phone style={{ width: 14, height: 14 }} aria-hidden />
               {activity.phone}
-            </a>}
-          {activity.link && <a href={activity.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[var(--c-pen)] hover:underline truncate max-w-[200px]">
-              <Globe className="w-4 h-4 flex-shrink-0" />
+            </a>
+          )}
+          {activity.link && (
+            <a
+              href={activity.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--c-pen)',
+                textDecoration: 'none',
+                fontFamily: 'var(--c-font-body)',
+                borderBottom: '1px dashed var(--c-pen)',
+                paddingBottom: 1,
+                maxWidth: 220,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Globe style={{ width: 14, height: 14, flexShrink: 0 }} aria-hidden />
               {activity.link_label || getLinkHostname(activity.link)}
-            </a>}
-        </div>}
+            </a>
+          )}
+        </div>
+      )}
 
-      {/* Notes */}
-      {activity.notes && <div className="text-sm text-[var(--c-ink-muted)] bg-[var(--c-creme)] rounded-md p-3">
-          <p className="whitespace-pre-wrap">{activity.notes}</p>
-        </div>}
+      {/* Notes — index-card aesthetic */}
+      {activity.notes && (
+        <aside
+          style={{
+            position: 'relative',
+            background: 'var(--c-paper)',
+            borderLeft: '3px solid var(--c-pen)',
+            boxShadow: 'var(--c-shadow-sm)',
+            padding: '12px 14px 14px',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'var(--c-font-display)',
+              fontSize: 10,
+              letterSpacing: '.22em',
+              textTransform: 'uppercase',
+              color: 'var(--c-ink-muted)',
+              marginBottom: 6,
+            }}
+          >
+            notes
+          </div>
+          <p
+            style={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 14,
+              lineHeight: 1.55,
+              color: 'var(--c-ink)',
+              margin: 0,
+            }}
+          >
+            {activity.notes}
+          </p>
+        </aside>
+      )}
 
       {/* Photos Section */}
-      {locationPhotos.length > 0 && <Collapsible open={photosOpen} onOpenChange={setPhotosOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-[var(--c-ink)] hover:bg-[var(--c-creme)] rounded-md px-2 -mx-2">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Photos
-              <span className="text-xs text-[var(--c-ink-muted)] bg-[var(--c-creme)] px-1.5 py-0.5 rounded-full">
+      {locationPhotos.length > 0 && (
+        <Collapsible open={photosOpen} onOpenChange={setPhotosOpen}>
+          <CollapsibleTrigger
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 12px',
+              background: 'transparent',
+              border: '1px dashed var(--c-line)',
+              borderRadius: 'var(--c-r-sm)',
+              cursor: 'pointer',
+              color: 'var(--c-ink)',
+              fontFamily: 'var(--c-font-body)',
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              <ImageIcon style={{ width: 16, height: 16 }} aria-hidden />
+              <span>Photos</span>
+              <Stamp variant="ink" size="sm" style={{ fontSize: 9, padding: '4px 8px' }}>
                 {locationPhotos.length}
-              </span>
-            </div>
-            <ChevronDown className={cn("w-4 h-4 transition-transform", photosOpen && "rotate-180")} />
+              </Stamp>
+            </span>
+            <ChevronDown
+              className={cn("transition-transform", photosOpen && "rotate-180")}
+              style={{ width: 16, height: 16 }}
+              aria-hidden
+            />
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="flex gap-2 overflow-x-auto py-2 scrollbar-hide">
-              {locationPhotos.map((media, index) => <button key={media.id} onClick={() => handleOpenPhoto(index)} className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden focus:ring-2 focus:ring-[var(--c-pen)]">
-                  <img src={getMemoryMediaUrl(media.storage_path)} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" loading="lazy" />
-                </button>)}
+            <div
+              className="scrollbar-hide"
+              style={{
+                display: 'flex',
+                gap: 12,
+                overflowX: 'auto',
+                padding: '14px 2px 6px',
+              }}
+            >
+              {locationPhotos.map((media, index) => {
+                // Gentle ±2° polaroid-stack rotation so the row feels like pinned prints.
+                const rot = (index % 3) - 1; // -1, 0, 1 cycling
+                return (
+                  <button
+                    key={media.id}
+                    onClick={() => handleOpenPhoto(index)}
+                    aria-label={`Open photo ${index + 1}`}
+                    style={{
+                      flexShrink: 0,
+                      background: 'var(--c-paper)',
+                      padding: 4,
+                      boxShadow: 'var(--c-shadow-sm)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transform: `rotate(${rot * 2}deg)`,
+                      transition: 'transform var(--c-t-fast) var(--c-ease-out), box-shadow var(--c-t-fast)',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'rotate(0deg) translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--c-shadow)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = `rotate(${rot * 2}deg)`;
+                      e.currentTarget.style.boxShadow = 'var(--c-shadow-sm)';
+                    }}
+                  >
+                    <img
+                      src={getMemoryMediaUrl(media.storage_path)}
+                      alt=""
+                      style={{
+                        display: 'block',
+                        width: 64,
+                        height: 64,
+                        objectFit: 'cover',
+                      }}
+                      loading="lazy"
+                    />
+                  </button>
+                );
+              })}
             </div>
           </CollapsibleContent>
-        </Collapsible>}
+        </Collapsible>
+      )}
+
+      {/* Respect reduced-motion for all tilt/hover effects inside this scope */}
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .collage-root button,
+          .collage-root a,
+          .collage-root [class*="collage-"] {
+            transition: none !important;
+            transform: none !important;
+            animation: none !important;
+          }
+        }
+      `}</style>
 
       {/* Memory Capture Dialog */}
       <MemoryCaptureDialog open={memoryDialogOpen} onOpenChange={setMemoryDialogOpen} tripId={trip?.id} days={legacyDays} locations={locations || []} preselectedDayId={activity.day_id} preselectedLocationId={activity.location_id || undefined} itineraryItemId={activity.id} />
@@ -372,7 +681,7 @@ export function ActivityDetail({
         onOpenChange={setMemoryEditOpen}
         memory={editingMemory}
       />
-      
+
       {/* Activity Editor */}
       {trip && legacyActivity && (
         <DatabaseActivityEditor
@@ -404,5 +713,6 @@ export function ActivityDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>;
+    </div>
+  );
 }
