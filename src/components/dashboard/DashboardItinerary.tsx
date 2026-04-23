@@ -34,11 +34,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { DatabaseItineraryTab } from '@/components/DatabaseItineraryTab';
+import '@/preview/collage/collage.css';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
 
 /**
- * Compact itinerary view for the dashboard left column.
- * Shows all days with compact activity cards that sync with the selection context.
- * Now with time-based drag-and-drop for reordering and cross-day movement.
+ * Compact itinerary — migrated to Collage 2026-04-23 (Phase 4 #1).
+ * Mini-session-blocks preview: DAY view trigger sits as a Rubik Mono One
+ * paper-chip button; days stacked with hairline between groupings;
+ * loading/error fall back to stamp + Caveat margin note. DnD/query data/
+ * sensors/navigation callbacks preserved unchanged. prefers-reduced-motion
+ * honored via .collage-root rules.
  */
 export function DashboardItinerary() {
   const { days, trip, isLoading, isError } = useDatabaseItinerary();
@@ -238,33 +244,100 @@ export function DashboardItinerary() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <div
+        className="collage-root"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '32px 0',
+        }}
+      >
+        <Loader2
+          className="animate-spin"
+          style={{ width: 20, height: 20, color: 'var(--c-ink-muted)' }}
+          aria-label="Loading"
+        />
       </div>
     );
   }
 
   if (isError || !trip) {
     return (
-      <div className="text-center py-8">
-        <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">No itinerary found.</p>
+      <div
+        className="collage-root"
+        style={{
+          textAlign: 'center',
+          padding: '32px 16px',
+        }}
+      >
+        <Stamp variant="outline" size="sm" rotate={-2} style={{ marginBottom: 12 }}>
+          no itinerary yet
+        </Stamp>
+        <MarginNote rotate={-1} size={18} style={{ display: 'block' }}>
+          add a day to begin
+        </MarginNote>
       </div>
     );
   }
-  
+
   return (
-    <>
-      {/* Day View trigger — opens Session Blocks modal for wide planning view */}
-      <div className="px-2 pt-2 flex justify-end">
+    <div
+      className="collage-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }}
+    >
+      {/* Day View trigger — Rubik Mono paper chip */}
+      <div
+        style={{
+          padding: '10px 10px 8px',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          borderBottom: '1px dashed var(--c-line)',
+        }}
+      >
         <Dialog>
           <DialogTrigger asChild>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[var(--c-ink-muted)] hover:text-[var(--c-ink)] hover:bg-[var(--c-creme)] transition-colors"
               aria-label="Open full day view"
+              style={{
+                appearance: 'none',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 10px',
+                background: 'var(--c-paper)',
+                color: 'var(--c-ink)',
+                border: '1px solid var(--c-line)',
+                borderRadius: 'var(--c-r-sm)',
+                fontFamily: 'var(--c-font-display)',
+                fontSize: 9,
+                letterSpacing: '.2em',
+                textTransform: 'uppercase',
+                lineHeight: 1,
+                transition: 'background var(--c-t-fast), border-color var(--c-t-fast)',
+                outline: 'none',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 0 2px var(--c-pen)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--c-creme)';
+                e.currentTarget.style.borderColor = 'var(--c-ink)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'var(--c-paper)';
+                e.currentTarget.style.borderColor = 'var(--c-line)';
+              }}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid style={{ width: 12, height: 12 }} aria-hidden />
               Day view
             </button>
           </DialogTrigger>
@@ -281,48 +354,60 @@ export function DashboardItinerary() {
       </div>
 
       <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div ref={scrollContainerRef} className="space-y-2 p-2">
-        {filteredDays.map((day) => {
-          // Check if this day is today
-          const dayDate = new Date(day.date).toISOString().split('T')[0];
-          const isToday = dayDate === todayStr;
-          // Show feedback when any item is being dragged over this day
-          const isReceivingDrag = activeItem !== null && overDayId === day.id;
-          
-          return (
-            <CompactDayCard
-              key={day.id}
-              day={day}
-              nextActivityId={nextPlannedActivity?.activityId}
-              isToday={isToday}
-              isReceivingDrag={isReceivingDrag}
-              previewTimes={previewTimes}
-            />
-          );
-        })}
-      </div>
-      
-      {/* Drag overlay for visual feedback */}
-      <DragOverlay>
-        {activeItem && (
-          <div className="opacity-90 shadow-lg rounded-md">
-            <CompactActivityCard
-              activity={activeItem}
-              dayId={activeItem.dayId}
-              previewTime={previewTimes.get(activeItem.id)}
-              isDragging={true}
-            />
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
-    </>
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div
+          ref={scrollContainerRef}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            padding: 10,
+          }}
+        >
+          {filteredDays.map((day) => {
+            const dayDate = new Date(day.date).toISOString().split('T')[0];
+            const isToday = dayDate === todayStr;
+            const isReceivingDrag = activeItem !== null && overDayId === day.id;
+
+            return (
+              <CompactDayCard
+                key={day.id}
+                day={day}
+                nextActivityId={nextPlannedActivity?.activityId}
+                isToday={isToday}
+                isReceivingDrag={isReceivingDrag}
+                previewTimes={previewTimes}
+              />
+            );
+          })}
+        </div>
+
+        {/* Drag overlay for visual feedback */}
+        <DragOverlay>
+          {activeItem && (
+            <div
+              style={{
+                opacity: 0.92,
+                boxShadow: 'var(--c-shadow)',
+                borderRadius: 'var(--c-r-sm)',
+              }}
+            >
+              <CompactActivityCard
+                activity={activeItem}
+                dayId={activeItem.dayId}
+                previewTime={previewTimes.get(activeItem.id)}
+                isDragging={true}
+              />
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

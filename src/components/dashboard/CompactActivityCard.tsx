@@ -9,13 +9,21 @@ import {
   MapPin,
   CheckCircle2,
   GripVertical,
-  Star
+  Star,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useDashboardSelectionOptional } from '@/contexts/DashboardSelectionContext';
 import type { LegacyActivity } from '@/hooks/use-database-itinerary';
+import '@/preview/collage/collage.css';
 
-const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+/**
+ * Compact activity card — migrated to Collage 2026-04-23 (Phase 4 #1).
+ * DayV2 Session Blocks vocabulary — ink title in Plex Serif, pen-blue Track pill,
+ * paper-chip card with hairline dashed divider on hover. Time stamp uses
+ * Rubik Mono One (monospaced). Drag handle + location action preserved as
+ * distinct hit zones. prefers-reduced-motion honored.
+ */
+
+const categoryIcons: Record<string, React.ComponentType<{ style?: React.CSSProperties }>> = {
   activity: Activity,
   dining: Utensils,
   beach: Waves,
@@ -24,13 +32,14 @@ const categoryIcons: Record<string, React.ComponentType<{ className?: string }>>
   event: PartyPopper,
 };
 
-const categoryColors: Record<string, string> = {
-  activity: 'bg-beach-ocean-light/50 border-beach-ocean-light',
-  dining: 'bg-beach-sunset-coral/10 border-beach-sunset-coral/30',
-  beach: 'bg-beach-seafoam/50 border-beach-seafoam',
-  accommodation: 'bg-secondary/50 border-secondary',
-  transport: 'bg-muted/50 border-muted',
-  event: 'bg-beach-sunset-gold/10 border-beach-sunset-gold/30',
+/** Per-category tiny gradient swatch (paper-chip accent, not a full fill). */
+const categorySwatch: Record<string, string> = {
+  activity: 'linear-gradient(155deg, #4a6b3e 0%, #8ba66e 60%, #d6c084 100%)', // sage
+  dining: 'linear-gradient(180deg, #f8c291 0%, #f3c9b9 60%, #fde0cf 100%)',   // dawn
+  beach: 'linear-gradient(140deg, #5b7fa8 0%, #8aaecc 55%, #d6e3ee 100%)',     // sky
+  accommodation: 'linear-gradient(135deg, #2A2724 0%, #4a4338 55%, #7a7160 100%)', // ink
+  transport: 'linear-gradient(140deg, #5b7fa8 0%, #8aaecc 60%, #d6e3ee 100%)', // sky
+  event: 'linear-gradient(200deg, #b0785a 0%, #d7a379 50%, #f0d3ae 100%)',     // clay
 };
 
 interface CompactActivityCardProps {
@@ -42,203 +51,329 @@ interface CompactActivityCardProps {
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-/**
- * Compact activity card for the dashboard left column.
- * Single line display with time + title + status indicator.
- * Clicking selects the activity and syncs with center + map.
- * Now supports preview time display during drag operations.
- */
-export function CompactActivityCard({ 
-  activity, 
-  isNextActivity, 
+export function CompactActivityCard({
+  activity,
+  isNextActivity,
   dayId,
   previewTime,
   isDragging,
-  dragHandleProps
+  dragHandleProps,
 }: CompactActivityCardProps) {
   const dashboard = useDashboardSelectionOptional();
-  
+
   const Icon = categoryIcons[activity.category] || Activity;
   const isCompleted = activity.status === 'done';
   const isSelected = dashboard?.selectedItem?.id === activity.id;
-  
+
   // Convert LegacyActivity to ItineraryItem-like shape for the context
-  const activityData = useMemo(() => ({
-    id: activity.id,
-    title: activity.title,
-    description: activity.description,
-    start_time: activity.rawStartTime || null,  // Use raw database time
-    end_time: activity.rawEndTime || null,      // Use raw database end time
-    category: activity.category,
-    status: activity.status,
-    location_id: activity.location?.id || null,
-    location: activity.location ? {
-      id: activity.location.id,
-      name: activity.location.name,
-      lat: activity.location.lat,
-      lng: activity.location.lng,
-      category: activity.location.category || activity.category,
+  const activityData = useMemo(
+    () => ({
+      id: activity.id,
+      title: activity.title,
+      description: activity.description,
+      start_time: activity.rawStartTime || null,
+      end_time: activity.rawEndTime || null,
+      category: activity.category,
+      status: activity.status,
+      location_id: activity.location?.id || null,
+      location: activity.location
+        ? {
+            id: activity.location.id,
+            name: activity.location.name,
+            lat: activity.location.lat,
+            lng: activity.location.lng,
+            category: activity.location.category || activity.category,
+            trip_id: '',
+            address: activity.location.address || null,
+            phone: null,
+            url: null,
+            notes: null,
+            visited_at: null,
+            created_at: '',
+            updated_at: '',
+          }
+        : null,
+      link: activity.link,
+      link_label: activity.linkLabel,
+      phone: activity.phone,
+      notes: activity.notes,
+      day_id: dayId,
       trip_id: '',
-      address: activity.location.address || null,
-      phone: null,
-      url: null,
-      notes: null,
-      visited_at: null,
+      item_type: activity.itemType,
+      source: 'manual' as const,
+      external_ref: null,
+      sort_index: 0,
+      completed_at: null,
       created_at: '',
       updated_at: '',
-    } : null,
-    link: activity.link,
-    link_label: activity.linkLabel,
-    phone: activity.phone,
-    notes: activity.notes,
-    day_id: dayId,
-    trip_id: '',
-    item_type: activity.itemType,
-    source: 'manual' as const,
-    external_ref: null,
-    sort_index: 0,
-    completed_at: null,
-    created_at: '',
-    updated_at: '',
-  }), [activity, dayId]);
-  
+    }),
+    [activity, dayId],
+  );
+
   const handleClick = () => {
     if (!dashboard) return;
-    
-    // Select this activity
     dashboard.selectItem('activity', activity.id, activityData);
-    
-    // Pan map to location if available
     if (activity.location?.lat && activity.location?.lng) {
       dashboard.panMap(activity.location.lat, activity.location.lng);
     }
   };
-  
+
   const handleShowOnMap = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Don't trigger card selection
+    e.stopPropagation();
     if (!dashboard || !activity.location) return;
-    
-    // Navigate to map panel (index 2)
     dashboard.navigateToPanel(2);
-    
-    // Focus the location (sets filters to match this item)
     dashboard.focusLocation({
       id: activity.location.id,
       category: activity.category,
       dayId: dayId,
     });
-    
-    // Pan to the location
     dashboard.panMap(activity.location.lat, activity.location.lng);
-    
-    // Highlight the pin
     dashboard.highlightPin(activity.location.id);
   };
-  
-  // Display time - use preview time during drag, otherwise use activity time
+
   const displayTime = previewTime || activity.time;
-  
+  const swatch = categorySwatch[activity.category] ?? categorySwatch.activity;
+
+  // Outer frame: paper card with selection/next/chosen ink decorations.
+  const outerBorder = isSelected
+    ? '1.5px solid var(--c-ink)'
+    : isNextActivity
+      ? '1.5px solid var(--c-pen)'
+      : activity.isChosen && !isCompleted
+        ? '1.5px solid var(--c-tape)'
+        : '1px solid var(--c-line)';
+
   return (
     <div
       data-activity-id={activity.id}
-      className={cn(
-        "w-full flex items-center rounded-md text-left transition-all",
-        "border",
-        categoryColors[activity.category],
-        isCompleted && "opacity-50",
-        activity.isChosen && !isCompleted && !isSelected && "ring-1 ring-amber-400/60 border-amber-400/60",
-        isSelected && "ring-2 ring-primary ring-offset-1 bg-accent",
-        isNextActivity && !isSelected && "ring-1 ring-primary/50 bg-primary/5"
-      )}
+      className="collage-root"
+      style={{
+        display: 'flex',
+        alignItems: 'stretch',
+        width: '100%',
+        background: isSelected ? 'var(--c-creme)' : 'var(--c-paper)',
+        border: outerBorder,
+        borderRadius: 'var(--c-r-sm)',
+        boxShadow: isSelected || isNextActivity ? 'var(--c-shadow-sm)' : 'none',
+        opacity: isCompleted ? 0.6 : 1,
+        overflow: 'hidden',
+        transition: 'box-shadow var(--c-t-fast) var(--c-ease-out), border-color var(--c-t-fast)',
+      }}
     >
-      {/* Drag handle - leftmost element */}
+      {/* Drag handle — leftmost grip column */}
       {dragHandleProps && (
         <div
           {...dragHandleProps}
-          className={cn(
-            "flex-shrink-0 w-6 self-stretch flex items-center justify-center",
-            "text-muted-foreground/40 hover:text-muted-foreground",
-            "cursor-grab active:cursor-grabbing touch-none",
-            "transition-colors rounded-l-md hover:bg-muted/50",
-            isDragging && "cursor-grabbing text-primary"
-          )}
           aria-label="Drag to reorder"
+          style={{
+            flexShrink: 0,
+            width: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            alignSelf: 'stretch',
+            color: isDragging ? 'var(--c-pen)' : 'var(--c-ink-muted)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            background: 'transparent',
+            borderRight: '1px dashed var(--c-line)',
+            touchAction: 'none',
+            transition: 'color var(--c-t-fast), background var(--c-t-fast)',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'var(--c-creme)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
         >
-          <GripVertical className="w-3.5 h-3.5" />
+          <GripVertical style={{ width: 14, height: 14 }} aria-hidden />
         </div>
       )}
 
-      {/* Rest of card content - clickable */}
+      {/* Main clickable area */}
       <button
+        type="button"
         onClick={handleClick}
-        className={cn(
-          "flex-1 flex items-center gap-2 px-2 py-1.5 hover:bg-accent/50 transition-colors",
-          activity.location ? "" : "rounded-r-md"
-        )}
+        style={{
+          appearance: 'none',
+          cursor: 'pointer',
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '8px 10px',
+          background: 'transparent',
+          border: 'none',
+          textAlign: 'left',
+          color: 'var(--c-ink)',
+          transition: 'background var(--c-t-fast) var(--c-ease-out)',
+          outline: 'none',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.boxShadow = 'inset 0 0 0 2px var(--c-pen)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.background = 'rgba(29, 29, 27, 0.04)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
       >
-        {/* Category icon */}
-        <div className={cn(
-          "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center",
-          isCompleted ? "bg-green-100" : "bg-background/80"
-        )}>
+        {/* Category swatch + icon (paper-chip) */}
+        <div
+          aria-hidden
+          style={{
+            flexShrink: 0,
+            width: 26,
+            height: 26,
+            borderRadius: 'var(--c-r-sm)',
+            display: 'grid',
+            placeItems: 'center',
+            background: isCompleted ? 'var(--c-success)' : swatch,
+            border: '1px solid var(--c-ink)',
+            boxShadow: 'var(--c-shadow-sm)',
+            color: 'var(--c-creme)',
+          }}
+        >
           {isCompleted ? (
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+            <CheckCircle2 style={{ width: 14, height: 14 }} />
           ) : (
-            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+            <Icon style={{ width: 13, height: 13, color: 'var(--c-creme)' }} />
           )}
         </div>
-        
-        {/* Time + Title */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+
+        {/* Title & meta */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
             {displayTime && (
-              <span className={cn(
-                "text-xs font-mono flex-shrink-0",
-                previewTime ? "text-primary font-medium" : "text-muted-foreground"
-              )}>
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 9,
+                  letterSpacing: '.16em',
+                  color: previewTime ? 'var(--c-pen)' : 'var(--c-ink)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {displayTime}
               </span>
             )}
             {activity.track && (
-              <span className="text-[10px] font-bold text-muted-foreground/70 flex-shrink-0">
-                {activity.track}
+              <span
+                style={{
+                  flexShrink: 0,
+                  display: 'inline-block',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 8,
+                  letterSpacing: '.2em',
+                  textTransform: 'uppercase',
+                  color: 'var(--c-creme)',
+                  background: 'var(--c-pen)',
+                  padding: '3px 6px',
+                  borderRadius: 'var(--c-r-sm)',
+                  lineHeight: 1,
+                }}
+              >
+                Track {activity.track}
               </span>
             )}
             {activity.isChosen && !isCompleted && (
               <Star
-                className="w-3 h-3 flex-shrink-0 fill-amber-400 text-amber-500"
+                style={{
+                  width: 12,
+                  height: 12,
+                  flexShrink: 0,
+                  fill: 'var(--c-tape)',
+                  color: 'var(--c-ink)',
+                }}
                 aria-label="Registered session"
               />
             )}
-            <span className={cn(
-              "text-sm truncate",
-              isCompleted && "line-through text-muted-foreground"
-            )}>
+            <span
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontSize: 14,
+                color: 'var(--c-ink)',
+                lineHeight: 1.3,
+                fontWeight: 500,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+                textDecoration: isCompleted ? 'line-through' : 'none',
+              }}
+            >
               {activity.title}
             </span>
           </div>
           {activity.speaker && (
-            <div className="text-[11px] text-muted-foreground truncate pl-[calc(theme(spacing.1)+theme(spacing.1.5))]">
+            <div
+              style={{
+                fontFamily: 'var(--c-font-body)',
+                fontStyle: 'italic',
+                fontSize: 11,
+                color: 'var(--c-ink-muted)',
+                marginTop: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {activity.speaker}
             </div>
           )}
         </div>
       </button>
 
-      {/* Show on Map button - separate from main click area */}
+      {/* Show-on-map action (separate hit zone) */}
       {activity.location && (
         <button
+          type="button"
           onClick={handleShowOnMap}
-          className={cn(
-            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mr-1.5",
-            "bg-primary/10 hover:bg-primary/20 active:bg-primary/30",
-            "text-primary transition-colors"
-          )}
           aria-label="Show on map"
+          style={{
+            appearance: 'none',
+            cursor: 'pointer',
+            flexShrink: 0,
+            width: 32,
+            display: 'grid',
+            placeItems: 'center',
+            alignSelf: 'stretch',
+            color: 'var(--c-pen)',
+            background: 'transparent',
+            border: 'none',
+            borderLeft: '1px dashed var(--c-line)',
+            transition: 'background var(--c-t-fast)',
+            outline: 'none',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = 'inset 0 0 0 2px var(--c-pen)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'rgba(31, 60, 198, 0.08)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
         >
-          <MapPin className="w-3.5 h-3.5" />
+          <MapPin style={{ width: 14, height: 14 }} aria-hidden />
         </button>
       )}
+
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .collage-root { transition: none !important; }
+          .collage-root button { transition: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
