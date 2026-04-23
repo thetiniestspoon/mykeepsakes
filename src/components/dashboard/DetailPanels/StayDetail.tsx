@@ -11,7 +11,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Home, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -32,21 +32,33 @@ import { DeprioritizedSection } from './stay/DeprioritizedSection';
 import { SelectionDetailsDialog } from './stay/SelectionDetailsDialog';
 import type { Accommodation, AccommodationSelectDetails } from '@/types/accommodation';
 import { toast } from 'sonner';
+import '@/preview/collage/collage.css';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { Tape } from '@/preview/collage/ui/Tape';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
 
+/**
+ * StayDetail — migrated to Collage direction (Phase 4d).
+ * Vocabulary: Concierge Card (LodgingV1). One honored header treats the chosen
+ * stay with authority — Rubik Mono overline ("YOUR STAY"), IBM Plex Serif hotel
+ * name, Caveat address, tape accents. Under the header, the working surface
+ * (add form, drop zone, candidates, deprioritized) keeps its production logic
+ * and interactivity intact. Presentation only; state/hooks/handlers unchanged.
+ */
 export function StayDetail() {
   const { data: accommodations = [], isLoading } = useAccommodations();
-  
+
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isOverDropZone, setIsOverDropZone] = useState(false);
-  
+
   // Dialog state
   const [pendingSelection, setPendingSelection] = useState<Accommodation | null>(null);
   const [editingAccommodation, setEditingAccommodation] = useState<Accommodation | null>(null);
-  
+
   // Context for map actions
   const { panMap, navigateToPanel, focusLocation } = useDashboardSelection();
-  
+
   // Mutations
   const selectMutation = useSelectAccommodation();
   const unselectMutation = useUnselectAccommodation();
@@ -70,12 +82,12 @@ export function StayDetail() {
     () => accommodations.find((a) => a.is_selected) || null,
     [accommodations]
   );
-  
+
   const candidates = useMemo(
     () => accommodations.filter((a) => !a.is_selected && !a.is_deprioritized),
     [accommodations]
   );
-  
+
   const deprioritized = useMemo(
     () => accommodations.filter((a) => a.is_deprioritized),
     [accommodations]
@@ -115,7 +127,7 @@ export function StayDetail() {
     if (active.id !== over.id) {
       const oldIndex = candidates.findIndex((c) => c.id === active.id);
       const newIndex = candidates.findIndex((c) => c.id === over.id);
-      
+
       if (oldIndex !== -1 && newIndex !== -1) {
         const reordered = arrayMove(candidates, oldIndex, newIndex);
         const updates = reordered.map((item, index) => ({
@@ -130,7 +142,7 @@ export function StayDetail() {
   // Action handlers
   const handleSelectConfirm = (details: AccommodationSelectDetails) => {
     if (!pendingSelection && !editingAccommodation) return;
-    
+
     const target = pendingSelection || editingAccommodation;
     if (!target) return;
 
@@ -217,22 +229,100 @@ export function StayDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--c-pen)]" />
+      <div
+        className="collage-root"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          background: 'var(--c-creme)',
+        }}
+      >
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--c-pen)' }} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-[var(--c-line)]">
-        <Home className="w-6 h-6 text-[var(--c-pen)]" />
-        <h2 className="font-display text-xl font-semibold text-[var(--c-ink)]">Stay</h2>
-      </div>
+    <div
+      className="collage-root"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        background: 'var(--c-creme)',
+      }}
+    >
+      {/* Concierge-card header — "your stay" overline + title, taped */}
+      <header
+        style={{
+          position: 'relative',
+          padding: '20px 20px 18px',
+          borderBottom: '1px solid var(--c-line)',
+          background: 'var(--c-paper)',
+        }}
+      >
+        <Tape position="top-left" rotate={-6} width={72} opacity={0.7} />
+        <Tape position="top-right" rotate={4} width={56} opacity={0.6} />
+
+        <div
+          style={{
+            fontFamily: 'var(--c-font-display)',
+            fontSize: 10,
+            letterSpacing: '.26em',
+            textTransform: 'uppercase',
+            color: 'var(--c-pen)',
+            marginBottom: 6,
+          }}
+        >
+          your stay
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--c-font-body)',
+              fontWeight: 500,
+              fontSize: 22,
+              lineHeight: 1.1,
+              letterSpacing: '-.005em',
+              margin: 0,
+              color: 'var(--c-ink)',
+            }}
+          >
+            {selected?.title ?? 'No stay booked yet'}
+          </h2>
+          {selected ? (
+            <Stamp variant="outline" size="sm" rotate={-2}>
+              booked
+            </Stamp>
+          ) : (
+            <MarginNote rotate={-1} size={18}>
+              pick a place to come back to →
+            </MarginNote>
+          )}
+        </div>
+
+        {selected?.address && (
+          <p
+            aria-label={selected.address}
+            style={{
+              fontFamily: 'var(--c-font-script)',
+              fontWeight: 600,
+              fontSize: 18,
+              color: 'var(--c-ink-muted)',
+              margin: '6px 0 0',
+              lineHeight: 1.25,
+            }}
+          >
+            {selected.address}
+          </p>
+        )}
+      </header>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Add Form */}
           <AccommodationAddForm />
 
@@ -244,8 +334,12 @@ export function StayDetail() {
             onDragEnd={handleDragEnd}
           >
             {/* Selected Drop Zone */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-[var(--c-ink-muted)]">Selected</h3>
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Stamp variant="ink" size="sm" rotate={-2}>
+                  the one we picked
+                </Stamp>
+              </div>
               <SelectedDropZone
                 selected={selected}
                 isOver={isOverDropZone}
@@ -254,13 +348,26 @@ export function StayDetail() {
                 onUnselect={handleUnselect}
                 onEdit={() => selected && setEditingAccommodation(selected)}
               />
-            </div>
+            </section>
 
             {/* Candidates */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-[var(--c-ink-muted)]">
-                Candidates ({candidates.length})
-              </h3>
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Stamp variant="outline" size="sm" rotate={-1}>
+                  candidates
+                </Stamp>
+                <span
+                  style={{
+                    fontFamily: 'var(--c-font-display)',
+                    fontSize: 10,
+                    letterSpacing: '.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--c-ink-muted)',
+                  }}
+                >
+                  {candidates.length} on the short list
+                </span>
+              </div>
               <CandidateList
                 candidates={candidates}
                 activeId={activeId}
@@ -268,24 +375,54 @@ export function StayDetail() {
                 onDeprioritize={handleDeprioritize}
                 onDelete={handleDelete}
               />
-            </div>
+            </section>
 
             {/* Drag Overlay */}
             <DragOverlay>
               {activeItem && (
-                <Card className="shadow-lg ring-2 ring-[var(--c-pen)] p-3">
-                  <p className="font-medium text-[var(--c-ink)]">{activeItem.title}</p>
+                <Card
+                  className="p-3"
+                  style={{
+                    background: 'var(--c-paper)',
+                    border: '1px solid var(--c-pen)',
+                    borderRadius: 'var(--c-r-sm)',
+                    boxShadow: 'var(--c-shadow)',
+                    transform: 'rotate(-1deg)',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'var(--c-font-body)',
+                      fontWeight: 500,
+                      color: 'var(--c-ink)',
+                      margin: 0,
+                    }}
+                  >
+                    {activeItem.title}
+                  </p>
                 </Card>
               )}
             </DragOverlay>
           </DndContext>
 
           {/* Deprioritized Section */}
-          <DeprioritizedSection
-            items={deprioritized}
-            onUnhide={handleUnhide}
-            onDelete={handleDelete}
-          />
+          {deprioritized.length > 0 && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Stamp variant="plain" size="sm" rotate={1}>
+                  set aside
+                </Stamp>
+                <MarginNote rotate={-1} size={16} color="ink">
+                  — not forgotten
+                </MarginNote>
+              </div>
+              <DeprioritizedSection
+                items={deprioritized}
+                onUnhide={handleUnhide}
+                onDelete={handleDelete}
+              />
+            </section>
+          )}
         </div>
       </ScrollArea>
 
