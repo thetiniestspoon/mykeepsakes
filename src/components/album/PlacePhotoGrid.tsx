@@ -7,6 +7,7 @@ interface PhotoForViewer {
   id: string;
   storage_path: string;
   caption?: string | null;
+  memoryId?: string;
 }
 
 interface PlacePhotoGridProps {
@@ -86,7 +87,8 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
               const photos: PhotoForViewer[] = media.map(m => ({
                 id: m.id,
                 storage_path: m.storage_path,
-                caption: m.memoryNote
+                caption: m.memoryNote,
+                memoryId: m.memoryId
               }));
               
               return (
@@ -135,7 +137,8 @@ export function PlacePhotoGrid({ locations, memories, onOpenPhoto, isLoading }: 
               const photos: PhotoForViewer[] = unassignedMedia.map(m => ({
                 id: m.id,
                 storage_path: m.storage_path,
-                caption: m.memoryNote
+                caption: m.memoryNote,
+                memoryId: m.memoryId
               }));
               
               return (

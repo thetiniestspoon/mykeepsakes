@@ -2,21 +2,23 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, MapPin, Clock, Images } from 'lucide-react';
-import { useMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
+import { useMemories, useDeleteMemoryMedia } from '@/hooks/use-memories';
 import { useDatabaseItinerary } from '@/hooks/use-database-itinerary';
 import { useLocations } from '@/hooks/use-locations';
 import { useActiveTrip } from '@/hooks/use-trip';
-import { PhotoViewer } from '@/components/photos/PhotoViewer';
+import { PhotoViewer, type Photo } from '@/components/photos/PhotoViewer';
 import { MemoryCaptureDialog } from '@/components/album/MemoryCaptureDialog';
+import { MemoryEditDialog } from '@/components/album/MemoryEditDialog';
 import { DayPhotoGrid } from '@/components/album/DayPhotoGrid';
 import { PlacePhotoGrid } from '@/components/album/PlacePhotoGrid';
 import { RecentPhotoGrid } from '@/components/album/RecentPhotoGrid';
-import type { MemoryMedia } from '@/types/trip';
+import type { Memory, MemoryMedia } from '@/types/trip';
 
 interface PhotoForViewer {
   id: string;
   storage_path: string;
   caption?: string | null;
+  memoryId?: string;
 }
 
 export function AlbumTab() {
@@ -29,6 +31,10 @@ export function AlbumTab() {
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [viewerPhotos, setViewerPhotos] = useState<PhotoForViewer[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
+  const [memoryEditOpen, setMemoryEditOpen] = useState(false);
+
+  const deleteMemoryMedia = useDeleteMemoryMedia();
 
   // Flatten all media from memories for the viewer
   const allMedia: MemoryMedia[] = memories?.flatMap(m => m.media || []) || [];
@@ -37,6 +43,27 @@ export function AlbumTab() {
     setViewerPhotos(photos);
     setViewerIndex(index);
     setPhotoViewerOpen(true);
+  };
+
+  const handleEditPhoto = (photo: Photo) => {
+    if (!photo.memoryId || !memories) return;
+    const mem = memories.find(m => m.id === photo.memoryId);
+    if (!mem) return;
+    setEditingMemory(mem);
+    setMemoryEditOpen(true);
+  };
+
+  const handleDeletePhoto = (photo: Photo) => {
+    // Find the source media to get storage_path + thumbnail_path for proper storage cleanup.
+    const media = allMedia.find(m => m.id === photo.id);
+    if (!media) return;
+    deleteMemoryMedia.mutate({
+      mediaId: media.id,
+      storagePath: media.storage_path,
+      thumbnailPath: media.thumbnail_path,
+    });
+    // Drop the deleted photo from the viewer array so the next/prev works immediately.
+    setViewerPhotos(prev => prev.filter(p => p.id !== photo.id));
   };
 
   const totalPhotos = allMedia.length;
@@ -121,6 +148,15 @@ export function AlbumTab() {
         initialIndex={viewerIndex}
         open={photoViewerOpen}
         onOpenChange={setPhotoViewerOpen}
+        onEdit={handleEditPhoto}
+        onDelete={handleDeletePhoto}
+      />
+
+      {/* Memory Edit Dialog (tags + note) */}
+      <MemoryEditDialog
+        open={memoryEditOpen}
+        onOpenChange={setMemoryEditOpen}
+        memory={editingMemory}
       />
     </div>
   );

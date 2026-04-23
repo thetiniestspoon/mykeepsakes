@@ -10,6 +10,7 @@ interface PhotoForViewer {
   id: string;
   storage_path: string;
   caption?: string | null;
+  memoryId?: string;
 }
 
 interface RecentPhotoGridProps {
@@ -64,7 +65,8 @@ export function RecentPhotoGrid({ memories, onOpenPhoto, isLoading }: RecentPhot
   const allPhotos: PhotoForViewer[] = allMedia.map(m => ({
     id: m.id,
     storage_path: m.storage_path,
-    caption: m.memoryNote
+    caption: m.memoryNote,
+    memoryId: m.memoryId
   }));
 
   // Group by relative time for display

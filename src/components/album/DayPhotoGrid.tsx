@@ -18,6 +18,7 @@ interface PhotoForViewer {
   id: string;
   storage_path: string;
   caption?: string | null;
+  memoryId?: string;
 }
 
 interface DayPhotoGridProps {
@@ -91,7 +92,8 @@ export function DayPhotoGrid({ days, memories, onOpenPhoto, isLoading }: DayPhot
               const photos: PhotoForViewer[] = media.map(m => ({
                 id: m.id,
                 storage_path: m.storage_path,
-                caption: m.memoryNote
+                caption: m.memoryNote,
+                memoryId: m.memoryId
               }));
               
               return (

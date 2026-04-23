@@ -1,15 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, Download, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Download, Share2, Pencil, Trash2 } from 'lucide-react';
 import { getPhotoUrl } from '@/hooks/use-trip-data';
 import { cn } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-interface Photo {
+export interface Photo {
   id: string;
   storage_path: string;
   caption?: string | null;
+  /** Optional memory id for memory_media photos — enables Edit/Delete flows upstream */
+  memoryId?: string;
 }
 
 interface PhotoViewerProps {
@@ -17,10 +29,15 @@ interface PhotoViewerProps {
   initialIndex: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called when the user confirms deletion of the currently-viewed photo */
+  onDelete?: (photo: Photo) => void;
+  /** Called when the user taps Edit on the currently-viewed photo */
+  onEdit?: (photo: Photo) => void;
 }
 
-export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoViewerProps) {
+export function PhotoViewer({ photos, initialIndex, open, onOpenChange, onDelete, onEdit }: PhotoViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   
   // Reset to initial index when opening
   useEffect(() => {
@@ -73,6 +90,30 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
     } catch (error) {
       console.error('Failed to download photo:', error);
     }
+  };
+
+  const handleEdit = () => {
+    if (!currentPhoto || !onEdit) return;
+    onEdit(currentPhoto);
+  };
+
+  const handleRequestDelete = () => {
+    if (!currentPhoto || !onDelete) return;
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!currentPhoto || !onDelete) return;
+    const photoToDelete = currentPhoto;
+    // If this was the last photo, close the viewer after delete
+    const willBeEmpty = photos.length <= 1;
+    // Pre-advance index for a smoother transition when more photos remain
+    if (!willBeEmpty && currentIndex >= photos.length - 1) {
+      setCurrentIndex(currentIndex - 1);
+    }
+    onDelete(photoToDelete);
+    setDeleteConfirmOpen(false);
+    if (willBeEmpty) onOpenChange(false);
   };
 
   const handleShare = async () => {
@@ -159,7 +200,19 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
                 {currentIndex + 1} of {photos.length}
               </span>
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
+                    onClick={handleEdit}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -169,7 +222,7 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </Button>
-                
+
                 {navigator.share && (
                   <Button
                     variant="ghost"
@@ -181,10 +234,44 @@ export function PhotoViewer({ photos, initialIndex, open, onOpenChange }: PhotoV
                     Share
                   </Button>
                 )}
+
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                    onClick={handleRequestDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {onDelete && (
+          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this photo?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This removes the photo from your album. Can't be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         {/* Thumbnail navigation for multiple photos */}
         {photos.length > 1 && (

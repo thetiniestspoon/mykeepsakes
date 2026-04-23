@@ -5,18 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FavoriteHeart } from '@/components/ui/favorite-heart';
-import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import type { ItineraryItem } from '@/types/trip';
 import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
 import { useUpdateItemStatus, type LegacyActivity } from '@/hooks/use-database-itinerary';
 import { MemoryCaptureDialog } from '@/components/album/MemoryCaptureDialog';
+import { MemoryEditDialog } from '@/components/album/MemoryEditDialog';
 import { DatabaseActivityEditor } from '@/components/itinerary/DatabaseActivityEditor';
 import { useTripDays } from '@/hooks/use-trip';
 import { useActiveTrip } from '@/hooks/use-trip';
 import { useLocations } from '@/hooks/use-locations';
 import { useFavorites, useToggleFavorite } from '@/hooks/use-trip-data';
-import { useItemMemories, getMemoryMediaUrl } from '@/hooks/use-memories';
+import { useItemMemories, useDeleteMemoryMedia, getMemoryMediaUrl } from '@/hooks/use-memories';
 import { useDeleteItem } from '@/hooks/use-itinerary';
+import { PhotoViewer, type Photo } from '@/components/photos/PhotoViewer';
+import type { Memory } from '@/types/trip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,9 +67,12 @@ export function ActivityDetail({
   const [editorOpen, setEditorOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const deleteItem = useDeleteItem();
+  const deleteMemoryMedia = useDeleteMemoryMedia();
   const [photosOpen, setPhotosOpen] = useState(true);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
+  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
+  const [memoryEditOpen, setMemoryEditOpen] = useState(false);
 
   // Flatten all media from this event's memories (item-scoped to prevent
   // cross-event bleed — two events at the same location no longer share photos)
@@ -186,12 +191,31 @@ export function ActivityDetail({
     activities: []
   })) || [];
 
-  // Convert photos for PhotoViewer
+  // Convert photos for PhotoViewer. Include memory_id so edit/delete flows work.
   const photoViewerData = locationPhotos.map(media => ({
     id: media.id,
     storage_path: media.storage_path,
-    url: getMemoryMediaUrl(media.storage_path)
+    url: getMemoryMediaUrl(media.storage_path),
+    memoryId: media.memory_id,
   }));
+
+  const handleEditPhoto = (photo: Photo) => {
+    if (!photo.memoryId) return;
+    const mem = itemMemories.find(m => m.id === photo.memoryId);
+    if (!mem) return;
+    setEditingMemory(mem);
+    setMemoryEditOpen(true);
+  };
+
+  const handleDeletePhoto = (photo: Photo) => {
+    const media = locationPhotos.find(m => m.id === photo.id);
+    if (!media) return;
+    deleteMemoryMedia.mutate({
+      mediaId: media.id,
+      storagePath: media.storage_path,
+      thumbnailPath: media.thumbnail_path,
+    });
+  };
   return <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -340,7 +364,14 @@ export function ActivityDetail({
       <MemoryCaptureDialog open={memoryDialogOpen} onOpenChange={setMemoryDialogOpen} tripId={trip?.id} days={legacyDays} locations={locations || []} preselectedDayId={activity.day_id} preselectedLocationId={activity.location_id || undefined} itineraryItemId={activity.id} />
 
       {/* Photo Viewer */}
-      {photoViewerData.length > 0 && <PhotoViewer photos={photoViewerData} initialIndex={photoViewerIndex} open={photoViewerOpen} onOpenChange={setPhotoViewerOpen} />}
+      {photoViewerData.length > 0 && <PhotoViewer photos={photoViewerData} initialIndex={photoViewerIndex} open={photoViewerOpen} onOpenChange={setPhotoViewerOpen} onEdit={handleEditPhoto} onDelete={handleDeletePhoto} />}
+
+      {/* Memory Edit (tags + note) */}
+      <MemoryEditDialog
+        open={memoryEditOpen}
+        onOpenChange={setMemoryEditOpen}
+        memory={editingMemory}
+      />
       
       {/* Activity Editor */}
       {trip && legacyActivity && (
