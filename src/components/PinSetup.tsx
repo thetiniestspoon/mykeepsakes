@@ -107,14 +107,16 @@ export function PinSetup({ onComplete }: PinSetupProps) {
             <CollageEmojiPad
               onSubmit={handleFirstPin}
               error={error}
-              submitLabel="Next"
+              submitLabel="set pin"
+              autoSubmit={false}
             />
           ) : (
             <CollageEmojiPad
               onSubmit={handleConfirmPin}
               loading={createPin.isPending}
               error={error}
-              submitLabel="Create PIN"
+              submitLabel="create pin"
+              autoSubmit={false}
             />
           )}
 
