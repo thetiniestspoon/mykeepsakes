@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, ChevronDown, ChevronUp, Loader2, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { TagChips } from '@/components/reflection/TagChips';
+import { Stamp } from '@/preview/collage/ui/Stamp';
+import { StickerPill } from '@/preview/collage/ui/StickerPill';
 import { useCreateReflection } from '@/hooks/use-reflections';
 import { useUploadMemoryMedia } from '@/hooks/use-memories';
 import type { InsightTag } from '@/types/conference';
 import type { ItineraryDay } from '@/types/trip';
+import '@/preview/collage/collage.css';
 
 interface ReflectionCaptureSheetProps {
   open: boolean;
@@ -18,13 +18,21 @@ interface ReflectionCaptureSheetProps {
   currentDayId?: string;
 }
 
+/**
+ * Reflection capture sheet — migrated to Collage direction (Phase 4 #10).
+ * Sheet (shadcn) primitive preserved for slide-up animation. Content slot
+ * wrapped with `collage-root` + paper surface. Ruled textarea (IBM Plex),
+ * tag StickerPills via <TagChips>, ink "KEEP IT" save button. All form
+ * state, auto-focus, photo-upload flow, and mutation calls unchanged.
+ */
 export function ReflectionCaptureSheet({
   open,
   onOpenChange,
   tripId,
-  days,
+  days: _days,
   currentDayId,
 }: ReflectionCaptureSheetProps) {
+  void _days; // reserved for future day-picker UI; preserve prop contract
   const [note, setNote] = useState('');
   const [tags, setTags] = useState<InsightTag[]>([]);
   const [speaker, setSpeaker] = useState('');
@@ -121,110 +129,316 @@ export function ReflectionCaptureSheet({
     }
   };
 
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontFamily: 'var(--c-font-display)',
+    fontSize: 10,
+    letterSpacing: '.22em',
+    textTransform: 'uppercase',
+    color: 'var(--c-ink-muted)',
+    marginBottom: 6,
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    fontFamily: 'var(--c-font-body)',
+    fontSize: 15,
+    color: 'var(--c-ink)',
+    background: 'var(--c-creme)',
+    border: '1.5px solid var(--c-ink)',
+    borderRadius: 'var(--c-r-sm)',
+    padding: '10px 12px',
+    outline: 'none',
+    transition: 'border-color var(--c-t-fast) var(--c-ease-out)',
+    boxSizing: 'border-box',
+  };
+
+  const focusOn = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.borderColor = 'var(--c-pen)';
+  };
+  const focusOff = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.borderColor = 'var(--c-ink)';
+  };
+
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4">
-        <SheetHeader className="mb-3">
-          <SheetTitle className="text-left">Quick Reflection</SheetTitle>
-        </SheetHeader>
-
-        <div className="space-y-4">
-          {/* Note textarea */}
-          <Textarea
-            ref={textareaRef}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What just struck you?"
-            rows={4}
-            className="resize-none"
-          />
-
-          {/* Tag chips */}
-          <TagChips selected={tags} onToggle={handleTagToggle} />
-
-          {/* Speaker & Session collapsible */}
-          <div>
-            <button
-              type="button"
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setShowSpeakerFields((v) => !v)}
-            >
-              {showSpeakerFields ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-              Speaker & session
-            </button>
-
-            {showSpeakerFields && (
-              <div className="mt-2 space-y-2">
-                <Input
-                  value={speaker}
-                  onChange={(e) => setSpeaker(e.target.value)}
-                  placeholder="Speaker name"
-                />
-                <Input
-                  value={sessionTitle}
-                  onChange={(e) => setSessionTitle(e.target.value)}
-                  placeholder="Session title"
-                />
-              </div>
-            )}
+    <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : handleClose())}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[90vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none"
+      >
+        <div
+          className="collage-root"
+          style={{
+            position: 'relative',
+            background: 'var(--c-paper)',
+            padding: '24px 20px 28px',
+            borderTop: '1px solid var(--c-line)',
+            boxShadow: 'var(--c-shadow)',
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <Stamp variant="outline" size="sm" rotate={-3}>
+                quick card
+              </Stamp>
+              <StickerPill variant="tape" rotate={-2}>
+                reflection
+              </StickerPill>
+            </div>
           </div>
 
-          {/* Photo row */}
-          <div className="flex items-center gap-3">
-            {photoPreview ? (
-              <div className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden">
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 rounded-full text-white"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Note textarea — ruled index card */}
+            <label style={{ display: 'block' }}>
+              <span style={labelStyle}>the thought</span>
+              <textarea
+                ref={textareaRef}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="what just struck you?"
+                rows={4}
+                onFocus={focusOn}
+                onBlur={focusOff}
+                style={{
+                  ...inputStyle,
+                  resize: 'none',
+                  fontSize: 15,
+                  lineHeight: '24px',
+                  minHeight: 108,
+                  backgroundImage:
+                    'repeating-linear-gradient(0deg, transparent 0 23px, rgba(31, 60, 198, 0.10) 23px 24px)',
+                }}
+              />
+            </label>
+
+            {/* Tag chips */}
+            <div>
+              <span style={labelStyle}>tags</span>
+              <TagChips selected={tags} onToggle={handleTagToggle} />
+            </div>
+
+            {/* Speaker & Session collapsible */}
+            <div>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-16 w-16 shrink-0 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                onClick={() => setShowSpeakerFields((v) => !v)}
+                style={{
+                  appearance: 'none',
+                  background: 'transparent',
+                  border: 0,
+                  padding: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 10,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--c-pen)',
+                }}
+                aria-expanded={showSpeakerFields}
               >
-                <Camera className="h-5 w-5" />
-                <span className="text-xs mt-0.5">Photo</span>
+                {showSpeakerFields ? (
+                  <ChevronUp style={{ width: 14, height: 14 }} aria-hidden />
+                ) : (
+                  <ChevronDown style={{ width: 14, height: 14 }} aria-hidden />
+                )}
+                speaker &amp; session
               </button>
-            )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={handlePhotoSelect}
-            />
-
-            {/* Save button */}
-            <Button
-              className="flex-1 h-12"
-              disabled={isSaving || !note.trim()}
-              onClick={handleSave}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                'Save'
+              {showSpeakerFields && (
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ display: 'block' }}>
+                    <span style={labelStyle}>speaker</span>
+                    <input
+                      type="text"
+                      value={speaker}
+                      onChange={(e) => setSpeaker(e.target.value)}
+                      placeholder="Speaker name"
+                      style={inputStyle}
+                      onFocus={focusOn}
+                      onBlur={focusOff}
+                    />
+                  </label>
+                  <label style={{ display: 'block' }}>
+                    <span style={labelStyle}>session</span>
+                    <input
+                      type="text"
+                      value={sessionTitle}
+                      onChange={(e) => setSessionTitle(e.target.value)}
+                      placeholder="Session title"
+                      style={inputStyle}
+                      onFocus={focusOn}
+                      onBlur={focusOff}
+                    />
+                  </label>
+                </div>
               )}
-            </Button>
+            </div>
+
+            {/* Photo + Save row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginTop: 4,
+              }}
+            >
+              {photoPreview ? (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: 64,
+                    height: 64,
+                    flexShrink: 0,
+                    border: '1.5px solid var(--c-ink)',
+                    borderRadius: 'var(--c-r-sm)',
+                    overflow: 'hidden',
+                    background: 'var(--c-paper)',
+                  }}
+                >
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    aria-label="Remove photo"
+                    style={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      width: 20,
+                      height: 20,
+                      display: 'grid',
+                      placeItems: 'center',
+                      padding: 0,
+                      background: 'rgba(29, 29, 27, 0.7)',
+                      color: 'var(--c-creme)',
+                      border: 0,
+                      borderRadius: 'var(--c-r-sm)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <X style={{ width: 12, height: 12 }} aria-hidden />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    appearance: 'none',
+                    width: 64,
+                    height: 64,
+                    flexShrink: 0,
+                    background: 'var(--c-creme)',
+                    color: 'var(--c-ink-muted)',
+                    border: '1.5px dashed var(--c-line)',
+                    borderRadius: 'var(--c-r-sm)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                    transition:
+                      'border-color var(--c-t-fast) var(--c-ease-out), color var(--c-t-fast) var(--c-ease-out)',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--c-pen)';
+                    e.currentTarget.style.color = 'var(--c-pen)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--c-line)';
+                    e.currentTarget.style.color = 'var(--c-ink-muted)';
+                  }}
+                >
+                  <Camera style={{ width: 20, height: 20 }} aria-hidden />
+                  <span
+                    style={{
+                      fontFamily: 'var(--c-font-display)',
+                      fontSize: 9,
+                      letterSpacing: '.22em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    photo
+                  </span>
+                </button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                style={{ display: 'none' }}
+                onChange={handlePhotoSelect}
+              />
+
+              <button
+                type="button"
+                disabled={isSaving || !note.trim()}
+                onClick={handleSave}
+                className="mk-collage-keepit"
+                style={{
+                  appearance: 'none',
+                  flex: 1,
+                  height: 48,
+                  cursor: isSaving || !note.trim() ? 'not-allowed' : 'pointer',
+                  background: isSaving || !note.trim() ? 'var(--c-ink-muted)' : 'var(--c-ink)',
+                  color: 'var(--c-creme)',
+                  border: 0,
+                  borderRadius: 'var(--c-r-sm)',
+                  padding: '0 18px',
+                  fontFamily: 'var(--c-font-display)',
+                  fontSize: 12,
+                  letterSpacing: '.26em',
+                  textTransform: 'uppercase',
+                  boxShadow: isSaving || !note.trim() ? 'none' : 'var(--c-shadow-sm)',
+                  opacity: isSaving || !note.trim() ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'transform var(--c-t-fast) var(--c-ease-out)',
+                }}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" aria-hidden />
+                    Saving…
+                  </>
+                ) : (
+                  'Keep it'
+                )}
+              </button>
+            </div>
           </div>
+
+          <style>{`
+            .mk-collage-keepit:not(:disabled):hover { transform: translate(-1px, -1px); }
+            .mk-collage-keepit:focus-visible {
+              outline: 2px solid var(--c-pen);
+              outline-offset: 3px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .mk-collage-keepit:not(:disabled):hover { transform: none; }
+            }
+          `}</style>
         </div>
       </SheetContent>
     </Sheet>
