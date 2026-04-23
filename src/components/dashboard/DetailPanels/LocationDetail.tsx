@@ -5,6 +5,7 @@ import { useDashboardSelection } from '@/contexts/DashboardSelectionContext';
 import { Stamp } from '@/preview/collage/ui/Stamp';
 import { StickerPill } from '@/preview/collage/ui/StickerPill';
 import { Tape } from '@/preview/collage/ui/Tape';
+import { MarginNote } from '@/preview/collage/ui/MarginNote';
 import '@/preview/collage/collage.css';
 
 interface LocationDetailProps {
@@ -23,7 +24,7 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
   if (!location) {
     return (
       <div
-        className="flex items-center justify-center h-full"
+        className="collage-root flex items-center justify-center h-full"
         style={{
           color: 'var(--c-ink-muted)',
           fontFamily: 'var(--c-font-body)',
@@ -65,7 +66,7 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
   const categoryLabel = isAccommodation ? 'Accommodation' : location.category;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="collage-root" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Header — main paper card with tape accent and section stamp */}
       <section style={surfaceStyle}>
         <Tape position="top-right" rotate={6} width={72} opacity={0.68} />
@@ -73,7 +74,7 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <Stamp variant="outline" size="sm" style={{ marginBottom: 10 }}>
-              {isAccommodation ? 'Stay' : 'Location'}
+              {isAccommodation ? 'Stay' : 'Place'}
             </Stamp>
             <h2
               style={{
@@ -114,6 +115,17 @@ export function LocationDetail({ location, isAccommodation }: LocationDetailProp
             </StickerPill>
           )}
         </div>
+
+        {/* Caveat address aside — decorative accent, aria-hidden */}
+        {'address' in location && location.address && (
+          <MarginNote
+            rotate={-3}
+            size={18}
+            style={{ position: 'absolute', right: 14, bottom: -8, background: 'var(--c-paper)', padding: '0 6px' }}
+          >
+            here
+          </MarginNote>
+        )}
 
         {/* Quick Actions — paper-flat ghost buttons */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
