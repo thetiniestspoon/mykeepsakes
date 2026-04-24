@@ -774,11 +774,11 @@ export function GuideTab() {
           ))}
         </FolioSection>
 
-        {/* Dining Near Hotel */}
+        {/* Where to Eat — city picks first, hotel-area spots after */}
         <FolioSection
           value="restaurants"
           stampLabel="dining"
-          title="Dining Near Hotel"
+          title="Where to Eat"
           subtitle={`${RESTAURANTS.length} places to eat`}
           marginNote="hungry? look here"
           tapePosition="top-right"
