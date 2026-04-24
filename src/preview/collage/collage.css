@@ -66,6 +66,18 @@
   --ring:                  230 73% 45%; /* pen */
 }
 
+/* Nested .collage-root wrappers inherit tokens via CSS cascade but must
+   NOT re-apply the standalone-page sizing + background. Wave 3 added
+   `className="collage-root"` as a defensive wrapper on ~50 inner
+   components; without this reset, every nested instance forced
+   min-height: 100dvh and repainted the paper gradient, crushing flex
+   siblings (e.g. the DashboardItinerary was pushed to 1px below a
+   full-viewport QuickIconRow). Token variables still cascade. */
+.collage-root .collage-root {
+  min-height: 0;
+  background: transparent;
+}
+
 .collage-root *,
 .collage-root *::before,
 .collage-root *::after {
