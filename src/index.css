@@ -273,6 +273,17 @@
    which breaks Leaflet tiles that require exact 256x256 sizing.
    ============================================== */
 
+/* Confine Leaflet's internal pane z-indexes (200-700) to a local
+   stacking context so popup/tooltip/marker panes can't poke through
+   Radix dialogs, popovers, and sheets (which sit at z-index 50 via
+   portals). Without this, the dashboard map bleeds through the
+   DispatchEditor dialog, the SettingsDialog, and the reflection
+   sheet. `isolation: isolate` creates the stacking context without
+   touching Leaflet's own layout assumptions. */
+.leaflet-container {
+  isolation: isolate;
+}
+
 /* Reset Tailwind's image constraints for Leaflet containers */
 .leaflet-container img {
   max-width: none !important;
