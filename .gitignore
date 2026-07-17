@@ -36,3 +36,6 @@ bun.lock
 
 # Agent/swarm artifacts
 .swarm/
+
+# Supabase CLI temp
+supabase/.temp/
