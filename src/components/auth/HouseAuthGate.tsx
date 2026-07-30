@@ -21,6 +21,12 @@ type GateState =
  * A denied persona is shown a notice and is deliberately NOT signed out — the
  * session belongs to the whole house, and evicting them here would evict them
  * from the games they are entitled to (spec D6).
+ *
+ * The notice does offer one explicit way forward: "use a different PIN", which
+ * signs out ON REQUEST. D6 forbids evicting someone automatically, not
+ * honouring a person who asks. Without this the shared iPad is a trap — if the
+ * last PIN entered was a denied one, a legitimate family member has no way into
+ * the app at all, and the session refreshes itself so waiting never clears it.
  */
 export function HouseAuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GateState>({ status: 'loading' });
@@ -68,7 +74,10 @@ export function HouseAuthGate({ children }: { children: ReactNode }) {
   }
 
   if (state.status === 'denied') {
-    return <NotAdmittedNotice />;
+    // Explicit, user-initiated only. signOut() fires SIGNED_OUT, which
+    // onAuthStateChange turns into `locked` — so the pad appears without this
+    // component needing to know anything about gate state.
+    return <NotAdmittedNotice onUseDifferentPin={() => void supabase.auth.signOut()} />;
   }
 
   return <>{children}</>;

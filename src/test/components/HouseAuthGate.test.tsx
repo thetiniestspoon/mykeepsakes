@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const getSession = vi.fn();
 const onAuthStateChange = vi.fn();
@@ -19,8 +19,17 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/components/auth/HousePinEntry', () => ({
   HousePinEntry: () => <div>PIN ENTRY</div>,
 }));
+// The stub exposes the escape hatch so the gate's wiring is testable: the real
+// component renders this button only when the callback is supplied.
 vi.mock('@/components/auth/NotAdmittedNotice', () => ({
-  NotAdmittedNotice: () => <div>NOT ADMITTED</div>,
+  NotAdmittedNotice: ({ onUseDifferentPin }: { onUseDifferentPin?: () => void }) => (
+    <div>
+      NOT ADMITTED
+      {onUseDifferentPin && (
+        <button onClick={onUseDifferentPin}>This isn't me — use a different PIN</button>
+      )}
+    </div>
+  ),
 }));
 
 const { HouseAuthGate } = await import('@/components/auth/HouseAuthGate');
@@ -91,5 +100,35 @@ describe('HouseAuthGate', () => {
     await waitFor(() => expect(screen.getByText('PIN ENTRY')).toBeInTheDocument());
     unmount();
     expect(unsubscribe).toHaveBeenCalled();
+  });
+
+  // The escape hatch. D6 forbids AUTOMATICALLY evicting a denied persona from
+  // the shared session; it does not forbid honouring an explicit request. On a
+  // shared iPad this is the only way a legitimate family member gets past
+  // someone else's session without leaving the app.
+  describe('the denied screen invites you back to the PIN pad', () => {
+    it('still does not sign anyone out merely by rendering', async () => {
+      getSession.mockResolvedValue(sessionFor('cindy-nanny@family.internal'));
+      render(<HouseAuthGate><div>THE APP</div></HouseAuthGate>);
+      await waitFor(() => expect(screen.getByText(/NOT ADMITTED/)).toBeInTheDocument());
+      expect(signOut).not.toHaveBeenCalled();
+    });
+
+    it('signs out only when the person explicitly asks, then shows the PIN pad', async () => {
+      getSession.mockResolvedValue(sessionFor('cindy-nanny@family.internal'));
+      signOut.mockResolvedValue({ error: null });
+      render(<HouseAuthGate><div>THE APP</div></HouseAuthGate>);
+      await waitFor(() => expect(screen.getByText(/NOT ADMITTED/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: /different PIN/i }));
+      await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+
+      // supabase-js fires SIGNED_OUT; the gate must return to the pad, not stay
+      // stranded on the notice.
+      const handler = onAuthStateChange.mock.calls[0][0] as (e: string, s: unknown) => void;
+      handler('SIGNED_OUT', null);
+      await waitFor(() => expect(screen.getByText('PIN ENTRY')).toBeInTheDocument());
+      expect(screen.queryByText(/NOT ADMITTED/)).toBeNull();
+    });
   });
 });
