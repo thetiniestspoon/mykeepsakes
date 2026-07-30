@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { HouseAuthGate } from "@/components/auth/HouseAuthGate";
 
 // Lazy load shared trip page
 const SharedTrip = lazy(() => import("./pages/SharedTrip"));
@@ -70,9 +71,11 @@ const App = () => (
           <Route
             path="/preview/collage"
             element={
-              <Suspense fallback={<PageLoadingFallback />}>
-                <CollageShell />
-              </Suspense>
+              <HouseAuthGate>
+                <Suspense fallback={<PageLoadingFallback />}>
+                  <CollageShell />
+                </Suspense>
+              </HouseAuthGate>
             }
           >
             <Route index element={<Suspense fallback={<PageLoadingFallback />}><CollageDashboard /></Suspense>} />

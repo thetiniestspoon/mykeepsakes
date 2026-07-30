@@ -70,9 +70,30 @@ describe('verifyHousePin', () => {
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'abc123', type: 'magiclink' });
   });
 
-  it('reports a wrong PIN when the function rejects it', async () => {
-    invoke.mockResolvedValue({ data: null, error: { message: 'Invalid emoji PIN' } });
+  it('reports a wrong PIN when the function rejects it (FunctionsHttpError)', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { name: 'FunctionsHttpError', message: 'Invalid emoji PIN' },
+    });
     await expect(verifyHousePin('🦝🦝🦝🦝')).rejects.toMatchObject({ kind: 'wrong-pin' });
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('reports unreachable when the function cannot be reached (FunctionsFetchError)', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { name: 'FunctionsFetchError', message: 'Failed to send a request to the function' },
+    });
+    await expect(verifyHousePin('🦝🦝🦝🦝')).rejects.toMatchObject({ kind: 'unreachable' });
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('treats an unrecognised error name as unreachable, not as a wrong PIN', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: { name: 'SomeFutureErrorClass', message: 'who knows' },
+    });
+    await expect(verifyHousePin('🦝🦝🦝🦝')).rejects.toMatchObject({ kind: 'unreachable' });
     expect(verifyOtp).not.toHaveBeenCalled();
   });
 

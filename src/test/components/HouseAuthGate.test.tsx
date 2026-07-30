@@ -77,6 +77,14 @@ describe('HouseAuthGate', () => {
     await waitFor(() => expect(screen.getByText('PIN ENTRY')).toBeInTheDocument());
   });
 
+  it('lands in locked (PIN entry) when getSession rejects, rather than spinning forever', async () => {
+    getSession.mockRejectedValue(new Error('corrupt storage slot'));
+    render(<HouseAuthGate><div>THE APP</div></HouseAuthGate>);
+    await waitFor(() => expect(screen.getByText('PIN ENTRY')).toBeInTheDocument());
+    expect(screen.queryByText('THE APP')).toBeNull();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
   it('unsubscribes on unmount', async () => {
     getSession.mockResolvedValue({ data: { session: null } });
     const { unmount } = render(<HouseAuthGate><div>THE APP</div></HouseAuthGate>);

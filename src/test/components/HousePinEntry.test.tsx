@@ -71,9 +71,11 @@ describe('HousePinEntry', () => {
 
   it('shows a reachability message when the house cannot be reached', async () => {
     verifyHousePin.mockRejectedValue(new HousePinError("Can't reach the house right now.", 'unreachable'));
-    render(<HousePinEntry onAuthenticated={() => {}} />);
+    const onAuthenticated = vi.fn();
+    render(<HousePinEntry onAuthenticated={onAuthenticated} />);
     await typeAPin();
     await waitFor(() => expect(screen.getByText(/can't reach the house/i)).toBeInTheDocument());
+    expect(onAuthenticated).not.toHaveBeenCalled();
   });
 
   it('does not admit anyone when the session exchange fails', async () => {

@@ -37,7 +37,10 @@ export function HouseAuthGate({ children }: { children: ReactNode }) {
       setState(isAdmitted(session.user?.email) ? { status: 'admitted' } : { status: 'denied' });
     };
 
-    supabase.auth.getSession().then(({ data }) => apply(data.session));
+    supabase.auth
+      .getSession()
+      .then(({ data }) => apply(data.session))
+      .catch(() => apply(null));
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => apply(session));
 

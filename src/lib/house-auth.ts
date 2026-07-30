@@ -65,11 +65,18 @@ export async function verifyHousePin(
       body: { emojiPin },
     });
     if (error) {
-      // The shared function answers 401 for a bad PIN. invoke() collapses any
-      // non-2xx into `error`, so a wrong PIN and a broken function are not
-      // distinguishable here; treat it as a wrong PIN, which is both the common
-      // case and the message that leaks nothing about who exists.
-      throw new HousePinError('Wrong PIN — try again.', 'wrong-pin');
+      // supabase-js distinguishes these by error class: a FunctionsHttpError
+      // means the function ran and returned non-2xx (a genuinely wrong PIN);
+      // a FunctionsFetchError/FunctionsRelayError means the function could
+      // not be reached at all (an outage, not a bad PIN). Check `error.name`
+      // rather than importing the classes, so this does not depend on those
+      // symbols being exported by the installed supabase-js version. Any
+      // unrecognised name fails toward "something is broken" rather than
+      // accusing the user of a bad PIN.
+      if (error.name === 'FunctionsHttpError') {
+        throw new HousePinError('Wrong PIN — try again.', 'wrong-pin');
+      }
+      throw new HousePinError("Can't reach the house right now.", 'unreachable');
     }
     payload = data as typeof payload;
   } catch (err) {
