@@ -23,7 +23,7 @@ import '@/preview/collage/collage.css';
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentPin: string;
+  currentPin?: string;
   onLogout: () => void;
 }
 

@@ -1,11 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { MultiUserPinEntry } from '@/components/MultiUserPinEntry';
-import { PinSetup } from '@/components/PinSetup';
+import { useState, useMemo } from 'react';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { usePin } from '@/hooks/use-trip-data';
-import { isHashedPin } from '@/lib/emoji-pin';
-import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { HouseAuthGate } from '@/components/auth/HouseAuthGate';
+import { supabase } from '@/integrations/supabase/client';
 import { useDashboardMode } from '@/hooks/use-dashboard-mode';
 import { DashboardSelectionProvider } from '@/contexts/DashboardSelectionContext';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
@@ -22,17 +18,14 @@ import { useActiveTrip, getTripMode, useTripDays, getCurrentDayIndex } from '@/h
 import { CollageRoot } from '@/preview/collage/CollageRoot';
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
 
-  const { data: pin, isLoading: pinLoading } = usePin();
   const { data: trip } = useActiveTrip();
   const { data: days = [] } = useTripDays(trip?.id);
   const { isWideLayout } = useDashboardMode();
-  const queryClient = useQueryClient();
 
   // Get trip mode for dashboard context
   const tripMode = trip ? getTripMode(trip) : 'pre';
@@ -43,110 +36,72 @@ const Index = () => {
     const idx = getCurrentDayIndex(trip, days, tripMode);
     return days[idx]?.id;
   }, [trip, days, tripMode]);
-  
-  // Check for existing session
-  useEffect(() => {
-    const authenticated = sessionStorage.getItem('mk-authenticated') === 'true';
-    setIsAuthenticated(authenticated);
-  }, []);
-  
-  const handleLogout = () => {
-    setIsAuthenticated(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
-  
-  // Loading state
-  if (pinLoading) {
-    return (
-      <div className="min-h-screen bg-beach-gradient flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading your trip planner...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // First-time setup OR migration from old plaintext PIN
-  // Old plaintext PINs (e.g. '1475963') are not 64-char hex hashes
-  const needsSetup = !pin || !isHashedPin(pin);
 
-  if (needsSetup) {
-    return (
-      <PinSetup
-        onComplete={() => queryClient.invalidateQueries({ queryKey: ['pin'] })}
-      />
-    );
-  }
-
-  // PIN entry — use multi-user auth flow
-  if (!isAuthenticated) {
-    return (
-      <MultiUserPinEntry
-        onSuccess={() => setIsAuthenticated(true)}
-      />
-    );
-  }
-  
   // Wide layout: 3-column grid (landscape/desktop)
   // Narrow layout: Swipeable 3-panel accordion (portrait/mobile)
   return (
-    <CollageRoot>
-      <DashboardSelectionProvider initialTripMode={tripMode}>
-        {isWideLayout ? (
-          <DashboardLayout
-            header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
-            leftColumn={<LeftColumn />}
-            centerColumn={<CenterColumn />}
-            rightColumn={<RightColumn />}
-          />
-        ) : (
-          <SwipeableDashboard
-            header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
-            leftColumn={<LeftColumn />}
-            centerColumn={<CenterColumn />}
-            rightColumn={<RightColumn />}
-          />
-        )}
+    <HouseAuthGate>
+      <CollageRoot>
+        <DashboardSelectionProvider initialTripMode={tripMode}>
+          {isWideLayout ? (
+            <DashboardLayout
+              header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
+              leftColumn={<LeftColumn />}
+              centerColumn={<CenterColumn />}
+              rightColumn={<RightColumn />}
+            />
+          ) : (
+            <SwipeableDashboard
+              header={<CompactHeader onOpenSettings={() => setSettingsOpen(true)} />}
+              leftColumn={<LeftColumn />}
+              centerColumn={<CenterColumn />}
+              rightColumn={<RightColumn />}
+            />
+          )}
 
-        <SettingsDialog
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          currentPin={pin}
-          onLogout={handleLogout}
-        />
+          <SettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            onLogout={handleLogout}
+          />
 
-        {/* Conference companion: FAB + capture sheets */}
-        {trip && (
-          <>
-            <ReflectionFAB
-              onReflection={() => setReflectionOpen(true)}
-              onConnection={() => setConnectionOpen(true)}
-              onEvent={() => setEventOpen(true)}
-            />
-            <ReflectionCaptureSheet
-              open={reflectionOpen}
-              onOpenChange={setReflectionOpen}
-              tripId={trip.id}
-              days={days}
-              currentDayId={currentDayId}
-            />
-            <ConnectionCaptureSheet
-              open={connectionOpen}
-              onOpenChange={setConnectionOpen}
-              tripId={trip.id}
-              currentDayId={currentDayId}
-            />
-            <ItineraryEventCaptureSheet
-              open={eventOpen}
-              onOpenChange={setEventOpen}
-              tripId={trip.id}
-              days={days}
-              currentDayId={currentDayId}
-            />
-          </>
-        )}
-      </DashboardSelectionProvider>
-    </CollageRoot>
+          {/* Conference companion: FAB + capture sheets */}
+          {trip && (
+            <>
+              <ReflectionFAB
+                onReflection={() => setReflectionOpen(true)}
+                onConnection={() => setConnectionOpen(true)}
+                onEvent={() => setEventOpen(true)}
+              />
+              <ReflectionCaptureSheet
+                open={reflectionOpen}
+                onOpenChange={setReflectionOpen}
+                tripId={trip.id}
+                days={days}
+                currentDayId={currentDayId}
+              />
+              <ConnectionCaptureSheet
+                open={connectionOpen}
+                onOpenChange={setConnectionOpen}
+                tripId={trip.id}
+                currentDayId={currentDayId}
+              />
+              <ItineraryEventCaptureSheet
+                open={eventOpen}
+                onOpenChange={setEventOpen}
+                tripId={trip.id}
+                days={days}
+                currentDayId={currentDayId}
+              />
+            </>
+          )}
+        </DashboardSelectionProvider>
+      </CollageRoot>
+    </HouseAuthGate>
   );
 };
 
