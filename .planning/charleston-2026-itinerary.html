@@ -1,0 +1,1109 @@
+<!doctype html><html><head><!-- frame-runtime --><script>window.__FRAME_PREAMBLE={"capabilities":{"downloads":"downloads.BABDwU1K.js","mcp":"mcp.hoz5jxDa.js","permissions":"permissions.ByA9Fd8x.js","self":"self.D3u1zjZe.js","user":"user.Cp1-RnjB.js"},"transforms":"_transforms.DYk1Ltlh.js","comments":"_comments.DiwQajF_.js","translate":"_translate.C5leZL2A.js"}</script><script>(function(){"use strict";const Ee="modulepreload",we=function(e){return"/"+e},Se={},ee=function(t,n,l){let i=Promise.resolve();function s(f){const c=new Event("vite:preloadError",{cancelable:!0});if(c.payload=f,window.dispatchEvent(c),!c.defaultPrevented)throw f}return i.then(f=>{for(const c of f||[])c.status==="rejected"&&s(c.reason);return t().catch(s)})},te=["light","dark","system"];function ne(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function W(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function re(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const n=t.theme;return typeof n=="string"&&te.includes(n)}function se(e){try{typeof reportError=="function"?reportError(e):setTimeout(()=>{throw e},0)}catch{}}const oe=Object.freeze(Object.assign(Object.create(null),{user:Object.freeze(Object.assign(Object.create(null),{id:null,isOwner:!1,canEdit:!1,name:null,avatarUrl:null,email:null}))}));function Y(e){if(window===top||e.type==="auxclick"&&e.button!==1)return;const t=e.composedPath?e.composedPath():[e.target];let n=null;for(let f=0;f<t.length;f++){const c=t[f];if(c&&c.matches&&c.matches("a[href],area[href]")){n=c;break}}if(!n&&e.target&&e.target.closest&&(n=e.target.closest("a[href],area[href]")),!n)return;const l=n.getAttribute("href");if(!l)return;let i,s;try{i=new URL(l,document.baseURI),s=new URL(document.baseURI).origin}catch{return}(i.protocol==="http:"||i.protocol==="https:")&&i.origin!==s&&(e.preventDefault(),parent.postMessage({__frame_nav:!0,url:i.href},"*"))}const K={};function D(e){if(window===top)return;const t=Date.now();t-(K[e]||0)<500||(K[e]=t,parent.postMessage({__frame_engaged:!0,kind:e},"*"))}const ie=2e3,x=["wheel","touchstart","touchmove","keydown","pointerdown"];let J=0;function ae(e){e.isTrusted&&(J=Date.now())}function ce(){addEventListener("click",Y,!0),addEventListener("auxclick",Y,!0)}function le(){for(let e=0;e<x.length;e++)addEventListener(x[e],ae,{capture:!0,passive:!0});addEventListener("scroll",e=>{e.isTrusted&&Date.now()-J<ie&&D("scroll")},{capture:!0,passive:!0}),addEventListener("pointermove",e=>{e.isTrusted&&D("pointer")},{capture:!0,passive:!0}),addEventListener("click",e=>{e.isTrusted&&D("click")},{capture:!0,passive:!0})}const I="__frame_scroll",ue=150,fe=310,de=160,me=3e4;function pe(){let e=0,t=!1,n=!1,l=!1,i=0;const s=a=>{try{sessionStorage.setItem(I,JSON.stringify({y:a}))}catch{}},f=()=>{if(t){t=!1;return}n=!0,clearTimeout(e),e=setTimeout(()=>s(scrollY),ue)};try{addEventListener("scroll",f,{passive:!0}),addEventListener("pagehide",()=>{clearTimeout(e),s(scrollY)})}catch{}const c=()=>{let a;try{a=sessionStorage.getItem(I)}catch{return null}if(a===null)return null;let _;try{_=JSON.parse(a)}catch{_=null}const m=_?.y;if(!(typeof m=="number"&&Number.isFinite(m)&&m>=0)){try{sessionStorage.removeItem(I)}catch{}return null}return m};let g=!1;const p=a=>{try{const _=scrollY;scrollTo({top:a,left:0,behavior:"instant"}),i=a,l=!0,s(a);const m=scrollY;m!==_&&(t=!0),m!==a&&!g&&(g=!0,addEventListener("load",()=>{try{if(scrollY===m){const y=c();p(y!==null?y:i)}}catch{}},{once:!0}))}catch{}},o=()=>{try{return!!location.hash}catch{return!0}};let u=!1;const d=()=>{try{if(u||innerWidth>fe||innerHeight>de)return;u=!0;const a=Date.now(),_=()=>{try{removeEventListener("resize",_)}catch{}if(Date.now()-a>me||n||o())return;const m=c();p(m!==null?m:i)};addEventListener("resize",_)}catch{}};let h=!1,b=!1;return{restore(){if(h||(h=!0,o()))return;const a=c();a!==null&&(p(a),d())},promoted(){if(b||(b=!0,o()))return;const a=c();a!==null?(p(a),d()):l&&p(i)}}}function he(e,t,n){const l=[...t.values()].filter(i=>i.targets.some(s=>s.startsWith(e+".")));return{wrap(i,s){const f=`${e}.${i}`,c=l.filter(g=>g.targets.includes(f));return c.length===0?(...g)=>{try{return s(...g)}catch(p){return Promise.reject(p)}}:(...g)=>{let p=g;for(const u of c){const d=u.module.parameters;if(d)try{p=d(p)}catch{return Promise.reject({code:"transform_error",id:u.id,scope:e,message:"parameters transform failed"})}}let o;try{o=s(...p)}catch(u){o=Promise.reject(u)}return o.then(u=>{for(let d=c.length-1;d>=0;d--){const h=c[d],b=h.module.returns;if(b)try{u=b(u)}catch{return n({id:h.id,scope:e,leg:"returns"}),u}}return u},u=>{for(let d=c.length-1;d>=0;d--){const h=c[d],b=h.module.throws;if(b)try{u=b(u)}catch{return n({id:h.id,scope:e,leg:"throws"}),Promise.reject(u)}}return Promise.reject(u)})}}}}function ge(e,t,n,l=()=>{}){const i=new Set(e.changes??[]),s=new Map;for(const f of i){const c=t[f];c&&s.set(f,c)}return{contract:e.contract,changes:i,flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:s,shellOrigin:n.shellOrigin,mount:n.mount,pipe:f=>he(f,s,l)}}(function(){const e=Object.defineProperty,t=globalThis,n=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let l=0;for(let i=0;i<n.length;i++){const s=n[i];try{e(t,s,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[s]}catch{}try{e(t,s,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[s]=="function"&&l++}if(l&&window!==top)try{parent.postMessage({__frame_rtc_lockdown_failed:l},"*")}catch{}})();const _e=1e4,ye=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function G(e){for(const t of ye)if(t.endsWith(":*"))try{const n=new URL(e);if(`${n.protocol}//${n.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}const R=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),U=window.__FRAME_PREAMBLE?.transforms,z=window.__FRAME_PREAMBLE?.comments,$=window.__FRAME_PREAMBLE?.translate,T=/^[\w.-]+\.js$/,be=/^[a-z][a-z0-9_-]{0,63}$/;let V=null,j=null;function q(e,t,n){try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!0,enumerable:!0})}catch{}}}let B=!1;function X(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,B=!0):B&&(delete t.dataset.theme,t.style.colorScheme="",B=!1)}const A=Object.assign(Object.create(null),{mcp:Object.assign(Object.create(null),{watchTool:{handlerArg:3}})}),M=new Map;function Q(e,t){const n=M.get(e);if(!n)return;const l=Object.assign(Object.create(null),t);Object.assign(n.impl,l),n.impl.__settled=()=>Promise.reject({code:"capability_removed",message:`${e}: method not in this runtime`});const i=n.queue;n.queue=[];for(const s of i){const f=l[s.method];if(f)if(A[e]?.[s.method])try{s.resolve(f(...s.args))}catch{k(s,A[e][s.method].handlerArg,{code:"transform_error",message:`${e}.${s.method} rejected its arguments`})}else f(...s.args).then(s.resolve,s.reject);else{const c={code:"capability_removed",message:`${e}.${s.method} is not in this runtime`},g=A[e]?.[s.method];if(g){k(s,g.handlerArg,c);continue}s.reject(c)}}}function ve(e,t){const n=M.get(e);if(!n)return;n.impl.__settled=()=>Promise.reject(t);const l=n.queue;n.queue=[];for(const i of l){const s=A[e]?.[i.method];if(s){k(i,s.handlerArg,t);continue}i.reject(t)}}function N(e,t){const n=oe[e];if(!n){ve(e,t);return}Q(e,Object.fromEntries(Object.entries(n).map(([l,i])=>[l,()=>Promise.resolve(i)])))}function k(e,t,n){if(e.syncState?.dead)return;const l=e.args[t];typeof l=="function"&&queueMicrotask(()=>{if(!e.syncState?.dead)try{l({type:"error",error:n})}catch(i){se(i)}})}const F=Object.getOwnPropertyDescriptor(window,"claude");if(window!==top&&!(F&&F.writable===!1)){ce(),le();let e=null;try{e=pe()}catch{}const t=F?.value??{};q(window,"claude",t);const n=o=>{const u={impl:Object.create(null),queue:[]};M.set(o,u);const d=u.impl,h=new Proxy(d,{get:(b,a)=>{if(typeof a!="string"||a==="then"||a==="toJSON"||a==="valueOf")return;if(a==="toString")return Object.prototype.toString;const _=A[o]?.[a];return _?(...m)=>{if(typeof m[_.handlerArg]!="function")throw new TypeError(`${o}.${a} requires a handler function`);const y=d[a];if(y)return y(...m);if(d.__settled){const v={dead:!1},P={args:[...m],syncState:v};return d.__settled().catch(C=>k(P,_.handlerArg,C)),()=>{v.dead=!0}}let E=null;const S={dead:!1};return u.queue.push({method:a,args:m,resolve:v=>{E=typeof v=="function"?v:null,S.dead&&E?.()},reject:()=>{},syncState:S}),()=>{S.dead=!0,E?.()}}:(...m)=>{const y=d[a]??d.__settled;return y?y(...m):new Promise((E,S)=>{u.queue.push({method:a,args:m,resolve:E,reject:S})})}},set:()=>!1});q(t,o,h)};for(const o of Object.keys(R)){if(t[o]!==void 0){q(t,o,t[o]);continue}n(o)}let l=null,i=null,s=0;const f=o=>{o.source!==parent||!G(o.origin)||ne(o.data)&&(l=o.data.__frame_init,j=o.origin,removeEventListener("message",f),clearTimeout(s),i?.())};addEventListener("message",f),parent.postMessage({__frame_connect:!0},"*");const c=new Promise(o=>{i=o,s=setTimeout(()=>{removeEventListener("message",f),o()},_e)}),g=document.readyState==="loading"?new Promise(o=>document.addEventListener("DOMContentLoaded",()=>o(),{once:!0})):Promise.resolve();g.then(()=>{try{e?.restore()}catch{}});const p=o=>{if(!(o.source!==parent||!G(o.origin))&&W(o.data)){removeEventListener("message",p);try{e?.promoted()}catch{}}};addEventListener("message",p),c.then(async()=>{if(!l||!j){for(const r of M.keys())N(r,{code:"not_granted",message:"frame initialization did not arrive - capability unavailable"});return}X(l.theme);const o=j;let u=!1,d=!1;addEventListener("message",r=>{if(r.source!==parent||r.origin!==o)return;re(r.data)&&X(r.data.__frame_theme.theme);const w=r.data?.__fc_mode;w&&typeof w=="object"&&!u&&z&&T.test(z)&&(u=!0,h(z).then(H=>H.install?.(o,w.on===!0)).catch(()=>{}));const O=r.data?.__ft_cmd;O&&typeof O=="object"&&!d&&$&&T.test($)&&(d=!0,h($).then(H=>H.install?.(o,O)).catch(()=>{}))});const h=r=>ee(()=>import("/_runtime/"+r),void 0),b=Object.keys(l.capabilities??{});for(const r of b)Object.hasOwn(R,r)||be.test(r)&&t[r]===void 0&&(n(r),N(r,{code:"capability_disabled",message:"capability not in this runtime generation"}));const a=b.filter(r=>Object.hasOwn(R,r)).map(r=>[r,R[r]]).filter(r=>typeof r[1]=="string"&&T.test(r[1])),[_,...m]=await Promise.allSettled([U&&T.test(U)?h(U):Promise.resolve({}),...a.map(([,r])=>h(r))]),y=j;V=ge(l,_.status==="fulfilled"&&_.value?.TRANSFORMS||{},{shellOrigin:y,mount:Q},r=>parent.postMessage({__frame_cap_telemetry:r},y));const E=r=>parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:r}},y),S=V;m.forEach((r,w)=>{const O=a[w][0];if(r.status!=="fulfilled"){E(O);return}try{r.value?.install?.(S)}catch{E(O)}});for(const[r,w]of M)if(!(w.queue.length===0&&Object.keys(w.impl).length>0)){if(b.includes(r)){N(r,{code:"capability_disabled",message:"capability not available in this session"});continue}N(r,{code:"not_granted",message:"capability not available in this session"})}await g,parent.postMessage({__frame_ready:!0},j);let v=-1,P=0;const C=()=>{P=0;const r=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);r!==v&&(v=r,parent.postMessage({__frame_size:!0,h:r},y))},L=()=>{P||(P=setTimeout(C,200))},Z=new ResizeObserver(L);Z.observe(document.documentElement),document.body&&Z.observe(document.body),document.addEventListener("load",L,!0),document.fonts?.ready.then(L,()=>{}),addEventListener("beforeprint",()=>{v=-1,C()}),L(),addEventListener("message",r=>{if(!(r.source!==parent||r.origin!==y)&&W(r.data)){try{e?.promoted()}catch{}v=-1,L()}})})}})();</script><!-- /frame-runtime --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Charleston, All of Us — Aug 14–21, 2026</title>
+<style>
+  @font-face {
+    font-family: "IowanFallback";
+    src: local("Iowan Old Style"), local("Charter"), local("Georgia");
+  }
+
+  :root {
+    --oyster: #eef1ea;
+    --oyster-dim: #e3e7dd;
+    --card: #ffffff;
+    --marsh-night: #17221f;
+    --marsh-card: #1f2b27;
+    --ink: #263029;
+    --ink-soft: #4b5851;
+    --haint: #5f8f88;
+    --haint-deep: #3f6963;
+    --haint-tint: #e2ece9;
+    --water: #d3e4e0;
+    --sweetgrass: #a97f2e;
+    --sweetgrass-tint: #f2e8d4;
+    --brick: #a24e35;
+    --brick-tint: #f3e2da;
+    --line: #d7dbd0;
+    --shadow: 0 1px 2px rgba(38, 48, 41, 0.06), 0 8px 24px -12px rgba(38, 48, 41, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --oyster: #17221f;
+      --oyster-dim: #131c19;
+      --card: #1f2b27;
+      --ink: #eef1ea;
+      --ink-soft: #b7c2ba;
+      --haint: #8bb8b0;
+      --haint-deep: #a7d1c9;
+      --haint-tint: #26332f;
+      --water: #12211f;
+      --sweetgrass: #d8b264;
+      --sweetgrass-tint: #33291b;
+      --brick: #d68264;
+      --brick-tint: #3a251e;
+      --line: #34423c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --oyster: #17221f; --oyster-dim: #131c19; --card: #1f2b27; --ink: #eef1ea; --ink-soft: #b7c2ba;
+    --haint: #8bb8b0; --haint-deep: #a7d1c9; --haint-tint: #26332f; --water: #12211f;
+    --sweetgrass: #d8b264; --sweetgrass-tint: #33291b;
+    --brick: #d68264; --brick-tint: #3a251e; --line: #34423c;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+  :root[data-theme="light"] {
+    --oyster: #eef1ea; --oyster-dim: #e3e7dd; --card: #ffffff; --ink: #263029; --ink-soft: #4b5851;
+    --haint: #5f8f88; --haint-deep: #3f6963; --haint-tint: #e2ece9; --water: #d3e4e0;
+    --sweetgrass: #a97f2e; --sweetgrass-tint: #f2e8d4;
+    --brick: #a24e35; --brick-tint: #f3e2da; --line: #d7dbd0;
+    --shadow: 0 1px 2px rgba(38,48,41,.06), 0 8px 24px -12px rgba(38,48,41,.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--oyster); }
+  body {
+    margin: 0;
+    background: var(--oyster);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif {
+    font-family: "IowanFallback", "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 20px 96px; }
+
+  /* ---------- Header ---------- */
+  header.top {
+    background:
+      linear-gradient(180deg, var(--haint-tint) 0%, var(--oyster) 78%);
+    border-bottom: 1px solid var(--line);
+  }
+  header.top .wrap { padding-top: 56px; padding-bottom: 40px; }
+  .eyebrow {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--haint-deep);
+  }
+  h1.title {
+    font-family: "IowanFallback", "Iowan Old Style", Charter, Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(34px, 6vw, 52px);
+    letter-spacing: -0.01em;
+    margin-top: 10px;
+    color: var(--ink);
+  }
+  .title em { font-style: italic; color: var(--haint-deep); }
+  .dek {
+    margin-top: 14px;
+    max-width: 60ch;
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+  .header-facts {
+    margin-top: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+  }
+  .fact { display: flex; flex-direction: column; gap: 2px; }
+  .fact .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+  .fact .v { font-size: 15px; font-weight: 600; }
+  .fact .v.mono { font-weight: 500; font-size: 13.5px; }
+
+  .flights {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .flight-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 14px;
+    box-shadow: var(--shadow);
+  }
+  .flight-chip .fno { font-weight: 700; font-size: 13px; }
+  .flight-chip .froute { font-size: 12px; color: var(--ink-soft); }
+  .flight-chip .ftime { font-size: 12px; color: var(--haint-deep); font-weight: 600; margin-left: 4px; }
+
+  /* ---------- Roster ---------- */
+  section.roster { padding-top: 36px; }
+  .roster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .roster-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .roster-card .chip { margin-bottom: 8px; }
+  .roster-card .who { font-weight: 600; font-size: 14.5px; }
+  .roster-card .count { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .chip.h1 { background: color-mix(in srgb, var(--haint) 22%, transparent); color: var(--haint-deep); }
+  .chip.h2 { background: color-mix(in srgb, var(--sweetgrass) 24%, transparent); color: color-mix(in srgb, var(--sweetgrass) 78%, black); }
+  .chip.h3 { background: color-mix(in srgb, var(--brick) 20%, transparent); color: var(--brick); }
+  .chip.h4 { background: var(--oyster-dim); color: var(--ink-soft); border: 1px solid var(--line); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+  /* ---------- Day nav ---------- */
+  nav.daynav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--oyster) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.daynav .wrap { padding: 10px 20px; }
+  .daynav-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px 0;
+  }
+  .daynav-scroll::-webkit-scrollbar { display: none; }
+  .daynav a {
+    flex: none;
+    text-decoration: none;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .daynav a:hover, .daynav a:focus-visible { color: var(--ink); border-color: var(--haint); outline: none; }
+  .daynav a .d { color: var(--haint-deep); margin-right: 4px; }
+
+  /* ---------- Days ---------- */
+  section.days { padding-top: 44px; display: flex; flex-direction: column; gap: 20px; }
+  .day {
+    scroll-margin-top: 60px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .day-head .datewrap { display: flex; align-items: baseline; gap: 12px; }
+  .day-num {
+    font-family: "IowanFallback", Charter, Georgia, serif;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .day-title {
+    font-family: "IowanFallback", Charter, Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .day-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .blocks { padding: 6px 22px 22px; display: flex; flex-direction: column; }
+  .block {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+  }
+  .block:first-child { border-top: none; }
+  .block .when {
+    font-size: 11.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--haint-deep);
+    font-weight: 700;
+    padding-top: 2px;
+  }
+  .block .what .venue { font-weight: 600; font-size: 15px; }
+  .block .what .note { margin-top: 4px; color: var(--ink-soft); font-size: 14.5px; }
+  .block .meta {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+  .meta .m {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .meta .m b { color: var(--ink); font-weight: 600; }
+  .split {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 560px) { .split { grid-template-columns: 1fr; } }
+  .split .lane {
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .split .lane .lanehead { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .callout {
+    margin-top: 10px;
+    background: var(--sweetgrass-tint);
+    border-left: 3px solid var(--sweetgrass);
+    padding: 8px 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .callout b { color: var(--ink); }
+  .callout.warn { background: var(--brick-tint); border-left-color: var(--brick); }
+  .callout.anchor { background: var(--brick-tint); border-left-color: var(--brick); }
+  .callout.fly { background: var(--haint-tint); border-left-color: var(--haint); }
+
+  /* ---------- Section titles (shared) ---------- */
+  h2.sec-title {
+    font-family: "IowanFallback", Charter, Georgia, serif;
+    font-size: 26px;
+    font-weight: 500;
+  }
+  .sec-dek { margin-top: 6px; color: var(--ink-soft); font-size: 14.5px; max-width: 58ch; }
+
+  /* ---------- Map ---------- */
+  section.mapsec { padding-top: 52px; }
+  .map-frame {
+    margin-top: 18px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 14px;
+    overflow: hidden;
+  }
+  .map-frame svg { width: 100%; height: auto; display: block; }
+  .pin-dot { stroke: var(--card); stroke-width: 1.5; }
+  .pin-num { font-family: -apple-system, sans-serif; font-size: 9px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .pin-kid { fill: var(--sweetgrass); }
+  .pin-date { fill: var(--brick); }
+  .pin-home { fill: var(--haint-deep); stroke: var(--card); stroke-width: 2; }
+  .map-label { font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; fill: var(--ink-soft); text-transform: uppercase; }
+  .map-water { fill: var(--water); }
+  .map-land { fill: var(--oyster-dim); stroke: var(--line); stroke-width: 1; }
+  .map-key {
+    margin-top: 14px;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .map-key .mk { display: inline-flex; align-items: center; gap: 6px; }
+  .map-key .sw { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .map-key .sw.kid { background: var(--sweetgrass); }
+  .map-key .sw.date { background: var(--brick); }
+  .map-key .sw.home { background: var(--haint-deep); }
+
+  .legend-grid {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 4px 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .legend-item:hover .legend-name, .legend-item:focus-visible .legend-name { color: var(--haint-deep); }
+  .legend-item .legend-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .legend-item .legend-num.kid { background: var(--sweetgrass); }
+  .legend-item .legend-num.date { background: var(--brick); }
+  .legend-item .legend-name { flex: 1; }
+
+  /* ---------- Logistics ---------- */
+  section.logi { padding-top: 52px; }
+  .plate {
+    margin-top: 18px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 4px 0;
+  }
+  .plate-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--line);
+  }
+  .plate-row:first-child { border-top: none; }
+  @media (max-width: 560px) { .plate-row { grid-template-columns: 1fr; gap: 4px; } }
+  .plate-row .lk { font-weight: 700; font-size: 13.5px; color: var(--haint-deep); }
+  .plate-row .lv { font-size: 14.5px; color: var(--ink-soft); }
+  .plate-row .lv b { color: var(--ink); }
+
+  /* ---------- Restaurant guide ---------- */
+  section.eats { padding-top: 52px; }
+  .eat-groups { display: flex; flex-direction: column; gap: 30px; margin-top: 8px; }
+  .eat-group-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .eat-group-head h3 { font-family: "IowanFallback", Charter, Georgia, serif; font-size: 18px; font-weight: 500; }
+  .eat-group-head .n { color: var(--ink-soft); font-size: 13px; }
+  .eat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .eat-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .eat-card .name { font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 7px; }
+  .eat-card .name .pn {
+    font-size: 10px; font-weight: 700; color: #fff; width: 16px; height: 16px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+  }
+  .eat-card .name .pn.kid { background: var(--sweetgrass); }
+  .eat-card .name .pn.date { background: var(--brick); }
+  .eat-card .where { font-size: 12px; color: var(--haint-deep); margin-top: 2px; font-weight: 600; letter-spacing: 0.02em; }
+  .eat-card .why { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  a { color: var(--haint-deep); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--haint); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">Lowcountry &middot; August 2026 &middot; Seven Nights</div>
+    <h1 class="title">Charleston, <em>all of us</em></h1>
+    <p class="dek">A working itinerary for seventeen — three households and a generation of grandparents — based out of West Ashley. Built around the pirate cruise Mom's already booked and the send-off dinner Dan and I are cooking.</p>
+    <div class="header-facts">
+      <div class="fact"><span class="k">Dates</span><span class="v">Fri Aug 14 &ndash; Fri Aug 21</span></div>
+      <div class="fact"><span class="k">Base</span><span class="v mono">1558 S Pinebark Ln, West Ashley</span></div>
+      <div class="fact"><span class="k">Party</span><span class="v">12 adults &middot; 5 kids (4&ndash;7)</span></div>
+      <div class="fact"><span class="k">Radius</span><span class="v">&le;40 min, one exception</span></div>
+    </div>
+    <div class="flights">
+      <div class="flight-chip">
+        <span>&#9992;&#65039;</span>
+        <span>
+          <span class="fno mono">UA 2355</span>&nbsp;<span class="froute">EWR &rarr; CHS</span>
+          <span class="ftime mono">Fri Aug 14, 7:00a&ndash;9:13a</span>
+        </span>
+      </div>
+      <div class="flight-chip">
+        <span>&#9992;&#65039;</span>
+        <span>
+          <span class="fno mono">UA 674</span>&nbsp;<span class="froute">CHS &rarr; EWR</span>
+          <span class="ftime mono">Fri Aug 21, 11:10a&ndash;1:06p</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="roster">
+  <div class="wrap">
+    <div class="roster-grid">
+      <div class="roster-card">
+        <div class="chip h1"><span class="dot"></span>Household 1</div>
+        <div class="who">Your family</div>
+        <div class="count">4 adults &middot; kids 7 &amp; 4</div>
+      </div>
+      <div class="roster-card">
+        <div class="chip h2"><span class="dot"></span>Household 2</div>
+        <div class="who">Brother &amp; wife</div>
+        <div class="count">2 adults &middot; 2 kids, similar ages</div>
+      </div>
+      <div class="roster-card">
+        <div class="chip h3"><span class="dot"></span>Household 3</div>
+        <div class="who">Brother &amp; fianc&eacute;e</div>
+        <div class="count">2 adults &middot; her son, similar age</div>
+      </div>
+      <div class="roster-card">
+        <div class="chip h4"><span class="dot"></span>The elders</div>
+        <div class="who">Mom, stepdad, aunt &amp; uncle</div>
+        <div class="count">4 adults, comfortably mobile</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<nav class="daynav">
+  <div class="wrap">
+    <div class="daynav-scroll">
+      <a href="#d1"><span class="d">Fri 14</span>Arrival</a>
+      <a href="#d2"><span class="d">Sat 15</span>Pirates</a>
+      <a href="#d3"><span class="d">Sun 16</span>Downtown</a>
+      <a href="#d4"><span class="d">Mon 17</span>Folly Beach</a>
+      <a href="#d5"><span class="d">Tue 18</span>Easy day</a>
+      <a href="#d6"><span class="d">Wed 19</span>Horses</a>
+      <a href="#d7"><span class="d">Thu 20</span>Aviary + dinner</a>
+      <a href="#d8"><span class="d">Fri 21</span>Departure</a>
+    </div>
+  </div>
+</nav>
+
+<section class="days">
+  <div class="wrap">
+
+    <!-- DAY 1 -->
+    <article class="day" id="d1">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 1</span>
+          <span class="day-title">Friday, Aug 14 &mdash; Landing</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Everyone</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">Flight in &mdash; UA 2355</div>
+            <div class="note">Lands CHS 9:13a. By the time bags are collected and everyone's back to Pinebark Lane, it's already midday &mdash; no rush, nothing else on the books this morning.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Afternoon</div>
+          <div class="what">
+            <div class="venue">Unpack, provision the kitchen</div>
+            <div class="note">Seventeen people eat a lot &mdash; do the big grocery run today so the house is stocked before the week's momentum starts. A Publix or Harris Teeter off Sam Rittenberg is closest to Pinebark Lane.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">Low-key dinner, no reservation required</div>
+            <div class="note">Keep night one simple &mdash; order in, or grill at the house. Save the first real outing for tomorrow, once the littlest travelers have slept.</div>
+            <div class="meta"><span class="m"><b>Optional</b> stroll at Waterfront Park after bedtime routines, if anyone's still got legs</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 2 -->
+    <article class="day" id="d2">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 2</span>
+          <span class="day-title">Saturday, Aug 15 &mdash; Pirates of Charleston</span>
+        </div>
+        <div class="day-chips"><span class="chip h3">Anchor &middot; Mom's got it</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">Slow start on purpose</div>
+            <div class="note">Keep the morning unstructured &mdash; a backyard hour, a walk on the West Ashley Bikeway two minutes from the house. Everybody's saving energy for the boat.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Midday &ndash; PM</div>
+          <div class="what">
+            <div class="venue">Pirates of Charleston</div>
+            <div class="note">Already arranged &mdash; nothing to plan. Every kid is sworn in as crew aboard the <em>Black Ghost</em>: water cannons, a treasure hunt, maps to read, and a sword battle with Sneaky Pete. This evening is covered.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">Fleet Landing Restaurant &amp; Raw Bar</div>
+            <div class="note">Dockside, kid menu, and you're already near the marina after the cruise &mdash; nobody has to drive far with overtired kids.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 3 -->
+    <article class="day" id="d3">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 3</span>
+          <span class="day-title">Sunday, Aug 16 &mdash; Downtown &amp; the Fountain</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Everyone</span> <span class="chip h1">Adult evening optional</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">South Carolina Aquarium</div>
+            <div class="note">Book timed entry online for the full group in advance &mdash; weekends sell out. The Zucker Family Sea Turtle Recovery is the thing the kids will talk about at the finale dinner.</div>
+            <div class="meta"><span class="m mono">100 Aquarium Wharf</span><span class="m">Open <b>9&ndash;5</b>, last entry 3:30</span></div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Midday</div>
+          <div class="what">
+            <div class="venue">Waterfront Park &amp; the Pineapple Fountain</div>
+            <div class="note">A five-minute walk from the aquarium. Wading in the fountain is allowed and expected; there's a second splash fountain too. Bring a towel and a change of clothes for the little ones.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Afternoon</div>
+          <div class="what">
+            <div class="venue">Jeni's or King of Pops, then the Battery for whoever has legs left</div>
+            <div class="note">Everyone else heads back to Pinebark Lane for <b>pool time</b> and naps &mdash; a downtown morning is plenty for one day.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">First parents' night out</div>
+            <div class="note">With the grandparent generation on kid duty, this is a natural night for a couple or two to slip off. <b>Chez Nous</b> (tiny, candlelit, antebellum house) or <b>FIG</b> both reward an early reservation.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 4 -->
+    <article class="day" id="d4">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 4</span>
+          <span class="day-title">Monday, Aug 17 &mdash; Folly Beach</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Everyone</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning &ndash; Midday</div>
+          <div class="what">
+            <div class="venue">Folly Beach</div>
+            <div class="note">The closest real beach to Pinebark Lane, and easy for a group this size &mdash; wide sand, gentle surf. Claim a stretch early, bring shade for the littlest kids and the grandparents both.</div>
+            <div class="meta"><span class="m"><b>~20&ndash;25 min</b> via Folly Rd</span></div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Lunch</div>
+          <div class="what">
+            <div class="venue">Chico Feo or Loggerhead's</div>
+            <div class="note">Both are steps from the sand, casual enough for sandy feet and cranky four-year-olds.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Afternoon</div>
+          <div class="what">
+            <div class="venue">Retreat and rest</div>
+            <div class="note">A beach morning is a full day for small kids. Head back to the house for naps and <b>pool time</b> rather than stacking on a second outing.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 5 -->
+    <article class="day" id="d5">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 5</span>
+          <span class="day-title">Tuesday, Aug 18 &mdash; The Easy Day</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Kids close by</span> <span class="chip h1">Adults get a break</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning &ndash; Midday</div>
+          <div class="what">
+            <div class="venue">Children's Museum of the Lowcountry</div>
+            <div class="note">A pirate ship to captain, a working splash pad, an art studio and STEM lab &mdash; built for exactly the 4-to-7 range, and it's the rain plan if weather turns. Close enough that a rotating pair of adults can run it while everyone else actually rests.</div>
+            <div class="meta"><span class="m mono">25 Ann St</span><span class="m"><b>~20 min</b> from base</span></div>
+          </div>
+          <div class="callout warn"><b>Skip Splash Zone at James Island County Park</b> &mdash; it closes for the season Aug 9, before you arrive. The museum's splash pad is the free-play water fix instead.</div>
+        </div>
+        <div class="block">
+          <div class="when">Afternoon</div>
+          <div class="what">
+            <div class="venue">This is the built-in breather &mdash; and <b>pool time</b> back at the house</div>
+            <div class="note">With the kids covered nearby, this is the day for whoever needs it &mdash; a King Street wander, a quiet porch afternoon at Pinebark Lane, a spa hour. No one has to opt in to the group plan today.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">Second parents' night out, if anyone's up for it</div>
+            <div class="note"><b>Sorelle</b> for wood-fired Italian and a balcony over Broad Street, or <b>Husk</b> for heirloom Southern cooking. Everyone else eats easy at the house &mdash; see the delivery list below.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 6 -->
+    <article class="day" id="d6">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 6</span>
+          <span class="day-title">Wednesday, Aug 19 &mdash; Horses &amp; the Angel Oak</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Splits by age</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">Ashley River Road &mdash; Middleton Place &amp; Magnolia Plantation, side by side</div>
+            <div class="note">Both properties sit within a few minutes of each other, so the group splits without splitting the day.</div>
+            <div class="split">
+              <div class="lane">
+                <div class="lanehead">Riders, 8 and up</div>
+                Middleton Place Equestrian Center &mdash; guided trail ride along the Ashley River, about an hour, one rider to one horse.
+              </div>
+              <div class="lane">
+                <div class="lanehead">Everyone else</div>
+                Magnolia Plantation &amp; Gardens &mdash; petting zoo (goats, whitetail deer), gardens, and the nature tram, all on general admission.
+              </div>
+            </div>
+            <div class="meta"><span class="m"><b>~20&ndash;25 min</b> from base</span></div>
+            <div class="callout"><b>Age note:</b> Middleton's trail ride requires riders 8+ on their own horse &mdash; with kids at 7 and 4, this splits along age, not household. Reunite at Magnolia's Peacock Cafe for lunch on the grounds.</div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Afternoon</div>
+          <div class="what">
+            <div class="venue">The Angel Oak, on the way back &mdash; then <b>pool time</b></div>
+            <div class="note">Free, and a genuinely easy ten-minute stop &mdash; a 400-year-old live oak with limbs that touch the ground. Good for restless legs after a morning of standing around gardens. Straight back to Pinebark Lane after for the pool before dinner.</div>
+            <div class="meta"><span class="m mono">3688 Angel Oak Rd, Johns Island</span><span class="m">Free</span></div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">Low-key at the house</div>
+            <div class="note">Order in or grill. Save the energy &mdash; tomorrow's the big one.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 7 -->
+    <article class="day" id="d7">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 7</span>
+          <span class="day-title">Thursday, Aug 20 &mdash; The Aviary, then the Send-Off</span>
+        </div>
+        <div class="day-chips"><span class="chip h3">Anchor &middot; Dan &amp; I cook</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">Center for Birds of Prey, Awendaw</div>
+            <div class="note">The one exception to the 40-minute rule, and the only day it works: the Center is open Thursday through Saturday only, 10&ndash;4, with the guided tour and flight demonstration starting at 10:30. That puts it here, or nowhere &mdash; Saturday's already the pirate cruise. Worth the drive: a professional tour through the resident aviaries plus a live raptor flight.</div>
+            <div class="meta"><span class="m mono">4719 Hwy 17 N, Awendaw</span><span class="m"><b>~40&ndash;45 min</b> from base</span><span class="m">Thu&ndash;Sat, <b>10&ndash;4</b></span></div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Midday &ndash; Afternoon</div>
+          <div class="what">
+            <div class="venue">Back to the house &mdash; kitchen prep begins, kids hit the <b>pool</b></div>
+            <div class="note">Pick up the seafood on the way back through town &mdash; <b>CudaCo Seafood House</b> on Folly Rd or <b>Crosby's Fish &amp; Shrimp Co.</b> are both close to base and known for what's actually fresh that day. A low-country boil scales cleanly for seventeen and can be mostly prepped ahead, so the two of you aren't stuck at the stove all night &mdash; and the kids have somewhere to burn off the drive while you cook.</div>
+            <div class="meta"><span class="m mono">CudaCo &middot; 765 Folly Rd</span><span class="m mono">Crosby's &middot; 2223 Folly Rd, daily 6&ndash;6</span></div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="when">Evening</div>
+          <div class="what">
+            <div class="venue">The send-off dinner</div>
+            <div class="note">Everyone at one table on Pinebark Lane &mdash; the thank-you for the week, cooked by the two of you.</div>
+          </div>
+          <div class="callout anchor"><b>This is the one to protect.</b> Nothing else scheduled today past the aviary &mdash; leave the whole afternoon open so the kitchen isn't racing the clock.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- DAY 8 -->
+    <article class="day" id="d8">
+      <div class="day-head">
+        <div class="datewrap">
+          <span class="day-num serif">Day 8</span>
+          <span class="day-title">Friday, Aug 21 &mdash; Departure</span>
+        </div>
+        <div class="day-chips"><span class="chip h4">Everyone</span></div>
+      </div>
+      <div class="blocks">
+        <div class="block">
+          <div class="when">Morning</div>
+          <div class="what">
+            <div class="venue">Pack, quick breakfast, out the door</div>
+            <div class="note">Flight's at 11:10a &mdash; for a group this size, plan to leave Pinebark Lane by <b>9:00a</b> to clear check-in, security, and a stroller-and-carseat-heavy TSA line comfortably. Pack the night before so the morning is just breakfast and the door, not a scramble.</div>
+          </div>
+          <div class="callout fly"><b>UA 674, CHS &rarr; EWR</b> &mdash; departs 11:10a, lands 1:06p.</div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section class="mapsec">
+  <div class="wrap">
+    <h2 class="sec-title">Where it all is</h2>
+    <p class="sec-dek">Every stop from the eating list below, plotted relative to Pinebark Lane. Gold pins are kid-friendly or casual; brick pins are the date-night spots. Tap a name in the list to open it in Maps.</p>
+
+    <div class="map-frame">
+      <svg viewBox="0 0 760 480" role="img" aria-label="Schematic map of Charleston-area food locations relative to West Ashley">
+        <rect class="map-water" x="0" y="0" width="760" height="480" />
+
+        <!-- North Charleston -->
+        <path class="map-land" d="M195,10 C230,-5 320,0 380,20 C420,35 435,70 415,105 C390,135 320,145 260,135 C210,127 175,100 175,60 C175,35 180,20 195,10 Z" />
+        <!-- West Ashley -->
+        <path class="map-land" d="M55,150 C90,130 190,130 235,155 C270,175 275,225 260,270 C245,310 190,335 130,325 C80,317 45,280 40,235 C37,200 30,170 55,150 Z" />
+        <!-- Downtown peninsula -->
+        <path class="map-land" d="M300,75 C330,60 375,65 395,90 C410,110 405,150 400,190 C395,235 400,270 380,295 C365,314 340,315 328,295 C312,268 305,225 302,180 C299,140 288,95 300,75 Z" />
+        <!-- James Island -->
+        <path class="map-land" d="M175,300 C220,285 300,290 335,320 C355,340 350,375 320,392 C280,412 210,408 180,382 C158,363 155,325 175,300 Z" />
+        <!-- Folly Beach -->
+        <path class="map-land" d="M225,415 C270,402 340,405 400,420 C420,425 420,438 398,443 C340,455 265,450 228,438 C215,433 213,419 225,415 Z" />
+
+        <!-- Awendaw off-map arrow -->
+        <line x1="330" y1="18" x2="330" y2="-2" stroke="var(--haint-deep)" stroke-width="1.5" stroke-dasharray="3,3" />
+        <text class="map-label" x="336" y="14" font-size="10">Awendaw, ~45 min &uarr;</text>
+
+        <!-- Compass -->
+        <text class="map-label" x="712" y="24" font-size="12">N &uarr;</text>
+
+        <!-- Neighborhood labels -->
+        <text class="map-label" x="255" y="45">North Chas.</text>
+        <text class="map-label" x="62" y="180">West Ashley</text>
+        <text class="map-label" x="410" y="150">Downtown</text>
+        <text class="map-label" x="205" y="352">James Island</text>
+        <text class="map-label" x="255" y="470">Folly Beach</text>
+
+        <!-- Home marker -->
+        <circle class="pin-home" cx="150" cy="245" r="8" />
+        <text class="pin-num" x="150" y="248">&#8962;</text>
+        <text class="map-label" x="120" y="270" font-size="10">Pinebark Ln</text>
+
+        <!-- West Ashley pins (1-3) -->
+        <circle class="pin-dot pin-kid" cx="195" cy="200" r="8" /><text class="pin-num" x="195" y="203">1</text>
+        <circle class="pin-dot pin-kid" cx="120" cy="285" r="8" /><text class="pin-num" x="120" y="288">2</text>
+        <circle class="pin-dot pin-kid" cx="215" cy="240" r="8" /><text class="pin-num" x="215" y="243">3</text>
+
+        <!-- Downtown pins (4-15), clustered -->
+        <circle class="pin-dot pin-kid" cx="360" cy="255" r="8" /><text class="pin-num" x="360" y="258">4</text>
+        <circle class="pin-dot pin-kid" cx="335" cy="105" r="8" /><text class="pin-num" x="335" y="108">5</text>
+        <circle class="pin-dot pin-date" cx="345" cy="185" r="8" /><text class="pin-num" x="345" y="188">6</text>
+        <circle class="pin-dot pin-date" cx="368" cy="215" r="8" /><text class="pin-num" x="368" y="218">7</text>
+        <circle class="pin-dot pin-date" cx="330" cy="165" r="8" /><text class="pin-num" x="330" y="168">8</text>
+        <circle class="pin-dot pin-date" cx="352" cy="150" r="8" /><text class="pin-num" x="352" y="153">9</text>
+        <circle class="pin-dot pin-date" cx="358" cy="235" r="8" /><text class="pin-num" x="358" y="238">10</text>
+        <circle class="pin-dot pin-kid" cx="320" cy="130" r="8" /><text class="pin-num" x="320" y="133">11</text>
+        <circle class="pin-dot pin-kid" cx="372" cy="195" r="9" /><text class="pin-num" x="372" y="198">12</text>
+        <circle class="pin-dot pin-kid" cx="310" cy="115" r="9" /><text class="pin-num" x="310" y="118">13</text>
+        <circle class="pin-dot pin-kid" cx="300" cy="95" r="9" /><text class="pin-num" x="300" y="98">14</text>
+        <circle class="pin-dot pin-kid" cx="385" cy="270" r="9" /><text class="pin-num" x="385" y="273">15</text>
+
+        <!-- James Island pins (16-18) -->
+        <circle class="pin-dot pin-kid" cx="260" cy="330" r="8" /><text class="pin-num" x="260" y="333">16</text>
+        <circle class="pin-dot pin-kid" cx="300" cy="360" r="8" /><text class="pin-num" x="300" y="363">17</text>
+        <circle class="pin-dot pin-kid" cx="222" cy="345" r="8" /><text class="pin-num" x="222" y="348">18</text>
+
+        <!-- Folly Beach pin (19) -->
+        <circle class="pin-dot pin-kid" cx="320" cy="428" r="8" /><text class="pin-num" x="320" y="431">19</text>
+
+        <!-- North Charleston pins (20-21) -->
+        <circle class="pin-dot pin-kid" cx="290" cy="65" r="8" /><text class="pin-num" x="290" y="68">20</text>
+        <circle class="pin-dot pin-kid" cx="335" cy="85" r="8" /><text class="pin-num" x="335" y="88">21</text>
+      </svg>
+      <div class="map-key">
+        <span class="mk"><span class="sw home"></span>Pinebark Lane</span>
+        <span class="mk"><span class="sw kid"></span>Kid-friendly / casual / treats</span>
+        <span class="mk"><span class="sw date"></span>Date night</span>
+      </div>
+    </div>
+
+    <div class="legend-grid">
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Mellow+Mushroom+West+Ashley+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">1</span><span class="legend-name">Mellow Mushroom</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Famulari%27s+Pizzeria+West+Ashley+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">2</span><span class="legend-name">Famulari's Pizzeria</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Paisano%27s+Pizza+Grill+West+Ashley+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">3</span><span class="legend-name">Paisano's (delivery)</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Fleet+Landing+Restaurant+186+Concord+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">4</span><span class="legend-name">Fleet Landing</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Taco+Boy+217+Huger+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">5</span><span class="legend-name">Taco Boy</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Chez+Nous+6+Payne+Ct+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num date">6</span><span class="legend-name">Chez Nous</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Sorelle+88+Broad+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num date">7</span><span class="legend-name">Sorelle</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=FIG+232+Meeting+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num date">8</span><span class="legend-name">FIG</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Charleston+Grill+205+Meeting+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num date">9</span><span class="legend-name">Charleston Grill</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Husk+76+Queen+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num date">10</span><span class="legend-name">Husk</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Jeni%27s+Splendid+Ice+Creams+King+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">11</span><span class="legend-name">Jeni's</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Kaminsky%27s+Dessert+Cafe+Market+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">12</span><span class="legend-name">Kaminsky's</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Christophe+Artisan+Chocolatier+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">13</span><span class="legend-name">Christophe Chocolatier</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Sugar+Bakeshop+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">14</span><span class="legend-name">Sugar Bakeshop</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Carmella%27s+Cafe+and+Dessert+Bar+East+Bay+St+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">15</span><span class="legend-name">Carmella's</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Garage+75+Folly+Rd+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">16</span><span class="legend-name">Garage 75</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=CudaCo+Seafood+House+765+Folly+Rd+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">17</span><span class="legend-name">CudaCo Seafood</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Crosby%27s+Fish+and+Shrimp+2223+Folly+Rd+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">18</span><span class="legend-name">Crosby's Fish &amp; Shrimp</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Chico+Feo+122+E+Ashley+Ave+Folly+Beach+SC" target="_blank" rel="noopener"><span class="legend-num kid">19</span><span class="legend-name">Chico Feo</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=EVO+Pizzeria+1075+E+Montague+Ave+North+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">20</span><span class="legend-name">EVO Pizzeria</span></a>
+      <a class="legend-item" href="https://www.google.com/maps/search/?api=1&query=Holy+City+Brewing+North+Charleston+SC" target="_blank" rel="noopener"><span class="legend-num kid">21</span><span class="legend-name">Holy City Brewing</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="eats">
+  <div class="wrap">
+    <h2 class="sec-title">The eating list</h2>
+    <p class="sec-dek">Beyond what's already slotted into the days above &mdash; for the nights left open, or for swapping something in. Numbers match the map.</p>
+
+    <div class="eat-groups">
+      <div>
+        <div class="eat-group-head"><h3>Kid-friendly, full group</h3></div>
+        <div class="eat-grid">
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">5</span>Taco Boy</div>
+            <div class="where">Huger St, downtown</div>
+            <div class="why">A real kids' menu &mdash; tacos, burritos, quesadillas.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">16</span>Garage 75</div>
+            <div class="where">James Island</div>
+            <div class="why">Arcade games and big screens buy you an extra twenty minutes of adult conversation. Steaks and burgers, not just kid food.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">21</span>Holy City Brewing</div>
+            <div class="where">North Charleston</div>
+            <div class="why">A genuine play area &mdash; basketball net, full-size Jenga &mdash; alongside a real beer list for the adults.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">20</span>EVO Pizzeria</div>
+            <div class="where">North Charleston (Park Circle)</div>
+            <div class="why">Voted #1 pizza in South Carolina. A little further out, worth a dedicated pizza night rather than a drive-by.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">4</span>Fleet Landing</div>
+            <div class="where">Downtown waterfront</div>
+            <div class="why">Already the Day 2 pick after the pirate cruise &mdash; dockside seafood with a real kids' menu.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="eat-group-head"><h3>Close to Pinebark Lane, dine-in</h3></div>
+        <div class="eat-grid">
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">1</span>Mellow Mushroom</div>
+            <div class="where">West Ashley</div>
+            <div class="why">The no-debate option when everyone's tired and nobody wants to drive.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">2</span>Famulari's Pizzeria</div>
+            <div class="where">West Ashley</div>
+            <div class="why">Old-school, family-run, minutes from base.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="eat-group-head"><h3>Delivery to Pinebark Lane</h3><span class="n">no one has to drive</span></div>
+        <div class="eat-grid">
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">2</span>Famulari's Pizzeria</div>
+            <div class="where">West Ashley &mdash; delivers</div>
+            <div class="why">Same kitchen as the dine-in option above; easiest call for a night nobody wants to leave the house.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">3</span>Paisano's Pizza Grill</div>
+            <div class="where">West Ashley &mdash; Uber Eats</div>
+            <div class="why">Pizza, wings, and salads, ordered from the couch. Good for a Tuesday-easy-day dinner.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name">Pizza Hut / Papa John's</div>
+            <div class="where">Ashley River Rd, West Ashley</div>
+            <div class="why">Not exciting, but reliable and fast when the local kitchens are slammed &mdash; both deliver straight to Pinebark Lane.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="eat-group-head"><h3>Date night, adults only</h3></div>
+        <div class="eat-grid">
+          <div class="eat-card">
+            <div class="name"><span class="pn date">6</span>Chez Nous</div>
+            <div class="where">Downtown</div>
+            <div class="why">Tiny, candlelit, set in an antebellum house &mdash; the most intimate option on this list.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn date">7</span>Sorelle</div>
+            <div class="where">Broad St, downtown</div>
+            <div class="why">Wood-fired Italian; ask for the Romeo &amp; Juliet balcony over Broad Street.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn date">8</span>FIG</div>
+            <div class="where">Meeting St, downtown</div>
+            <div class="why">A neighborhood restaurant in the best sense &mdash; quietly excellent, not trying to be an event.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn date">9</span>Charleston Grill</div>
+            <div class="where">French Quarter</div>
+            <div class="why">Live jazz, candlelight, a seafood-forward menu built for a slow night.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn date">10</span>Husk</div>
+            <div class="where">Queen St, downtown</div>
+            <div class="why">Heirloom Southern ingredients, and a menu that changes with what's actually in season.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="eat-group-head"><h3>Sweets downtown</h3></div>
+        <div class="eat-grid">
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">11</span>Jeni's Splendid Ice Creams</div>
+            <div class="where">King St</div>
+            <div class="why">A kid-size vanilla honey is the move &mdash; not too sweet, genuinely good.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name">King of Pops</div>
+            <div class="where">Roaming cart, downtown &amp; parks</div>
+            <div class="why">Chocolate sea salt, banana puddin' &mdash; catch the cart wherever the day already has you.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">12</span>Kaminsky's Dessert Caf&eacute;</div>
+            <div class="where">Market St</div>
+            <div class="why">Sundaes and milkshakes for the kids, cocktails and cake for everyone else at the same table.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">13</span>Christophe Artisan Chocolatier</div>
+            <div class="where">Downtown</div>
+            <div class="why">Hand-painted chocolates and an almond croissant worth the detour &mdash; a grown-up sweet stop while the kids get their pops.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">14</span>Sugar Bakeshop</div>
+            <div class="where">Downtown</div>
+            <div class="why">Small-batch cupcakes since 2007 &mdash; vanilla blueberry, lime curd coconut. A short stop, not a whole outing.</div>
+          </div>
+          <div class="eat-card">
+            <div class="name"><span class="pn kid">15</span>Carmella's Cafe &amp; Dessert Bar</div>
+            <div class="where">East Bay St</div>
+            <div class="why">Miniature cakes in a pale-pink building &mdash; the key lime tart is the one to order.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="logi">
+  <div class="wrap">
+    <h2 class="sec-title">Need to know</h2>
+    <p class="sec-dek">The handful of constraints that actually shaped the order above.</p>
+    <div class="plate">
+      <div class="plate-row">
+        <div class="lk">Table for 17</div>
+        <div class="lv">Most Charleston restaurants cap online booking at 8&ndash;10 &mdash; call ahead for anything with a reservation, especially the date-night spots on a weekend.</div>
+      </div>
+      <div class="plate-row">
+        <div class="lk">The aviary's hours</div>
+        <div class="lv">Thursday through Saturday only, 10&ndash;4. That's the whole reason it lands on Day 7 &mdash; it's the only open day left once the pirate cruise claims Saturday.</div>
+      </div>
+      <div class="plate-row">
+        <div class="lk">Splash Zone is closed</div>
+        <div class="lv">James Island County Park's waterpark ends its season Aug 9, before you land. Don't chase it &mdash; the museum splash pad and the Pineapple Fountain cover the same need.</div>
+      </div>
+      <div class="plate-row">
+        <div class="lk">Magnolia's boat tour</div>
+        <div class="lv">The wildlife boat tour was listed as closed for the season as of this research &mdash; treat the gardens, petting zoo, and tram as the reliable plan and treat the boat as a bonus if it's back.</div>
+      </div>
+      <div class="plate-row">
+        <div class="lk">The 40-minute radius</div>
+        <div class="lv">Folly Beach, downtown, Ashley River Road, and West Ashley itself all sit inside it. Awendaw (the aviary) is the one deliberate exception.</div>
+      </div>
+      <div class="plate-row">
+        <div class="lk">Pool time</div>
+        <div class="lv">Built into the afternoon after every busy morning outing &mdash; Days 3, 4, 6, and 7 all route back to Pinebark Lane rather than stacking a second excursion.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>Built from current listings &amp; hours as of late July 2026 &mdash; confirm anything with a hard deadline (aquarium tickets, dinner reservations) before you go.</span>
+    <span>Charleston, all of us &middot; Aug 2026</span>
+  </footer>
+</div>
+
+</body></html>

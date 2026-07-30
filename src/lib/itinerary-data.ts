@@ -1107,6 +1107,477 @@ export function getAllLocations(): (Location & { itemId: string; itemType: strin
       });
     }
   });
-  
+
   return locations;
+}
+
+// ============================================================================
+// CHARLESTON 2026 — "Charleston, all of us"
+// Aug 14-21, 2026. Base: 1558 S Pinebark Ln, West Ashley. 12 adults, 5 kids.
+// Source: .planning/charleston-2026-itinerary.html (ingested 2026-07-29)
+// ----------------------------------------------------------------------------
+// Added alongside the Sankofa arrays above, NOT merged into them. Everything
+// above this line is untouched, so the Sankofa trip renders exactly the objects
+// it rendered before. Trip selection happens in getGuideSet() at the bottom.
+//
+// `location` is omitted where the venue's coordinates could not be verified —
+// a missing pin is honest; a pin in the wrong neighbourhood is not. The address
+// still travels in the description. See .planning/CHARLESTON-2026-AUDIT.md §7.
+// ============================================================================
+
+// Guide - Charleston attractions (the things the days are built around)
+export const CHARLESTON_HIGHLIGHTS: GuideItem[] = [
+  {
+    id: 'chs-highlight-aquarium',
+    name: 'South Carolina Aquarium',
+    category: 'attraction',
+    description: 'Downtown waterfront. Open 9-5, last entry 3:30. The Zucker Family Sea Turtle Recovery is the thing the kids will still be talking about at the send-off dinner. Book timed entry for all 17 in advance -- weekends sell out.',
+    location: { lat: 32.7910697, lng: -79.9254807, name: 'South Carolina Aquarium', address: '100 Aquarium Wharf, Charleston, SC' },
+    link: 'https://scaquarium.org/',
+    mapLink: 'https://maps.google.com/?q=South+Carolina+Aquarium+100+Aquarium+Wharf+Charleston+SC'
+  },
+  {
+    id: 'chs-highlight-childrens-museum',
+    name: "Children's Museum of the Lowcountry",
+    category: 'attraction',
+    description: 'Downtown, ~20 min from base. A pirate ship to captain, a working splash pad, an art studio and a STEM lab -- built for exactly the 4-to-7 range. Doubles as the rain plan.',
+    location: { lat: 32.7891769, lng: -79.9375054, name: "Children's Museum of the Lowcountry", address: '25 Ann St, Charleston, SC' },
+    link: 'https://explorecml.org/',
+    mapLink: 'https://maps.google.com/?q=Childrens+Museum+of+the+Lowcountry+25+Ann+St+Charleston+SC'
+  },
+  {
+    id: 'chs-highlight-birds-of-prey',
+    name: 'Center for Birds of Prey',
+    category: 'attraction',
+    description: 'Awendaw, ~40-45 min -- the one deliberate exception to the 40-minute radius. THU-SAT ONLY, 10-4, with the guided tour and flight demonstration at 10:30. That is why it lands on Thursday: it is here or nowhere, since Saturday is the pirate cruise. 4719 Hwy 17 N, Awendaw.',
+    link: 'https://thecenterforbirdsofprey.org/',
+    mapLink: 'https://maps.google.com/?q=Center+for+Birds+of+Prey+4719+Highway+17+Awendaw+SC'
+  },
+  {
+    id: 'chs-highlight-middleton',
+    name: 'Middleton Place',
+    category: 'attraction',
+    description: 'Ashley River Road, ~20-25 min from base. The Equestrian Center runs a guided trail ride along the Ashley River, about an hour, one rider to one horse -- riders 8 and up only. 4300 Ashley River Rd.',
+    link: 'https://www.middletonplace.org/',
+    mapLink: 'https://maps.google.com/?q=Middleton+Place+4300+Ashley+River+Road+Charleston+SC'
+  },
+  {
+    id: 'chs-highlight-magnolia',
+    name: 'Magnolia Plantation & Gardens',
+    category: 'attraction',
+    description: 'Ashley River Road, minutes from Middleton. Petting zoo (goats, whitetail deer), gardens and the nature tram, all on general admission. Peacock Cafe on the grounds is where the age-split reunites for lunch. The wildlife boat tour was listed closed for the season -- bonus if it is back.',
+    location: { lat: 32.8746113, lng: -80.0832425, name: 'Magnolia Plantation & Gardens', address: '3550 Ashley River Rd, Charleston, SC' },
+    link: 'https://www.magnoliaplantation.com/',
+    mapLink: 'https://maps.google.com/?q=Magnolia+Plantation+and+Gardens+Charleston+SC'
+  },
+  {
+    id: 'chs-highlight-pirates',
+    name: 'Pirates of Charleston -- the Black Ghost',
+    category: 'attraction',
+    description: 'ANCHOR: already booked by Mom, nothing to plan. Every kid is sworn in as crew -- water cannons, a treasure hunt, maps to read, and a sword battle with Sneaky Pete. Confirm the departure dock with Mom; the source names no address.',
+    link: 'https://www.piratesofcharleston.com/',
+    mapLink: 'https://maps.google.com/?q=Pirates+of+Charleston+SC'
+  }
+];
+
+// Guide - Charleston out of doors (free, easy, close)
+export const CHARLESTON_OUTDOORS: GuideItem[] = [
+  {
+    id: 'chs-out-folly',
+    name: 'Folly Beach',
+    category: 'beach',
+    description: 'The closest real beach to Pinebark Lane, ~20-25 min via Folly Rd, and easy for a group this size -- wide sand, gentle surf. Claim a stretch early; bring shade for the littlest kids and the grandparents both.',
+    location: { lat: 32.6549715, lng: -79.9396423, name: 'Folly Beach', address: 'Folly Beach, SC' },
+    mapLink: 'https://maps.google.com/?q=Folly+Beach+SC'
+  },
+  {
+    id: 'chs-out-angel-oak',
+    name: 'The Angel Oak',
+    category: 'attraction',
+    description: 'Johns Island. Free, and a genuinely easy ten-minute stop -- a 400-year-old live oak with limbs that touch the ground. Good for restless legs after a morning of standing around gardens.',
+    location: { lat: 32.7170450, lng: -80.0804039, name: 'The Angel Oak', address: '3688 Angel Oak Rd, Johns Island, SC' },
+    mapLink: 'https://maps.google.com/?q=Angel+Oak+3688+Angel+Oak+Rd+Johns+Island+SC'
+  },
+  {
+    id: 'chs-out-waterfront-park',
+    name: 'Waterfront Park & the Pineapple Fountain',
+    category: 'attraction',
+    description: 'Downtown, a five-minute walk from the aquarium. Wading in the fountain is allowed and expected, and there is a second splash fountain too. Bring a towel and a change of clothes for the little ones.',
+    location: { lat: 32.7788542, lng: -79.9256069, name: 'Waterfront Park', address: 'Vendue Range, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Waterfront+Park+Charleston+SC'
+  },
+  {
+    id: 'chs-out-battery',
+    name: 'The Battery & White Point Garden',
+    category: 'attraction',
+    description: 'The south end of the peninsula -- for whoever still has legs after the fountain.',
+    location: { lat: 32.7698140, lng: -79.9303481, name: 'White Point Garden', address: 'White Point Garden, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=White+Point+Garden+Charleston+SC'
+  },
+  {
+    id: 'chs-out-bikeway',
+    name: 'West Ashley Bikeway',
+    category: 'activity',
+    description: 'Two minutes from the house -- the unstructured-morning option when nobody wants to get in a car.',
+    location: { lat: 32.7902360, lng: -80.0100880, name: 'West Ashley Bikeway', address: 'West Ashley Bikeway, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=West+Ashley+Bikeway+Charleston+SC'
+  }
+];
+
+// Guide - Charleston essentials: the constraints that actually shaped the week
+export const CHARLESTON_ESSENTIALS: GuideItem[] = [
+  {
+    id: 'chs-ess-flights',
+    name: 'Flights -- UA 2355 out, UA 674 back',
+    category: 'transport',
+    description: 'Out: UA 2355, EWR to CHS, Fri Aug 14, 7:00a-9:13a. Back: UA 674, CHS to EWR, Fri Aug 21, 11:10a-1:06p. For a group this size, leave Pinebark Lane by 9:00a on departure day to clear a stroller-and-carseat-heavy TSA line comfortably.',
+  },
+  {
+    id: 'chs-ess-table-for-17',
+    name: 'Table for 17',
+    category: 'essential',
+    description: 'Most Charleston restaurants cap online booking at 8-10. Call ahead for anything with a reservation, especially the date-night spots on a weekend.',
+  },
+  {
+    id: 'chs-ess-aviary-hours',
+    name: "The aviary's hours",
+    category: 'essential',
+    description: 'Center for Birds of Prey is open Thursday through Saturday only, 10-4. That is the whole reason it lands on Day 7 -- it is the only open day left once the pirate cruise claims Saturday.',
+  },
+  {
+    id: 'chs-ess-splash-zone',
+    name: 'Splash Zone is closed',
+    category: 'essential',
+    description: "James Island County Park's waterpark ends its season Aug 9, before you land. Do not chase it -- the museum splash pad and the Pineapple Fountain cover the same need.",
+  },
+  {
+    id: 'chs-ess-magnolia-boat',
+    name: "Magnolia's boat tour",
+    category: 'essential',
+    description: 'The wildlife boat tour was listed as closed for the season as of this research. Treat the gardens, petting zoo and tram as the reliable plan, and the boat as a bonus if it is back.',
+  },
+  {
+    id: 'chs-ess-radius',
+    name: 'The 40-minute radius',
+    category: 'essential',
+    description: 'Folly Beach, downtown, Ashley River Road and West Ashley itself all sit inside it. Awendaw (the aviary) is the one deliberate exception.',
+  },
+  {
+    id: 'chs-ess-pool-time',
+    name: 'Pool time',
+    category: 'essential',
+    description: 'Built into the afternoon after every busy morning outing -- Days 3, 4, 6 and 7 all route back to Pinebark Lane rather than stacking a second excursion.',
+  },
+  {
+    id: 'chs-ess-groceries',
+    name: 'Provisioning -- Publix on Sam Rittenberg',
+    category: 'essential',
+    description: 'Seventeen people eat a lot. Do the big grocery run on arrival day so the house is stocked before the week gets its momentum. Publix or Harris Teeter off Sam Rittenberg is closest to Pinebark Lane.',
+    location: { lat: 32.8146548, lng: -79.9952910, name: 'Publix -- Sam Rittenberg', address: 'Sam Rittenberg Blvd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Publix+Sam+Rittenberg+Blvd+Charleston+SC'
+  }
+];
+
+// Guide - Where to Eat, Charleston. The numbered-pin eating list from the
+// source, grouped exactly as it groups them. Pin numbers preserved so the
+// printed itinerary and the app agree.
+export const CHARLESTON_EATS: GuideItem[] = [
+  // --- Kid-friendly, full group -------------------------------------------
+  {
+    id: 'chs-eat-fleet-landing',
+    name: 'Fleet Landing Restaurant & Raw Bar',
+    category: 'restaurant',
+    description: 'Pin 4. Kid-friendly, full group. Downtown waterfront. Dockside seafood with a real kids’ menu -- and already the Day 2 pick after the pirate cruise, so nobody drives far with overtired kids.',
+    location: { lat: 32.7803578, lng: -79.9249765, name: 'Fleet Landing -- 186 Concord St', address: '186 Concord St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Fleet+Landing+Restaurant+186+Concord+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-taco-boy',
+    name: 'Taco Boy',
+    category: 'restaurant',
+    description: 'Pin 5. Kid-friendly, full group. Huger St, downtown. A real kids’ menu -- tacos, burritos, quesadillas.',
+    location: { lat: 32.8032038, lng: -79.9413841, name: 'Taco Boy -- 217 Huger St', address: '217 Huger St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Taco+Boy+217+Huger+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-garage-75',
+    name: 'Garage 75',
+    category: 'restaurant',
+    description: 'Pin 16. Kid-friendly, full group. James Island. Arcade games and big screens buy you an extra twenty minutes of adult conversation. Steaks and burgers, not just kid food.',
+    location: { lat: 32.7772250, lng: -79.9733500, name: 'Garage 75 -- 75 Folly Rd', address: '75 Folly Rd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Garage+75+Folly+Rd+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-holy-city',
+    name: 'Holy City Brewing',
+    category: 'restaurant',
+    description: 'Pin 21. Kid-friendly, full group. North Charleston. A genuine play area -- basketball net, full-size Jenga -- alongside a real beer list for the adults.',
+    location: { lat: 32.8718762, lng: -79.9785144, name: 'Holy City Brewing -- 4155 Dorchester Rd', address: '4155 Dorchester Rd, North Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Holy+City+Brewing+North+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-evo',
+    name: 'EVO Pizzeria',
+    category: 'restaurant',
+    description: 'Pin 20. Kid-friendly, full group. Park Circle, North Charleston. Voted #1 pizza in South Carolina. A little further out -- worth a dedicated pizza night rather than a drive-by.',
+    location: { lat: 32.8813957, lng: -79.9769401, name: 'EVO Pizzeria -- 1075 E Montague Ave', address: '1075 E Montague Ave, North Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=EVO+Pizzeria+1075+E+Montague+Ave+North+Charleston+SC'
+  },
+  // --- Close to Pinebark Lane, dine-in ------------------------------------
+  {
+    id: 'chs-eat-mellow-mushroom',
+    name: 'Mellow Mushroom',
+    category: 'restaurant',
+    description: 'Pin 1. Close to base, dine-in. West Ashley. The no-debate option when everyone is tired and nobody wants to drive.',
+    location: { lat: 32.7825454, lng: -79.9863552, name: 'Mellow Mushroom -- 19 Magnolia Rd', address: '19 Magnolia Rd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Mellow+Mushroom+19+Magnolia+Rd+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-famularis',
+    name: "Famulari's Pizzeria",
+    category: 'restaurant',
+    description: 'Pin 2. Close to base, dine-in AND delivers. West Ashley. Old-school, family-run, minutes from base -- and the easiest call for a night nobody wants to leave the house.',
+    location: { lat: 32.8269348, lng: -80.0392770, name: "Famulari's Pizzeria -- 1704 Ashley River Rd", address: '1704 Ashley River Rd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Famularis+Pizzeria+West+Ashley+Charleston+SC'
+  },
+  // --- Delivery to Pinebark Lane ------------------------------------------
+  {
+    id: 'chs-eat-paisanos',
+    name: "Paisano's Pizza Grill",
+    category: 'restaurant',
+    description: 'Pin 3. Delivery to the house, via Uber Eats. West Ashley. Pizza, wings and salads ordered from the couch -- good for a Tuesday-easy-day dinner.',
+    mapLink: 'https://maps.google.com/?q=Paisanos+Pizza+Grill+West+Ashley+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-chain-pizza',
+    name: "Pizza Hut / Papa John's",
+    category: 'restaurant',
+    description: 'Delivery to the house. Ashley River Rd, West Ashley. Not exciting, but reliable and fast when the local kitchens are slammed -- both deliver straight to Pinebark Lane.',
+    mapLink: 'https://maps.google.com/?q=Pizza+Hut+Ashley+River+Rd+Charleston+SC'
+  },
+  // --- Date night, adults only --------------------------------------------
+  {
+    id: 'chs-eat-chez-nous',
+    name: 'Chez Nous',
+    category: 'restaurant',
+    description: 'Pin 6. Date night, adults only. Downtown. Tiny, candlelit, set in an antebellum house -- the most intimate option on this list. Reserve early.',
+    location: { lat: 32.7917393, lng: -79.9432121, name: 'Chez Nous -- 6 Payne Ct', address: '6 Payne Ct, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Chez+Nous+6+Payne+Ct+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-sorelle',
+    name: 'Sorelle',
+    category: 'restaurant',
+    description: 'Pin 7. Date night, adults only. Broad St, downtown. Wood-fired Italian; ask for the Romeo & Juliet balcony over Broad Street.',
+    location: { lat: 32.7765281, lng: -79.9317118, name: 'Sorelle -- 88 Broad St', address: '88 Broad St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Sorelle+88+Broad+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-fig',
+    name: 'FIG',
+    category: 'restaurant',
+    description: 'Pin 8. Date night, adults only. Meeting St, downtown. A neighbourhood restaurant in the best sense -- quietly excellent, not trying to be an event.',
+    location: { lat: 32.7824112, lng: -79.9316170, name: 'FIG -- 232 Meeting St', address: '232 Meeting St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=FIG+232+Meeting+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-charleston-grill',
+    name: 'Charleston Grill',
+    category: 'restaurant',
+    description: 'Pin 9. Date night, adults only. French Quarter. Live jazz, candlelight, a seafood-forward menu built for a slow night.',
+    location: { lat: 32.7812597, lng: -79.9329796, name: 'Charleston Grill -- 205 Meeting St', address: '205 Meeting St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Charleston+Grill+205+Meeting+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-husk',
+    name: 'Husk',
+    category: 'restaurant',
+    description: 'Pin 10. Date night, adults only. Queen St, downtown. Heirloom Southern ingredients, and a menu that changes with what is actually in season.',
+    location: { lat: 32.7780172, lng: -79.9321415, name: 'Husk -- 76 Queen St', address: '76 Queen St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Husk+76+Queen+St+Charleston+SC'
+  },
+  // --- Sweets downtown ----------------------------------------------------
+  {
+    id: 'chs-eat-jenis',
+    name: "Jeni's Splendid Ice Creams",
+    category: 'restaurant',
+    description: 'Pin 11. Sweets. King St. A kid-size vanilla honey is the move -- not too sweet, genuinely good.',
+    location: { lat: 32.7900770, lng: -79.9393301, name: "Jeni's -- King St", address: 'King St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Jenis+Splendid+Ice+Creams+King+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-king-of-pops',
+    name: 'King of Pops',
+    category: 'restaurant',
+    description: 'Sweets. A roaming cart, downtown and in the parks. Chocolate sea salt, banana puddin’ -- catch the cart wherever the day already has you. No fixed address.',
+    mapLink: 'https://maps.google.com/?q=King+of+Pops+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-kaminskys',
+    name: "Kaminsky's Dessert Cafe",
+    category: 'restaurant',
+    description: 'Pin 12. Sweets. Market St. Sundaes and milkshakes for the kids, cocktails and cake for everyone else at the same table.',
+    location: { lat: 32.7810641, lng: -79.9299856, name: "Kaminsky's -- 78 N Market St", address: '78 N Market St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Kaminskys+Dessert+Cafe+Market+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-christophe',
+    name: 'Christophe Artisan Chocolatier',
+    category: 'restaurant',
+    description: 'Pin 13. Sweets. Downtown. Hand-painted chocolates and an almond croissant worth the detour -- a grown-up sweet stop while the kids get their pops.',
+    location: { lat: 32.7833541, lng: -79.9339504, name: 'Christophe Artisan Chocolatier -- 90 Society St', address: '90 Society St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Christophe+Artisan+Chocolatier+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-sugar-bakeshop',
+    name: 'Sugar Bakeshop',
+    category: 'restaurant',
+    description: 'Pin 14. Sweets. Downtown. Small-batch cupcakes since 2007 -- vanilla blueberry, lime curd coconut. A short stop, not a whole outing.',
+    location: { lat: 32.7902467, lng: -79.9443364, name: 'Sugar Bakeshop -- 59 1/2 Cannon St', address: '59 1/2 Cannon St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Sugar+Bakeshop+Cannon+St+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-carmellas',
+    name: "Carmella's Cafe & Dessert Bar",
+    category: 'restaurant',
+    description: 'Pin 15. Sweets. East Bay St. Miniature cakes in a pale-pink building -- the key lime tart is the one to order.',
+    location: { lat: 32.7801964, lng: -79.9270135, name: "Carmella's -- 198 East Bay St", address: '198 East Bay St, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Carmellas+Cafe+198+East+Bay+St+Charleston+SC'
+  },
+  // --- Beach lunch --------------------------------------------------------
+  {
+    id: 'chs-eat-chico-feo',
+    name: 'Chico Feo',
+    category: 'restaurant',
+    description: 'Pin 19. Beach lunch. Folly Beach. Steps from the sand, casual enough for sandy feet and cranky four-year-olds.',
+    location: { lat: 32.6557789, lng: -79.9402464, name: 'Chico Feo -- 122 E Ashley Ave', address: '122 E Ashley Ave, Folly Beach, SC' },
+    mapLink: 'https://maps.google.com/?q=Chico+Feo+122+E+Ashley+Ave+Folly+Beach+SC'
+  },
+  {
+    id: 'chs-eat-loggerheads',
+    name: "Loggerhead's Beach Grill",
+    category: 'restaurant',
+    description: 'Beach lunch. Folly Beach, Center St. The other option steps from the sand.',
+    location: { lat: 32.6551995, lng: -79.9406733, name: "Loggerhead's -- Center St", address: 'Center St, Folly Beach, SC' },
+    mapLink: 'https://maps.google.com/?q=Loggerheads+Folly+Beach+SC'
+  },
+  // --- Seafood markets for the send-off dinner -----------------------------
+  {
+    id: 'chs-eat-cudaco',
+    name: 'CudaCo Seafood House',
+    category: 'restaurant',
+    description: 'Pin 17. Seafood market for the send-off. Folly Rd, close to base, known for what is actually fresh that day. A low-country boil scales cleanly for seventeen and can be mostly prepped ahead.',
+    location: { lat: 32.7419381, lng: -79.9679513, name: 'CudaCo Seafood House -- 765 Folly Rd', address: '765 Folly Rd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=CudaCo+Seafood+765+Folly+Rd+Charleston+SC'
+  },
+  {
+    id: 'chs-eat-crosbys',
+    name: "Crosby's Fish & Shrimp Co.",
+    category: 'restaurant',
+    description: 'Pin 18. Seafood market for the send-off. Folly Rd, open daily 6-6. The other supply option, also close to base.',
+    location: { lat: 32.6733794, lng: -79.9489372, name: "Crosby's Fish & Shrimp -- 2223 Folly Rd", address: '2223 Folly Rd, Charleston, SC' },
+    mapLink: 'https://maps.google.com/?q=Crosbys+Fish+and+Shrimp+2223+Folly+Rd+Charleston+SC'
+  }
+];
+
+// ============================================================================
+// TRIP-SCOPED GUIDE REGISTRY
+// ----------------------------------------------------------------------------
+// The four Trip Guide sections used to read four module-level constants
+// directly, which meant every trip saw Chicago. A GuideSet bundles one trip's
+// four sections plus their section copy; getGuideSet() picks the bundle from
+// the active trip. SANKOFA_GUIDE points at the original arrays by reference,
+// so the Sankofa trip renders the exact same objects as before.
+// ============================================================================
+
+export interface GuideSection {
+  items: GuideItem[];
+  title: string;
+  subtitle: string;
+  marginNote: string;
+}
+
+export interface GuideSet {
+  tripKey: string;
+  essentials: GuideSection;
+  restaurants: GuideSection;
+  highlights: GuideSection;
+  cultural: GuideSection;
+}
+
+export const SANKOFA_GUIDE: GuideSet = {
+  tripKey: 'sankofa-2026',
+  essentials: {
+    items: ACTIVITIES,
+    title: 'Getting Around & Essentials',
+    subtitle: 'Transport, weather, pharmacy',
+    marginNote: 'before you set out',
+  },
+  restaurants: {
+    items: RESTAURANTS,
+    title: 'Where to Eat',
+    subtitle: `${RESTAURANTS.length} places to eat`,
+    marginNote: 'hungry? look here',
+  },
+  highlights: {
+    items: CHICAGO_HIGHLIGHTS,
+    title: 'Chicago Highlights',
+    subtitle: `${CHICAGO_HIGHLIGHTS.length} must-see attractions`,
+    marginNote: 'the city, abridged',
+  },
+  cultural: {
+    items: EVENTS,
+    title: 'Cultural Sites',
+    subtitle: "Relevant to Sankofa's mission",
+    marginNote: 'sit with these',
+  },
+};
+
+export const CHARLESTON_GUIDE: GuideSet = {
+  tripKey: 'charleston-2026',
+  essentials: {
+    items: CHARLESTON_ESSENTIALS,
+    title: 'Need to Know',
+    subtitle: 'Flights, hours, and the constraints that shaped the week',
+    marginNote: 'read this first',
+  },
+  restaurants: {
+    items: CHARLESTON_EATS,
+    title: 'Where to Eat',
+    subtitle: `${CHARLESTON_EATS.length} places to eat`,
+    marginNote: 'numbers match the map',
+  },
+  highlights: {
+    items: CHARLESTON_HIGHLIGHTS,
+    title: 'The Big Ones',
+    subtitle: `${CHARLESTON_HIGHLIGHTS.length} attractions the days are built around`,
+    marginNote: 'book the aquarium early',
+  },
+  cultural: {
+    items: CHARLESTON_OUTDOORS,
+    title: 'Out of Doors',
+    subtitle: 'Beach, oak, fountain -- mostly free',
+    marginNote: 'bring a towel',
+  },
+};
+
+/** Fixed id of the Charleston trip row (see .planning/INGEST-2026-07-29-charleston.sql). */
+export const CHARLESTON_TRIP_ID = 'c4a71e00-8a3f-4b21-9d55-3c17e0aa2026';
+
+/**
+ * Pick the guide bundle for a trip. Matches on the known trip id first, then
+ * falls back to a name/location sniff so a re-seeded trip still resolves.
+ * Anything unrecognised gets the Sankofa/Chicago set, which is what every
+ * caller got before this registry existed.
+ */
+export function getGuideSet(
+  trip?: { id?: string; title?: string | null; location_name?: string | null } | null
+): GuideSet {
+  if (!trip) return SANKOFA_GUIDE;
+  if (trip.id === CHARLESTON_TRIP_ID) return CHARLESTON_GUIDE;
+
+  const haystack = `${trip.title ?? ''} ${trip.location_name ?? ''}`.toLowerCase();
+  if (haystack.includes('charleston')) return CHARLESTON_GUIDE;
+
+  return SANKOFA_GUIDE;
 }

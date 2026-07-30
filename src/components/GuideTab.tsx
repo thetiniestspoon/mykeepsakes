@@ -29,8 +29,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { CHICAGO_HIGHLIGHTS, RESTAURANTS, ACTIVITIES, EVENTS } from '@/lib/itinerary-data';
-import type { GuideItem } from '@/lib/itinerary-data';
+import { getGuideSet } from '@/lib/itinerary-data';
+import type { GuideItem, GuideSection } from '@/lib/itinerary-data';
 import {
   useFavorites,
   useToggleFavorite,
@@ -56,9 +56,14 @@ import { MarginNote } from '@/preview/collage/ui/MarginNote';
 /**
  * Guide tab — Collage direction (Curator's Folio).
  * Migrated 2026-04-23 (Phase 4 #8). Presentation only — all section ordering,
- * data sources (CHICAGO_HIGHLIGHTS / RESTAURANTS / ACTIVITIES / EVENTS),
  * accordion value IDs, favorite/note/photo mutations, and navigation helpers
- * preserved. Outer wrapper scopes tokens via className="collage-root"; each
+ * preserved.
+ *
+ * 2026-07-29: content became trip-scoped. The four sections now read from
+ * getGuideSet(activeTrip) instead of importing CHICAGO_HIGHLIGHTS / RESTAURANTS
+ * / ACTIVITIES / EVENTS directly, so a second trip (Charleston 2026) can carry
+ * its own guide without the Sankofa trip inheriting it. Unrecognised trips fall
+ * back to the Sankofa/Chicago set — the previous behaviour, unchanged. Outer wrapper scopes tokens via className="collage-root"; each
  * section reads as a tape-accented paper card under a Rubik Mono One stamp,
  * with hairline rules between sections and Caveat asides in the margin.
  */
@@ -627,6 +632,52 @@ export function GuideTab() {
   const createItem = useCreateItem();
   const createLocation = useCreateLocation();
 
+  // Trip-scoped guide content. Falls back to the Sankofa/Chicago set for any
+  // trip the registry doesn't recognise, which is what this tab always showed.
+  const guide = getGuideSet(trip);
+
+  const sections: Array<{
+    value: string;
+    stampLabel: string;
+    section: GuideSection;
+    tapePosition: 'top-left' | 'top-right';
+    tapeRotate: number;
+    icon: React.ReactNode;
+  }> = [
+    {
+      value: 'essentials',
+      stampLabel: 'essentials',
+      section: guide.essentials,
+      tapePosition: 'top-left',
+      tapeRotate: -5,
+      icon: <Info style={{ width: 20, height: 20 }} />,
+    },
+    {
+      value: 'restaurants',
+      stampLabel: 'dining',
+      section: guide.restaurants,
+      tapePosition: 'top-right',
+      tapeRotate: 4,
+      icon: <Utensils style={{ width: 20, height: 20 }} />,
+    },
+    {
+      value: 'highlights',
+      stampLabel: 'highlights',
+      section: guide.highlights,
+      tapePosition: 'top-left',
+      tapeRotate: -4,
+      icon: <Landmark style={{ width: 20, height: 20 }} />,
+    },
+    {
+      value: 'cultural',
+      stampLabel: 'cultural',
+      section: guide.cultural,
+      tapePosition: 'top-right',
+      tapeRotate: 5,
+      icon: <Heart style={{ width: 20, height: 20 }} />,
+    },
+  ];
+
   const openMapModal = (location: SelectedLocation) => {
     setSelectedLocation(location);
     setMapModalOpen(true);
@@ -751,97 +802,38 @@ export function GuideTab() {
         collapsible
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
-        {/* Getting Around & Essentials */}
-        <FolioSection
-          value="essentials"
-          stampLabel="essentials"
-          title="Getting Around & Essentials"
-          subtitle="Transport, weather, pharmacy"
-          marginNote="before you set out"
-          tapePosition="top-left"
-          tapeRotate={-5}
-          icon={<Info style={{ width: 20, height: 20 }} />}
-        >
-          {ACTIVITIES.map((item) => (
-            <GuideItemCard
-              key={item.id}
-              item={item}
-              onOpenMap={openMapModal}
-              onOpenPhoto={openPhotoViewer}
-              onAddToDay={handleAddToDay}
-              days={days}
-            />
-          ))}
-        </FolioSection>
-
-        {/* Where to Eat — city picks first, hotel-area spots after */}
-        <FolioSection
-          value="restaurants"
-          stampLabel="dining"
-          title="Where to Eat"
-          subtitle={`${RESTAURANTS.length} places to eat`}
-          marginNote="hungry? look here"
-          tapePosition="top-right"
-          tapeRotate={4}
-          icon={<Utensils style={{ width: 20, height: 20 }} />}
-        >
-          {RESTAURANTS.map((restaurant) => (
-            <GuideItemCard
-              key={restaurant.id}
-              item={restaurant}
-              onOpenMap={openMapModal}
-              onOpenPhoto={openPhotoViewer}
-              onAddToDay={handleAddToDay}
-              days={days}
-            />
-          ))}
-        </FolioSection>
-
-        {/* Chicago Highlights */}
-        <FolioSection
-          value="highlights"
-          stampLabel="highlights"
-          title="Chicago Highlights"
-          subtitle={`${CHICAGO_HIGHLIGHTS.length} must-see attractions`}
-          marginNote="the city, abridged"
-          tapePosition="top-left"
-          tapeRotate={-4}
-          icon={<Landmark style={{ width: 20, height: 20 }} />}
-        >
-          {CHICAGO_HIGHLIGHTS.map((item) => (
-            <GuideItemCard
-              key={item.id}
-              item={item}
-              onOpenMap={openMapModal}
-              onOpenPhoto={openPhotoViewer}
-              onAddToDay={handleAddToDay}
-              days={days}
-            />
-          ))}
-        </FolioSection>
-
-        {/* Cultural Sites */}
-        <FolioSection
-          value="cultural"
-          stampLabel="cultural"
-          title="Cultural Sites"
-          subtitle="Relevant to Sankofa's mission"
-          marginNote="sit with these"
-          tapePosition="top-right"
-          tapeRotate={5}
-          icon={<Heart style={{ width: 20, height: 20 }} />}
-        >
-          {EVENTS.map((item) => (
-            <GuideItemCard
-              key={item.id}
-              item={item}
-              onOpenMap={openMapModal}
-              onOpenPhoto={openPhotoViewer}
-              onAddToDay={handleAddToDay}
-              days={days}
-            />
-          ))}
-        </FolioSection>
+        {/*
+          Section order, accordion value IDs, stamp labels, tape geometry and
+          icons are unchanged. Only the *content* is now trip-scoped: the
+          section copy and items come from getGuideSet(trip). An empty section
+          is skipped rather than rendered as an empty accordion panel.
+        */}
+        {sections.map(({ value, stampLabel, section, tapePosition, tapeRotate, icon }) =>
+          section.items.length === 0 ? null : (
+            <FolioSection
+              key={value}
+              value={value}
+              stampLabel={stampLabel}
+              title={section.title}
+              subtitle={section.subtitle}
+              marginNote={section.marginNote}
+              tapePosition={tapePosition}
+              tapeRotate={tapeRotate}
+              icon={icon}
+            >
+              {section.items.map((item) => (
+                <GuideItemCard
+                  key={item.id}
+                  item={item}
+                  onOpenMap={openMapModal}
+                  onOpenPhoto={openPhotoViewer}
+                  onAddToDay={handleAddToDay}
+                  days={days}
+                />
+              ))}
+            </FolioSection>
+          )
+        )}
       </Accordion>
 
       {/* Map Modal */}
