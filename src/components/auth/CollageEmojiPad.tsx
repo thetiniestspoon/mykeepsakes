@@ -11,7 +11,7 @@ interface Props {
    * emoji is tapped. When false, the pad renders an explicit submit button
    * that becomes enabled once all 4 slots are filled, giving the user a
    * chance to review/correct a mistap before committing the PIN. Used by
-   * PinSetup to prevent users from mis-locking themselves out on a typo.
+   * PIN-setup flows to prevent users from mis-locking themselves out on a typo.
    */
   autoSubmit?: boolean;
 }

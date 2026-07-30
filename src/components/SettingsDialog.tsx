@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useUpdatePin } from '@/hooks/use-trip-data';
 import { useActiveTrip, useDeleteTrip } from '@/hooks/use-trip';
 import { Loader2 } from 'lucide-react';
 import { ExportDialog } from '@/components/export/ExportDialog';
 import { TripSelector } from '@/components/trips/TripSelector';
-import { CollageEmojiPad } from '@/components/auth/CollageEmojiPad';
 import { Stamp } from '@/preview/collage/ui/Stamp';
 import { StickerPill } from '@/preview/collage/ui/StickerPill';
 import {
@@ -23,7 +21,6 @@ import '@/preview/collage/collage.css';
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentPin?: string;
   onLogout: () => void;
 }
 
@@ -34,61 +31,13 @@ interface SettingsDialogProps {
  * with `<div className="collage-root">` so tokens apply inside.
  */
 export function SettingsDialog({ open, onOpenChange, onLogout }: SettingsDialogProps) {
-  const [pinStep, setPinStep] = useState<'idle' | 'create' | 'confirm'>('idle');
-  const [firstPin, setFirstPin] = useState<string[]>([]);
-  const [pinError, setPinError] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const updatePin = useUpdatePin();
   const { data: trip } = useActiveTrip();
   const deleteTrip = useDeleteTrip();
 
-  const handleStartPinChange = () => {
-    setPinStep('create');
-    setFirstPin([]);
-    setPinError(null);
-  };
-
-  const handleFirstPin = (emojiPin: string[]) => {
-    setFirstPin(emojiPin);
-    setPinStep('confirm');
-    setPinError(null);
-  };
-
-  const handleConfirmPin = async (emojiPin: string[]) => {
-    if (emojiPin.join('') !== firstPin.join('')) {
-      setPinError('PINs do not match. Try again.');
-      setTimeout(() => {
-        setPinStep('create');
-        setFirstPin([]);
-        setPinError(null);
-      }, 1500);
-      return;
-    }
-
-    updatePin.mutate(emojiPin, {
-      onSuccess: () => {
-        setPinStep('idle');
-        setFirstPin([]);
-        setPinError(null);
-      },
-      onError: () => {
-        setPinError('Failed to update PIN.');
-        setPinStep('idle');
-        setFirstPin([]);
-      },
-    });
-  };
-
-  const handleCancelPinChange = () => {
-    setPinStep('idle');
-    setFirstPin([]);
-    setPinError(null);
-  };
-
   const handleLogout = () => {
-    sessionStorage.removeItem('mk-authenticated');
     onLogout();
     onOpenChange(false);
   };
@@ -268,69 +217,6 @@ export function SettingsDialog({ open, onOpenChange, onLogout }: SettingsDialogP
 
               {hairline}
 
-              {/* Change PIN Section */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {sectionLabel('change pin')}
-
-                {pinStep === 'idle' &&
-                  collageButton({
-                    variant: 'outline',
-                    onClick: handleStartPinChange,
-                    children: 'Set new emoji PIN',
-                  })}
-
-                {pinStep === 'create' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <p
-                      style={{
-                        ...helpText,
-                        textAlign: 'center',
-                        margin: 0,
-                      }}
-                    >
-                      Choose your new 4-emoji PIN
-                    </p>
-                    <CollageEmojiPad
-                      onSubmit={handleFirstPin}
-                      error={pinError}
-                      submitLabel="Next"
-                    />
-                    {collageButton({
-                      variant: 'ghost',
-                      onClick: handleCancelPinChange,
-                      children: 'Cancel',
-                    })}
-                  </div>
-                )}
-
-                {pinStep === 'confirm' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <p
-                      style={{
-                        ...helpText,
-                        textAlign: 'center',
-                        margin: 0,
-                      }}
-                    >
-                      Confirm your new PIN
-                    </p>
-                    <CollageEmojiPad
-                      onSubmit={handleConfirmPin}
-                      loading={updatePin.isPending}
-                      error={pinError}
-                      submitLabel="Update PIN"
-                    />
-                    {collageButton({
-                      variant: 'ghost',
-                      onClick: handleCancelPinChange,
-                      children: 'Cancel',
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {hairline}
-
               {/* Danger Zone */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <Stamp
@@ -364,7 +250,8 @@ export function SettingsDialog({ open, onOpenChange, onLogout }: SettingsDialogP
                     margin: '6px 0 0',
                   }}
                 >
-                  You'll need to enter the PIN again to access the trip planner.
+                  Signing out ends your Oak Park house session on this device — the arcade
+                  games will ask for your PIN again too.
                 </p>
               </div>
 
